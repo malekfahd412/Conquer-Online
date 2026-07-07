@@ -1,0 +1,251 @@
+# TASK
+
+Update the Discord Live Server Status project.
+
+Do NOT redesign the embed.
+
+Keep the current embed exactly as it is.
+
+I want to add a professional row of Link Buttons directly under the Live Server Status embed.
+
+====================================================================
+
+GOAL
+
+====================================================================
+
+The Live Server Status embed should become the official dashboard of my Conquer Online private server.
+
+Instead of displaying social media links inside the embed itself, create Discord Link Buttons below the embed.
+
+The buttons must always stay attached to the same status message.
+
+When the embed updates every 30 seconds, the buttons must remain.
+
+Never create duplicate buttons.
+
+Never send a second message.
+
+The bot must always edit the existing message while preserving the Action Row.
+
+====================================================================
+
+BUTTONS
+
+====================================================================
+
+Create one Action Row containing Link Buttons.
+
+Button 1
+
+🌍 Website
+
+Uses environment variable
+
+SERVER_WEBSITE
+
+--------------------------------------------------
+
+Button 2
+
+📘 Facebook
+
+Uses environment variable
+
+FACEBOOK_URL
+
+--------------------------------------------------
+
+Button 3
+
+💬 WhatsApp
+
+Uses environment variable
+
+WHATSAPP_URL
+
+--------------------------------------------------
+
+Optional buttons
+
+Only create them if the corresponding environment variable exists.
+
+🎮 Discord
+
+DISCORD_INVITE
+
+📸 Instagram
+
+INSTAGRAM_URL
+
+▶️ YouTube
+
+YOUTUBE_URL
+
+🎵 TikTok
+
+TIKTOK_URL
+
+====================================================================
+
+RULES
+
+====================================================================
+
+Do NOT hardcode URLs.
+
+Read every URL from environment variables.
+
+If a URL does not exist
+
+do NOT create its button.
+
+The buttons must always appear in a clean order.
+
+Website
+
+Facebook
+
+WhatsApp
+
+Discord
+
+Instagram
+
+YouTube
+
+TikTok
+
+====================================================================
+
+MESSAGE MANAGEMENT
+
+====================================================================
+
+The bot currently edits one Live Server Status message.
+
+Keep this behavior.
+
+When editing the message
+
+always include:
+
+Updated Embed
+
+Updated Buttons
+
+Never remove the buttons.
+
+Never duplicate the buttons.
+
+Never send another message.
+
+If the message is deleted
+
+recreate the message with:
+
+Embed
+
+Buttons
+
+Save the new Message ID.
+
+====================================================================
+
+DESIGN
+
+====================================================================
+
+Do NOT place social media links inside the embed.
+
+The embed should only contain live server information.
+
+The buttons below the embed become the official navigation bar of the server.
+
+The final layout should look like this:
+
+----------------------------------------------------
+
+⚔️ Conquer Online
+
+Live Server Status
+
+[ Embed ]
+
+────────────────────────
+
+🌍 Website
+
+📘 Facebook
+
+💬 WhatsApp
+
+🎮 Discord
+
+----------------------------------------------------
+
+====================================================================
+
+CODE REQUIREMENTS
+
+====================================================================
+
+Use discord.js v14.
+
+Use ButtonBuilder.
+
+Use ButtonStyle.Link.
+
+Use ActionRowBuilder.
+
+Create a reusable helper function
+
+buildSocialButtons()
+
+The function should automatically detect available URLs and return the correct ActionRow(s).
+
+Never duplicate code.
+
+====================================================================
+
+ENVIRONMENT VARIABLES
+
+====================================================================
+
+SERVER_WEBSITE=
+
+FACEBOOK_URL=
+
+WHATSAPP_URL=
+
+DISCORD_INVITE=
+
+INSTAGRAM_URL=
+
+YOUTUBE_URL=
+
+TIKTOK_URL=
+
+====================================================================
+
+VALIDATION
+
+====================================================================
+
+After implementation:
+
+Build the project.
+
+Fix any TypeScript errors.
+
+Run the bot.
+
+Verify the buttons appear correctly.
+
+Verify every button opens the correct URL.
+
+Verify editing the embed keeps the buttons.
+
+Verify deleting the message recreates the embed and buttons correctly.
+
+Only finish when everything works perfectly.

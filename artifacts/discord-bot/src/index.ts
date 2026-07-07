@@ -6,6 +6,7 @@ import { ServerStatusService } from './services/server-status.service';
 import { createDiscordClient, loginClient } from './discord/client';
 import { MessageManager } from './discord/message-manager';
 import { buildStatusEmbed } from './discord/embed-builder';
+import { buildSocialButtons } from './discord/button-builder';
 
 const RETRY_CONNECT_INTERVAL_MS = 15_000;
 
@@ -47,10 +48,15 @@ async function main(): Promise<void> {
   const repository = new ServerStatusRepository(provider);
   const service = new ServerStatusService(repository);
 
-  const embedOptions = {
-    serverLogoUrl: config.server.logoUrl,
-    social: config.social,
-  };
+  const embedOptions = { serverLogoUrl: config.server.logoUrl };
+  const socialButtons = buildSocialButtons(config.social);
+
+  const buttonCount = socialButtons.reduce((n, row) => n + row.components.length, 0);
+  if (buttonCount > 0) {
+    logger.info(`Social buttons: ${buttonCount} button(s) across ${socialButtons.length} row(s)`);
+  } else {
+    logger.info('No social URLs configured — buttons row will be empty');
+  }
 
   connectWithRetry(provider, config.dataSource).catch(error => {
     logger.error('Unexpected error in connectWithRetry', error);
@@ -75,7 +81,7 @@ async function main(): Promise<void> {
     try {
       const status = await service.getServerStatus(config.server.name);
       const embed = buildStatusEmbed(status, embedOptions);
-      await messageManager.updateEmbed(embed);
+      await messageManager.updateEmbed(embed, socialButtons);
     } catch (error) {
       logger.error('Failed to update status embed', error);
 

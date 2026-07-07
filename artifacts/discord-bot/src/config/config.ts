@@ -29,6 +29,10 @@ export interface AppConfig {
     website: string | undefined;
     facebook: string | undefined;
     whatsapp: string | undefined;
+    discordInvite: string | undefined;
+    instagram: string | undefined;
+    youtube: string | undefined;
+    tiktok: string | undefined;
   };
   dataSource: DataSource;
   mssql: MssqlConfig | undefined;
@@ -91,6 +95,10 @@ export function loadConfig(): AppConfig {
       website: optionalEnv('SERVER_WEBSITE'),
       facebook: optionalEnv('FACEBOOK_URL'),
       whatsapp: optionalEnv('WHATSAPP_URL'),
+      discordInvite: optionalEnv('DISCORD_INVITE'),
+      instagram: optionalEnv('INSTAGRAM_URL'),
+      youtube: optionalEnv('YOUTUBE_URL'),
+      tiktok: optionalEnv('TIKTOK_URL'),
     },
     dataSource,
     mssql,

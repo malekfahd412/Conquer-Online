@@ -50,27 +50,8 @@ function buildUpcomingEventsField(events: ServerStatus['upcomingEvents']): strin
     .join('\n');
 }
 
-function buildSocialField(social: {
-  website: string | undefined;
-  facebook: string | undefined;
-  whatsapp: string | undefined;
-}): string | null {
-  const lines: string[] = [];
-
-  if (social.website) lines.push(`🌐 [Website](${social.website})`);
-  if (social.facebook) lines.push(`📘 [Facebook](${social.facebook})`);
-  if (social.whatsapp) lines.push(`💬 [WhatsApp](${social.whatsapp})`);
-
-  return lines.length > 0 ? lines.join('  ·  ') : null;
-}
-
 export interface EmbedOptions {
   serverLogoUrl: string | undefined;
-  social: {
-    website: string | undefined;
-    facebook: string | undefined;
-    whatsapp: string | undefined;
-  };
 }
 
 export function buildStatusEmbed(status: ServerStatus, options: EmbedOptions): APIEmbed {
@@ -132,15 +113,6 @@ export function buildStatusEmbed(status: ServerStatus, options: EmbedOptions): A
       inline: true,
     },
   );
-
-  const socialLine = buildSocialField(options.social);
-  if (socialLine) {
-    embed.addFields({
-      name: 'Social Media',
-      value: socialLine,
-      inline: false,
-    });
-  }
 
   embed.setFooter({ text: 'Powered by Conquer Online' });
   embed.setTimestamp(status.lastUpdate);

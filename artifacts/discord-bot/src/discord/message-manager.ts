@@ -3,9 +3,13 @@ import {
   type TextChannel,
   type Message,
   type APIEmbed,
+  type ActionRowBuilder,
+  type ButtonBuilder,
   ChannelType,
 } from 'discord.js';
 import { logger } from '../utils/logger';
+
+type ButtonRow = ActionRowBuilder<ButtonBuilder>;
 
 export class MessageManager {
   private message: Message | null = null;
@@ -40,23 +44,28 @@ export class MessageManager {
     }
   }
 
-  async updateEmbed(embed: APIEmbed): Promise<void> {
+  async updateEmbed(embed: APIEmbed, components: ButtonRow[]): Promise<void> {
     if (!this.channel) {
       throw new Error('MessageManager is not initialized — call initialize() first');
     }
 
+    const payload = {
+      embeds: [embed],
+      components,
+    };
+
     if (this.message) {
       try {
-        await this.message.edit({ embeds: [embed] });
+        await this.message.edit(payload);
         logger.info('Status message updated');
         return;
       } catch (error) {
-        logger.warning('Failed to edit existing message — creating a new one', error);
+        logger.warning('Failed to edit existing message — recreating', error);
         this.message = null;
       }
     }
 
-    this.message = await this.channel.send({ embeds: [embed] });
+    this.message = await this.channel.send(payload);
     logger.success(`Status message created (ID: ${this.message.id})`);
   }
 
