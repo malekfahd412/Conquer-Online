@@ -11,7 +11,7 @@ export async function loginClient(client: Client, token: string): Promise<void> 
   logger.info('Logging into Discord...');
 
   await new Promise<void>((resolve, reject) => {
-    client.once('ready', () => {
+    client.once('clientReady', () => {
       if (client.user) {
         logger.success(`Logged in as ${client.user.tag}`);
       }
