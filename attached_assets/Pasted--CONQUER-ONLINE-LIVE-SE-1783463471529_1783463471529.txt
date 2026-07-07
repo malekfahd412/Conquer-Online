@@ -1,0 +1,733 @@
+# ========================================================================
+# CONQUER ONLINE LIVE SERVER STATUS BOT
+# MASTER PROJECT SPECIFICATION
+# Version 1.0
+# ========================================================================
+
+You are an Expert Software Architect, Senior Backend Engineer,
+Senior TypeScript Developer and Senior Discord Developer.
+
+Your task is NOT to generate random code.
+
+Your task is to DESIGN and BUILD a production-ready application.
+
+Never generate unfinished code.
+
+Never generate placeholder code.
+
+Never generate mock implementations.
+
+Never generate fake SQL queries.
+
+Never stop until every part of the project is working correctly.
+
+==========================================================================
+
+PROJECT OVERVIEW
+
+==========================================================================
+
+This project belongs to a Conquer Online Private Server.
+
+The Discord Bot is NOT the game server.
+
+The Discord Bot is NOT the database.
+
+The Discord Bot is NOT the website.
+
+The Discord Bot is a LIVE DASHBOARD.
+
+Its only purpose is displaying the current status of the game server inside Discord.
+
+Think of it as the official live control panel of the server.
+
+The bot NEVER creates information.
+
+The bot NEVER estimates information.
+
+The bot NEVER stores game information.
+
+It ONLY displays information coming from the production game server.
+
+==========================================================================
+
+HOW THE SYSTEM WORKS
+
+==========================================================================
+
+Players
+
+↓
+
+Conquer Online Game Server
+
+↓
+
+Microsoft SQL Server
+
+↓
+
+( Optional REST API )
+
+↓
+
+Discord Bot
+
+↓
+
+Discord Embed
+
+The Discord Bot reads data.
+
+Processes it.
+
+Formats it professionally.
+
+Displays it inside Discord.
+
+==========================================================================
+
+CURRENT PROJECT STATUS
+
+==========================================================================
+
+This project starts from ABSOLUTE ZERO.
+
+There is NO existing code.
+
+There is NO package.json
+
+There is NO tsconfig
+
+There is NO Discord Bot
+
+There is NO folder structure
+
+Everything must be created from scratch.
+
+==========================================================================
+
+IMPORTANT DATABASE INFORMATION
+
+==========================================================================
+
+The production game server already exists.
+
+The production MSSQL database already exists.
+
+The SQL schema is maintained by another developer.
+
+Database credentials are NOT available yet.
+
+The hosting provider will provide them later.
+
+Therefore:
+
+DO NOT GUESS
+
+Database names
+
+Table names
+
+Column names
+
+Stored Procedures
+
+Views
+
+Triggers
+
+Queries
+
+DO NOT ASSUME ANY SQL STRUCTURE.
+
+Instead:
+
+Create an MSSQL Provider ready for production implementation.
+
+Create interfaces.
+
+Create repositories.
+
+Create services.
+
+When production credentials become available,
+only the Provider implementation should require updates.
+
+NO architecture changes should ever be necessary.
+
+==========================================================================
+
+PROJECT GOAL
+
+==========================================================================
+
+Version 1 contains ONLY ONE FEATURE.
+
+LIVE SERVER STATUS
+
+Nothing else.
+
+Do NOT build:
+
+Player commands
+
+Slash commands
+
+Verification
+
+Guild System
+
+Admin Commands
+
+Moderation
+
+Anti Cheat
+
+Website Sync
+
+Rankings
+
+Economy
+
+AI
+
+Tickets
+
+Notifications
+
+Anything else.
+
+Version 1 = Live Server Status ONLY.
+
+==========================================================================
+
+TECH STACK
+
+==========================================================================
+
+Node.js 22+
+
+TypeScript
+
+discord.js v14
+
+pnpm
+
+dotenv
+
+mssql
+
+eslint
+
+prettier
+
+Strict TypeScript
+
+ES Modules
+
+==========================================================================
+
+PROJECT STRUCTURE
+
+==========================================================================
+
+Create
+
+package.json
+
+tsconfig.json
+
+eslint.config.js
+
+.prettierrc
+
+.gitignore
+
+README.md
+
+src/
+
+Inside src create
+
+config/
+
+discord/
+
+providers/
+
+repositories/
+
+services/
+
+models/
+
+utils/
+
+types/
+
+==========================================================================
+
+ARCHITECTURE
+
+==========================================================================
+
+Discord Client
+
+↓
+
+Message Manager
+
+↓
+
+Embed Builder
+
+↓
+
+Status Service
+
+↓
+
+Repository
+
+↓
+
+Provider
+
+↓
+
+MSSQL
+
+OR
+
+REST API
+
+Rules
+
+Discord Client NEVER accesses Database
+
+Embed Builder NEVER accesses Database
+
+Status Service is the only layer allowed to request data.
+
+Repository communicates with Provider.
+
+Provider communicates with MSSQL.
+
+==========================================================================
+
+SERVER STATUS MODEL
+
+==========================================================================
+
+Create a strongly typed interface.
+
+Server Name
+
+Server Status
+
+Players Online
+
+Maximum Players
+
+Total Accounts
+
+Peak Online Today
+
+Record Online
+
+Server Uptime
+
+Active Events
+
+Upcoming Events
+
+Last Update
+
+==========================================================================
+
+EMBED DESIGN
+
+==========================================================================
+
+Create ONE professional Embed.
+
+Author
+
+⚔️ Conquer Online
+
+Title
+
+Live Server Status
+
+Use the server logo if available.
+
+Green when Online.
+
+Yellow during Maintenance.
+
+Red when Offline.
+
+==========================================================================
+
+SERVER OVERVIEW SECTION
+
+==========================================================================
+
+Display
+
+🟢 Status
+
+👥 Players Online
+
+Display
+
+Current Players / Maximum Players
+
+Generate a beautiful Unicode progress bar.
+
+Example
+
+428 / 1000
+
+████████░░░░░░
+
+42%
+
+Display
+
+📊 Total Accounts
+
+Display
+
+📈 Peak Today
+
+Display
+
+🏆 Record Online
+
+Display
+
+⏳ Uptime
+
+DO NOT DISPLAY PING.
+
+==========================================================================
+
+ACTIVE EVENTS
+
+==========================================================================
+
+Show up to three active events.
+
+Example
+
+🟢 Guild War
+
+🟢 Capture The Flag
+
+🟡 Team PK
+
+Starts in 5 minutes
+
+If there are no active events
+
+Display
+
+No Active Events
+
+==========================================================================
+
+NEXT EVENTS
+
+==========================================================================
+
+Display the next scheduled events.
+
+Example
+
+Elite PK
+
+18:00
+
+Boss Invasion
+
+20:00
+
+Last Man Standing
+
+21:30
+
+==========================================================================
+
+SOCIAL MEDIA
+
+==========================================================================
+
+Create a section called
+
+Social Media
+
+Display only links that actually exist.
+
+Website
+
+Facebook
+
+WhatsApp
+
+If a URL is missing
+
+Hide it automatically.
+
+==========================================================================
+
+FOOTER
+
+==========================================================================
+
+Powered by Conquer Online
+
+Display Discord Relative Timestamp.
+
+==========================================================================
+
+UPDATE SYSTEM
+
+==========================================================================
+
+When the bot starts
+
+Login into Discord.
+
+Locate CHANNEL_SERVER_STATUS.
+
+Search for the existing status message.
+
+If found
+
+Reuse it.
+
+Edit it.
+
+If missing
+
+Create it.
+
+Save its Message ID.
+
+Every 30 seconds
+
+Request fresh data
+
+Rebuild Embed
+
+Edit SAME message
+
+Never spam
+
+Never duplicate
+
+==========================================================================
+
+ENVIRONMENT VARIABLES
+
+==========================================================================
+
+Required
+
+DISCORD_BOT_TOKEN
+
+CHANNEL_SERVER_STATUS
+
+SERVER_NAME
+
+Optional
+
+SERVER_LOGO_URL
+
+SERVER_WEBSITE
+
+FACEBOOK_URL
+
+WHATSAPP_URL
+
+DATA_SOURCE
+
+MSSQL_SERVER
+
+MSSQL_PORT
+
+MSSQL_DATABASE
+
+MSSQL_USER
+
+MSSQL_PASSWORD
+
+GAME_SERVER_API_URL
+
+==========================================================================
+
+ERROR HANDLING
+
+==========================================================================
+
+If Discord Token is missing
+
+Exit with a clear message.
+
+If Discord login fails
+
+Exit with explanation.
+
+If Channel is missing
+
+Print clear instructions.
+
+If Database is unavailable
+
+Bot MUST remain online.
+
+Display
+
+Waiting for Server Connection
+
+Never crash.
+
+Retry connection automatically.
+
+==========================================================================
+
+LOGGING
+
+==========================================================================
+
+Create a Logger.
+
+Levels
+
+INFO
+
+SUCCESS
+
+WARNING
+
+ERROR
+
+Every startup step must be logged.
+
+==========================================================================
+
+CODE QUALITY
+
+==========================================================================
+
+Strict TypeScript
+
+No duplicated code
+
+No dead code
+
+No unused imports
+
+No any unless absolutely necessary
+
+Clean Architecture
+
+Dependency Injection where appropriate
+
+Reusable Services
+
+Professional naming
+
+Readable code
+
+==========================================================================
+
+SELF TESTING
+
+==========================================================================
+
+Before completing the task
+
+Install every dependency
+
+Build project
+
+Fix compile errors
+
+Run project
+
+Fix runtime errors
+
+Verify Discord login
+
+Verify Embed creation
+
+Verify automatic update
+
+Verify scheduler
+
+Verify Message Editing
+
+Verify TypeScript
+
+Verify ESLint
+
+Verify Production Readiness
+
+Continue fixing until everything succeeds.
+
+Never finish while there are build errors.
+
+==========================================================================
+
+FUTURE EXPANSION
+
+==========================================================================
+
+This project is the foundation of a complete MMORPG Management Platform.
+
+Future modules will include
+
+Website Synchronization
+
+Player Profiles
+
+Guild Management
+
+AI Analytics
+
+Economy Monitoring
+
+Anti Cheat
+
+Admin Commands
+
+Moderation
+
+Player Verification
+
+Support Tickets
+
+Notifications
+
+Marketplace
+
+Event Management
+
+DO NOT implement them now.
+
+However
+
+Design the architecture so these modules can be added later without modifying the existing core architecture.
+
+==========================================================================
+
+FINAL OBJECTIVE
+
+==========================================================================
+
+The final result must be a clean, production-ready, scalable Discord Live Server Status application that is capable of connecting to a real Conquer Online production server once MSSQL credentials are provided.
+
+Do not consider the project complete until it builds successfully, runs successfully, logs into Discord successfully, creates exactly one live status message, and updates that message every 30 seconds without duplication.
