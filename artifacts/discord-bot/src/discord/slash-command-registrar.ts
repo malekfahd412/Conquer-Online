@@ -23,34 +23,15 @@ const CLEAR_COMMAND = {
 
 const ALL_COMMANDS = [AI_COMMAND, CLEAR_COMMAND];
 
-export async function registerSlashCommands(
-  token: string,
-  clientId: string,
-  guildIds: string[],
-): Promise<void> {
+const GUILD_ID = '1213437502078062674';
+
+export async function registerSlashCommands(token: string, clientId: string): Promise<void> {
   const rest = new REST({ version: '10' }).setToken(token);
 
-  if (guildIds.length === 0) {
-    try {
-      await rest.put(Routes.applicationCommands(clientId), { body: ALL_COMMANDS });
-      logger.success('Registered /ai and /clear globally (may take up to 1h to appear)');
-    } catch (error) {
-      logger.error('Failed to register global slash commands', error);
-    }
-    return;
-  }
-
-  let registered = 0;
-  for (const guildId of guildIds) {
-    try {
-      await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: ALL_COMMANDS });
-      registered++;
-    } catch (error) {
-      logger.error(`Failed to register commands in guild ${guildId}`, error);
-    }
-  }
-
-  if (registered > 0) {
-    logger.success(`Registered /ai and /clear in ${registered} guild(s) — commands are instantly available`);
+  try {
+    await rest.put(Routes.applicationGuildCommands(clientId, GUILD_ID), { body: ALL_COMMANDS });
+    logger.success(`Registered /ai and /clear in guild ${GUILD_ID} — commands are instantly available`);
+  } catch (error) {
+    logger.error(`Failed to register commands in guild ${GUILD_ID}`, error);
   }
 }
