@@ -63,6 +63,12 @@ export class AIService {
         });
         return;
       }
+      if (interaction.isChatInputCommand() && interaction.commandName === 'clear') {
+        this.onClearCommand(interaction as ChatInputCommandInteraction).catch(error => {
+          logger.error('AI clear command error', error);
+        });
+        return;
+      }
       this.actionValidator.handleInteraction(interaction).catch(error => {
         logger.error('AI interaction handler error', error);
       });
@@ -72,6 +78,28 @@ export class AIService {
     if (this.config.adminRole) logger.info(`AI admin role: "${this.config.adminRole}"`);
     if (this.config.chatChannelId) logger.info(`AI chat channel: ${this.config.chatChannelId}`);
     if (!this.config.logChannelId) logger.warning('CHANNEL_AI_LOG not set — execution logs will not be posted');
+  }
+
+  // ─── Clear Command Handler ────────────────────────────────────────────────
+
+  private async onClearCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used inside a server.', ephemeral: true });
+      return;
+    }
+
+    const member = interaction.member instanceof GuildMember
+      ? interaction.member
+      : await interaction.guild.members.fetch(interaction.user.id);
+
+    if (!this.permissionManager.isAdmin(member)) {
+      await interaction.reply({ content: '❌ You do not have permission to use this command.', ephemeral: true });
+      return;
+    }
+
+    this.historyManager.clearChannel(interaction.channelId);
+    logger.info(`Conversation history cleared for channel ${interaction.channelId} by ${interaction.user.tag}`);
+    await interaction.reply({ content: '🧹 AI conversation history cleared for this channel. Starting fresh!', ephemeral: true });
   }
 
   // ─── Slash Command Handler ────────────────────────────────────────────────

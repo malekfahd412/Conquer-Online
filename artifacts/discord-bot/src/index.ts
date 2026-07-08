@@ -74,7 +74,8 @@ async function main(): Promise<void> {
   await loginClient(client, config.discord.token);
 
   if (client.user) {
-    registerSlashCommands(config.discord.token, client.user.id).catch(error => {
+    const guildIds = [...client.guilds.cache.keys()];
+    registerSlashCommands(config.discord.token, client.user.id, guildIds).catch(error => {
       logger.error('Slash command registration failed', error);
     });
   }
