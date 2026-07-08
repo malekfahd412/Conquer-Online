@@ -1,5 +1,10 @@
 import type { Guild } from 'discord.js';
-import type { ToolResult } from '../types';
+
+export interface ToolExecuteResult {
+  success: boolean;
+  message: string;
+  data?: unknown;
+}
 
 export interface ToolParameterSchema {
   type: string;
@@ -23,5 +28,5 @@ export interface ToolDefinition {
 
 export interface ITool {
   readonly definition: ToolDefinition;
-  execute(params: Record<string, unknown>, guild: Guild): Promise<ToolResult>;
+  execute(params: Record<string, unknown>, guild: Guild): Promise<ToolExecuteResult>;
 }

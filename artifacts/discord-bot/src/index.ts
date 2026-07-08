@@ -7,6 +7,7 @@ import { createDiscordClient, loginClient } from './discord/client';
 import { MessageManager } from './discord/message-manager';
 import { buildStatusEmbed } from './discord/embed-builder';
 import { buildSocialButtons } from './discord/button-builder';
+import { AIService } from './ai/ai.service';
 
 const RETRY_CONNECT_INTERVAL_MS = 15_000;
 
@@ -70,6 +71,15 @@ async function main(): Promise<void> {
   });
 
   await loginClient(client, config.discord.token);
+
+  logger.info('Initializing AI Control Center...');
+  const aiService = new AIService({
+    serverName: config.server.name,
+    adminRole: config.ai.adminRole,
+    logChannelId: config.ai.logChannelId,
+    chatChannelId: config.ai.chatChannelId,
+  });
+  aiService.start(client);
 
   logger.info('Initializing message manager...');
   const messageManager = new MessageManager(client, config.discord.statusChannelId);

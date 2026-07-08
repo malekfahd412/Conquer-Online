@@ -20,33 +20,40 @@ export class MessageManager {
   async initialize(): Promise<void> {
     logger.info(`Locating status channel ${this.channelId}...`);
 
-    const fetchedChannel = await this.client.channels.fetch(this.channelId);
+    try {
+      const fetchedChannel = await this.client.channels.fetch(this.channelId);
 
-    if (!fetchedChannel || fetchedChannel.type !== ChannelType.GuildText) {
-      throw new Error(
-        `Channel ${this.channelId} not found or is not a text channel.\n` +
-        `Make sure:\n` +
-        `  1. The bot has access to the channel.\n` +
-        `  2. CHANNEL_SERVER_STATUS is set to the correct channel ID.\n` +
-        `  3. The bot has "Read Messages" and "Send Messages" permissions.`,
+      if (!fetchedChannel || fetchedChannel.type !== ChannelType.GuildText) {
+        logger.warning(
+          `Channel ${this.channelId} not found or is not a text channel — status embed disabled.\n` +
+          `  Check: bot has VIEW_CHANNEL + SEND_MESSAGES, and CHANNEL_SERVER_STATUS is correct.`,
+        );
+        return;
+      }
+
+      this.channel = fetchedChannel as TextChannel;
+      logger.success(`Status channel found: #${this.channel.name}`);
+
+      this.message = await this.findExistingMessage();
+
+      if (this.message) {
+        logger.success(`Reusing existing status message (ID: ${this.message.id})`);
+      } else {
+        logger.info('No existing status message found — a new one will be created on first update');
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.warning(
+        `Could not access status channel ${this.channelId}: ${msg}\n` +
+        `  Status embed is disabled. Verify bot permissions and channel ID, then restart.`,
       );
-    }
-
-    this.channel = fetchedChannel as TextChannel;
-    logger.success(`Status channel found: #${this.channel.name}`);
-
-    this.message = await this.findExistingMessage();
-
-    if (this.message) {
-      logger.success(`Reusing existing status message (ID: ${this.message.id})`);
-    } else {
-      logger.info('No existing status message found — a new one will be created on first update');
     }
   }
 
   async updateEmbed(embed: APIEmbed, components: ButtonRow[]): Promise<void> {
     if (!this.channel) {
-      throw new Error('MessageManager is not initialized — call initialize() first');
+      logger.warning('Status channel unavailable — skipping embed update');
+      return;
     }
 
     const payload = {

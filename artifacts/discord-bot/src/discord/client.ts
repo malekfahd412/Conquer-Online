@@ -3,7 +3,12 @@ import { logger } from '../utils/logger';
 
 export function createDiscordClient(): Client {
   return new Client({
-    intents: [GatewayIntentBits.Guilds],
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildMembers,
+    ],
   });
 }
 

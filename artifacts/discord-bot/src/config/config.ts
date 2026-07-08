@@ -16,6 +16,12 @@ export interface ApiConfig {
   baseUrl: string;
 }
 
+export interface AIModuleConfig {
+  adminRole: string;
+  logChannelId: string | undefined;
+  chatChannelId: string | undefined;
+}
+
 export interface AppConfig {
   discord: {
     token: string;
@@ -38,6 +44,7 @@ export interface AppConfig {
   mssql: MssqlConfig | undefined;
   api: ApiConfig | undefined;
   updateIntervalMs: number;
+  ai: AIModuleConfig;
 }
 
 function requireEnv(key: string): string {
@@ -104,5 +111,10 @@ export function loadConfig(): AppConfig {
     mssql,
     api,
     updateIntervalMs: parseInt(process.env['UPDATE_INTERVAL_MS'] ?? '30000', 10),
+    ai: {
+      adminRole: optionalEnv('ROLE_ADMIN') ?? '',
+      logChannelId: optionalEnv('CHANNEL_AI_LOG'),
+      chatChannelId: optionalEnv('CHANNEL_AI_CHAT'),
+    },
   };
 }
