@@ -1,0 +1,490 @@
+# =====================================================================
+# FEATURE: CONVERSATION MEMORY ENGINE
+# Project: Conquer Control Center
+# =====================================================================
+
+You are upgrading an existing Discord bot.
+
+DO NOT modify or break any existing modules.
+
+Current modules must continue working exactly as they are:
+
+- Live Server Status
+- AI Control Center
+- Discord Tools
+- AI Planner
+- AI Executor
+- Permission System
+- Logs
+
+Instead, build a brand-new module called:
+
+Conversation Memory Engine
+
+====================================================================
+
+GOAL
+
+====================================================================
+
+The AI must behave like ChatGPT or Gemini.
+
+The AI must remember the current conversation.
+
+The user should never need to repeat context.
+
+The AI must understand references such as:
+
+"it"
+
+"that"
+
+"this"
+
+"there"
+
+"continue"
+
+"finish"
+
+"change it"
+
+"rename it"
+
+"move it"
+
+"delete it"
+
+"make another one"
+
+The AI should understand what those words refer to.
+
+====================================================================
+
+ARCHITECTURE
+
+====================================================================
+
+Create
+
+src/ai/memory/
+
+ConversationMemory.ts
+
+MemoryManager.ts
+
+ConversationSummary.ts
+
+ReferenceResolver.ts
+
+TaskMemory.ts
+
+LongTermMemory.ts
+
+MemoryStorage.ts
+
+====================================================================
+
+CONVERSATION MEMORY
+
+====================================================================
+
+For every Discord user
+
+Store
+
+Current Task
+
+Conversation History
+
+Last AI Response
+
+Last Executed Actions
+
+Current Objects
+
+Current Category
+
+Current Channel
+
+Current Role
+
+Current Embed
+
+Current Ticket
+
+Current Event
+
+Current Server
+
+Current Mentioned Members
+
+Current Mentioned Channels
+
+Current Mentioned Roles
+
+The AI should always know what the user is currently talking about.
+
+====================================================================
+
+REFERENCE RESOLUTION
+
+====================================================================
+
+Example
+
+User
+
+Create a category called Community
+
+AI
+
+Done.
+
+User
+
+Create a channel inside it.
+
+"It"
+
+must resolve to
+
+Community
+
+Example
+
+User
+
+Rename it to Information.
+
+"It"
+
+must resolve to
+
+the last created channel
+
+Example
+
+User
+
+Lock it.
+
+"It"
+
+must resolve to
+
+Information
+
+Example
+
+User
+
+Delete it.
+
+"It"
+
+must resolve to
+
+Information
+
+Never ask unnecessary questions if the context is obvious.
+
+====================================================================
+
+TASK MEMORY
+
+====================================================================
+
+Every conversation belongs to a Task.
+
+Example
+
+Create Ticket System
+
+The AI remembers
+
+Current Progress
+
+Completed Steps
+
+Remaining Steps
+
+Current Objects
+
+The user may say
+
+Continue.
+
+Finish it.
+
+Next.
+
+Skip this step.
+
+Undo.
+
+Go back.
+
+The AI must understand.
+
+====================================================================
+
+LONG TERM MEMORY
+
+====================================================================
+
+Store user preferences.
+
+Examples
+
+Preferred Embed Color
+
+Preferred Language
+
+Preferred Announcement Style
+
+Preferred Ticket Layout
+
+Preferred Channel Naming
+
+Preferred Role Naming
+
+Preferred Category Structure
+
+The AI should reuse these preferences automatically.
+
+Long-term memory must survive bot restarts.
+
+Store in JSON or SQLite.
+
+====================================================================
+
+SHORT TERM MEMORY
+
+====================================================================
+
+Remember approximately
+
+30 recent user/assistant messages.
+
+Do NOT send all history to the LLM.
+
+====================================================================
+
+SMART SUMMARIZATION
+
+====================================================================
+
+When conversation becomes long
+
+Automatically summarize it.
+
+Example summary
+
+Current Project
+
+Ticket System
+
+Completed
+
+✓ Category
+
+✓ Ticket Channel
+
+✓ Button
+
+Remaining
+
+• Logs
+
+• Transcript
+
+• Permissions
+
+Send only the summary to the LLM.
+
+This reduces token usage.
+
+====================================================================
+
+OBJECT REGISTRY
+
+====================================================================
+
+Keep references for
+
+Created Channels
+
+Created Categories
+
+Created Roles
+
+Created Embeds
+
+Created Messages
+
+Created Buttons
+
+Created Events
+
+Created Threads
+
+The AI should know which object is "it".
+
+====================================================================
+
+UNDO SUPPORT
+
+====================================================================
+
+Every executed action
+
+must be stored.
+
+Allow
+
+Undo Last Action
+
+Restore Deleted Channel
+
+Restore Deleted Role (where possible)
+
+Revert Name Changes
+
+Revert Permission Changes
+
+Store enough metadata to support rollback whenever Discord allows it.
+
+====================================================================
+
+MEMORY EXPIRATION
+
+====================================================================
+
+Conversation Memory
+
+expires
+
+30 minutes after inactivity.
+
+Long-Term Memory
+
+never expires.
+
+====================================================================
+
+MULTIPLE USERS
+
+====================================================================
+
+Every Discord user
+
+has isolated memory.
+
+User A
+
+must never affect
+
+User B.
+
+====================================================================
+
+AI INTEGRATION
+
+====================================================================
+
+The Planner
+
+must receive
+
+Conversation Summary
+
+Current Task
+
+Current Objects
+
+Resolved References
+
+Long-Term Preferences
+
+before generating a plan.
+
+====================================================================
+
+COMMANDS
+
+====================================================================
+
+Create slash commands
+
+/memory
+
+Shows current conversation memory.
+
+/forget
+
+Clears current conversation memory.
+
+/preferences
+
+Shows stored long-term preferences.
+
+/resetpreferences
+
+Deletes long-term preferences after confirmation.
+
+====================================================================
+
+DEBUG MODE
+
+====================================================================
+
+If DEBUG_MEMORY=true
+
+log
+
+Resolved References
+
+Task State
+
+Summary
+
+Current Objects
+
+Memory Size
+
+====================================================================
+
+QUALITY REQUIREMENTS
+
+====================================================================
+
+TypeScript only.
+
+No duplicated code.
+
+Strong typing.
+
+Dependency Injection.
+
+Clean Architecture.
+
+Comprehensive error handling.
+
+Automatic persistence.
+
+Automatic loading on startup.
+
+Automatic cleanup of expired sessions.
+
+No mock data.
+
+No placeholders.
+
+Production-ready implementation.
+
+Run full typecheck.
+
+Fix every error.
+
+Do not finish until the project builds successfully and the Conversation Memory Engine is fully integrated with the AI Control Center.

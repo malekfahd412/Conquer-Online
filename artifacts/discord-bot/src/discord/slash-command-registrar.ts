@@ -16,12 +16,27 @@ const AI_COMMAND = {
   ],
 };
 
-const CLEAR_COMMAND = {
-  name: 'clear',
-  description: 'Clear the AI conversation history for this channel',
+const FORGET_COMMAND = {
+  name: 'forget',
+  description: 'Clear your AI conversation memory for this server and start fresh',
 };
 
-const ALL_COMMANDS = [AI_COMMAND, CLEAR_COMMAND];
+const MEMORY_COMMAND = {
+  name: 'memory',
+  description: 'Show your current AI conversation memory and active context',
+};
+
+const PREFERENCES_COMMAND = {
+  name: 'preferences',
+  description: 'Show your stored long-term AI preferences',
+};
+
+const RESET_PREFS_COMMAND = {
+  name: 'resetpreferences',
+  description: 'Reset all your stored long-term AI preferences',
+};
+
+const ALL_COMMANDS = [AI_COMMAND, FORGET_COMMAND, MEMORY_COMMAND, PREFERENCES_COMMAND, RESET_PREFS_COMMAND];
 
 const GUILD_ID = '1213437502078062674';
 
@@ -30,7 +45,7 @@ export async function registerSlashCommands(token: string, clientId: string): Pr
 
   try {
     await rest.put(Routes.applicationGuildCommands(clientId, GUILD_ID), { body: ALL_COMMANDS });
-    logger.success(`Registered /ai and /clear in guild ${GUILD_ID} — commands are instantly available`);
+    logger.success(`Registered ${ALL_COMMANDS.length} commands in guild ${GUILD_ID} — instantly available`);
   } catch (error) {
     logger.error(`Failed to register commands in guild ${GUILD_ID}`, error);
   }
