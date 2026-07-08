@@ -1,0 +1,537 @@
+# ===================================================================
+# FEATURE 2
+#
+# AI CONTROL CENTER
+#
+# Conquer Online Discord Bot
+# ===================================================================
+
+You are upgrading the existing Discord bot.
+
+The project already contains:
+
+✔ Live Server Status
+
+Do NOT modify or break the existing Live Server Status module.
+
+Instead build a completely separate module called
+
+AI Control Center
+
+====================================================================
+
+GOAL
+
+====================================================================
+
+The Discord bot should behave like ChatGPT or Gemini.
+
+I want to talk to the bot using natural language.
+
+The bot should understand what I want.
+
+It should build an execution plan.
+
+Execute the requested actions.
+
+Verify success.
+
+Report the final result.
+
+The user should never need to remember commands.
+
+The AI must understand plain English.
+
+Examples
+
+"Create a category called Community."
+
+"Create a text channel called announcements."
+
+"Make everyone unable to send messages."
+
+"Create a role called VIP."
+
+"Move the VIP role above Members."
+
+"Create a ticket system."
+
+"Delete every empty channel."
+
+"Create a rules embed."
+
+"Rename the server."
+
+etc.
+
+====================================================================
+
+IMPORTANT
+
+====================================================================
+
+This AI is NOT a chatbot.
+
+This AI is a Discord Server Administrator.
+
+Its job is managing the Discord server.
+
+====================================================================
+
+ARCHITECTURE
+
+====================================================================
+
+Create
+
+src/
+
+ai/
+
+Inside create
+
+AIService
+
+Planner
+
+Executor
+
+PermissionManager
+
+PromptBuilder
+
+HistoryManager
+
+ToolRegistry
+
+ActionValidator
+
+ExecutionLogger
+
+====================================================================
+
+FLOW
+
+====================================================================
+
+User
+
+↓
+
+Natural Language
+
+↓
+
+AI
+
+↓
+
+Intent Detection
+
+↓
+
+Planning
+
+↓
+
+Validation
+
+↓
+
+Execution
+
+↓
+
+Verification
+
+↓
+
+Response
+
+====================================================================
+
+SUPPORTED ACTIONS
+
+====================================================================
+
+Server
+
+Create Category
+
+Delete Category
+
+Rename Category
+
+Move Category
+
+Create Channel
+
+Delete Channel
+
+Rename Channel
+
+Clone Channel
+
+Archive Channel
+
+Lock Channel
+
+Unlock Channel
+
+Slowmode
+
+NSFW
+
+Permissions
+
+Roles
+
+Create Role
+
+Delete Role
+
+Rename Role
+
+Move Role
+
+Change Color
+
+Change Permissions
+
+Assign Roles
+
+Remove Roles
+
+Members
+
+Kick
+
+Ban
+
+Timeout
+
+Nickname
+
+Move Voice
+
+Mute
+
+Unmute
+
+Embeds
+
+Professional Embeds
+
+Rules
+
+Announcements
+
+Patch Notes
+
+Information Panels
+
+Buttons
+
+Create Link Buttons
+
+Create Ticket Buttons
+
+Create Navigation Buttons
+
+Messages
+
+Send
+
+Edit
+
+Delete
+
+Pin
+
+Unpin
+
+Threads
+
+Create
+
+Archive
+
+Delete
+
+Events
+
+Create Scheduled Event
+
+Cancel Event
+
+Modify Event
+
+====================================================================
+
+AI BEHAVIOR
+
+====================================================================
+
+The AI must NEVER immediately execute dangerous actions.
+
+If the request is destructive
+
+Example
+
+Delete Channels
+
+Delete Roles
+
+Ban Everyone
+
+Delete Messages
+
+Remove Permissions
+
+The AI must stop.
+
+Show a confirmation message.
+
+Example
+
+⚠ This action will delete 28 channels.
+
+Buttons
+
+Confirm
+
+Cancel
+
+Only after confirmation
+
+Execute.
+
+====================================================================
+
+PERMISSIONS
+
+====================================================================
+
+Only Discord users with ROLE_ADMIN
+
+can use the AI.
+
+Every action must be logged.
+
+====================================================================
+
+LOGGING
+
+====================================================================
+
+Create
+
+CHANNEL_AI_LOG
+
+Every execution creates a professional embed.
+
+Include
+
+User
+
+Time
+
+Prompt
+
+Plan
+
+Actions
+
+Success
+
+Duration
+
+====================================================================
+
+EXECUTION LOGIC
+
+====================================================================
+
+Never guess.
+
+Never hallucinate.
+
+If the AI is unsure
+
+Ask a follow-up question.
+
+Example
+
+User
+
+Create an events channel.
+
+AI
+
+Under which category should I create it?
+
+Do NOT guess.
+
+====================================================================
+
+PLAN FIRST
+
+====================================================================
+
+Before executing
+
+The AI internally creates
+
+Execution Plan
+
+Step 1
+
+Step 2
+
+Step 3
+
+Step 4
+
+Execute only after validation.
+
+====================================================================
+
+TOOLS
+
+====================================================================
+
+The AI must NOT directly manipulate Discord.
+
+Create Tool classes.
+
+Examples
+
+CreateChannelTool
+
+CreateRoleTool
+
+DeleteChannelTool
+
+LockChannelTool
+
+RenameChannelTool
+
+CreateEmbedTool
+
+CreateCategoryTool
+
+MoveRoleTool
+
+etc.
+
+Every tool
+
+Input
+
+↓
+
+Validation
+
+↓
+
+Execution
+
+↓
+
+Result
+
+====================================================================
+
+SAFETY
+
+====================================================================
+
+Never execute
+
+eval()
+
+new Function()
+
+shell commands
+
+filesystem modifications
+
+network requests
+
+external scripts
+
+Only use Discord.js.
+
+====================================================================
+
+CONFIG
+
+====================================================================
+
+Environment Variables
+
+OPENAI_API_KEY
+
+AI_MODEL
+
+ROLE_ADMIN
+
+CHANNEL_AI_LOG
+
+====================================================================
+
+FUTURE READY
+
+====================================================================
+
+The architecture must allow future tools.
+
+Examples
+
+Website Management
+
+Game Server Management
+
+Live Dashboard Management
+
+Ticket Management
+
+Economy
+
+Moderation
+
+Anti Cheat
+
+without modifying the AI core.
+
+The AI should only need new Tool classes.
+
+====================================================================
+
+FINAL REQUIREMENTS
+
+====================================================================
+
+Build production-ready architecture.
+
+Strict TypeScript.
+
+discord.js v14.
+
+No duplicated code.
+
+Clean Architecture.
+
+Dependency Injection.
+
+Comprehensive logging.
+
+Error handling.
+
+Self validation.
+
+Automatic retries where appropriate.
+
+Test every implemented feature before completion.
+
+Do not finish until the feature is fully working.
