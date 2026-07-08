@@ -1,11 +1,11 @@
-import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import type { ConversationMessage } from './types';
 
 const MAX_HISTORY_PER_CHANNEL = 20;
 
 export class HistoryManager {
-  private readonly histories = new Map<string, ChatCompletionMessageParam[]>();
+  private readonly histories = new Map<string, ConversationMessage[]>();
 
-  getHistory(channelId: string): ChatCompletionMessageParam[] {
+  getHistory(channelId: string): ConversationMessage[] {
     return this.histories.get(channelId) ?? [];
   }
 
@@ -13,18 +13,11 @@ export class HistoryManager {
     this.push(channelId, { role: 'user', content });
   }
 
-  addAssistantMessage(
-    channelId: string,
-    message: ChatCompletionMessageParam,
-  ): void {
+  addAssistantMessage(channelId: string, message: ConversationMessage): void {
     this.push(channelId, message);
   }
 
-  addToolResult(
-    channelId: string,
-    toolCallId: string,
-    content: string,
-  ): void {
+  addToolResult(channelId: string, toolCallId: string, content: string): void {
     this.push(channelId, { role: 'tool', tool_call_id: toolCallId, content });
   }
 
@@ -32,7 +25,7 @@ export class HistoryManager {
     this.histories.delete(channelId);
   }
 
-  private push(channelId: string, message: ChatCompletionMessageParam): void {
+  private push(channelId: string, message: ConversationMessage): void {
     const history = this.histories.get(channelId) ?? [];
     history.push(message);
 

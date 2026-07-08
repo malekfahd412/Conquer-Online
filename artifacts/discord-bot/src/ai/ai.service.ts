@@ -9,10 +9,7 @@ import {
   type GuildTextBasedChannel,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import type {
-  ChatCompletionMessageParam,
-  ChatCompletionMessageToolCall,
-} from 'openai/resources/chat/completions';
+import type { ConversationMessage, ToolCall } from './types';
 import { PermissionManager } from './permission-manager';
 import { HistoryManager } from './history-manager';
 import { ToolRegistry } from './tool-registry';
@@ -145,7 +142,7 @@ export class AIService {
 
   private async showSlashConfirmation(
     interaction: ChatInputCommandInteraction,
-    toolCalls: ChatCompletionMessageToolCall[],
+    toolCalls: ToolCall[],
   ): Promise<boolean> {
     const dangerous = toolCalls.filter(tc => this.toolRegistry.isDangerous(tc.function.name));
 
@@ -303,7 +300,7 @@ export class AIService {
 
   // ─── Shared Pipeline Helpers ──────────────────────────────────────────────
 
-  private buildMessages(channelId: string): ChatCompletionMessageParam[] {
+  private buildMessages(channelId: string): ConversationMessage[] {
     return [
       { role: 'system', content: this.promptBuilder.build() },
       ...this.historyManager.getHistory(channelId),
@@ -312,7 +309,7 @@ export class AIService {
 
   private async runToolsAndFinalize(
     channelId: string,
-    toolCalls: ChatCompletionMessageToolCall[],
+    toolCalls: ToolCall[],
     guild: NonNullable<Message['guild']>,
   ): Promise<{ responseText: string; results: ToolResult[] }> {
     const results = await this.executor.execute(toolCalls, guild);

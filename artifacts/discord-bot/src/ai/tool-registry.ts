@@ -1,5 +1,4 @@
-import type { ChatCompletionTool } from 'openai/resources/chat/completions';
-import type { ITool } from './tools/tool.interface';
+import type { ITool, ToolDefinition } from './tools/tool.interface';
 import { ALL_TOOLS } from './tools/index';
 import { logger } from '../utils/logger';
 
@@ -26,14 +25,7 @@ export class ToolRegistry {
     return this.tools.get(name)?.definition.dangerDescription ?? 'This action cannot be undone.';
   }
 
-  getToolDefinitions(): ChatCompletionTool[] {
-    return Array.from(this.tools.values()).map(tool => ({
-      type: 'function' as const,
-      function: {
-        name: tool.definition.name,
-        description: tool.definition.description,
-        parameters: tool.definition.parameters,
-      },
-    }));
+  getToolDefinitions(): ToolDefinition[] {
+    return Array.from(this.tools.values()).map(tool => tool.definition);
   }
 }

@@ -6,7 +6,7 @@ import {
   type Interaction,
   type Message,
 } from 'discord.js';
-import type { ChatCompletionMessageToolCall } from 'openai/resources/chat/completions';
+import type { ToolCall } from './types';
 import type { ToolRegistry } from './tool-registry';
 import { logger } from '../utils/logger';
 
@@ -17,14 +17,14 @@ export class ActionValidator {
 
   constructor(private readonly toolRegistry: ToolRegistry) {}
 
-  hasDangerousActions(toolCalls: ChatCompletionMessageToolCall[]): boolean {
+  hasDangerousActions(toolCalls: ToolCall[]): boolean {
     return toolCalls.some(tc => this.toolRegistry.isDangerous(tc.function.name));
   }
 
   async requestConfirmation(
     message: Message,
-    toolCalls: ChatCompletionMessageToolCall[],
-    onConfirm: (toolCalls: ChatCompletionMessageToolCall[]) => Promise<void>,
+    toolCalls: ToolCall[],
+    onConfirm: (toolCalls: ToolCall[]) => Promise<void>,
   ): Promise<void> {
     const dangerous = toolCalls.filter(tc => this.toolRegistry.isDangerous(tc.function.name));
 

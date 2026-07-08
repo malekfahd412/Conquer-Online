@@ -1,13 +1,12 @@
-import type { ChatCompletionMessageToolCall } from 'openai/resources/chat/completions';
 import type { Guild } from 'discord.js';
-import type { ToolResult } from './types';
+import type { ToolCall, ToolResult } from './types';
 import type { ToolRegistry } from './tool-registry';
 import { logger } from '../utils/logger';
 
 export class Executor {
   constructor(private readonly toolRegistry: ToolRegistry) {}
 
-  async execute(toolCalls: ChatCompletionMessageToolCall[], guild: Guild): Promise<ToolResult[]> {
+  async execute(toolCalls: ToolCall[], guild: Guild): Promise<ToolResult[]> {
     const results: ToolResult[] = [];
 
     for (const toolCall of toolCalls) {
