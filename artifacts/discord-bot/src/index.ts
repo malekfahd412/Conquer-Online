@@ -8,6 +8,7 @@ import { MessageManager } from './discord/message-manager';
 import { buildStatusEmbed } from './discord/embed-builder';
 import { buildSocialButtons } from './discord/button-builder';
 import { AIService } from './ai/ai.service';
+import { registerSlashCommands } from './discord/slash-command-registrar';
 
 const RETRY_CONNECT_INTERVAL_MS = 15_000;
 
@@ -71,6 +72,12 @@ async function main(): Promise<void> {
   });
 
   await loginClient(client, config.discord.token);
+
+  if (client.user) {
+    registerSlashCommands(config.discord.token, client.user.id).catch(error => {
+      logger.error('Slash command registration failed', error);
+    });
+  }
 
   logger.info('Initializing AI Control Center...');
   const aiService = new AIService({
