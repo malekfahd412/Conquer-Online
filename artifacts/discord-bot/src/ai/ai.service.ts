@@ -8,17 +8,18 @@ import {
   type Message,
   type GuildTextBasedChannel,
   type ChatInputCommandInteraction,
+  type Guild,
 } from 'discord.js';
-import type { ConversationMessage, ToolCall } from './types';
+import type { ConversationMessage, ToolCall, ToolResult } from './types';
 import { PermissionManager } from './permission-manager';
-import { HistoryManager } from './history-manager';
 import { ToolRegistry } from './tool-registry';
 import { PromptBuilder } from './prompt-builder';
 import { Planner } from './planner';
 import { Executor } from './executor';
-import { ActionValidator } from './action-validator';
 import { ExecutionLogger } from './execution-logger';
-import type { ToolResult } from './types';
+import { MemoryManager } from './memory/MemoryManager';
+import { WorkspaceMemory } from './memory/WorkspaceMemory';
+import { Verifier } from './verifier';
 import { logger } from '../utils/logger';
 
 export interface AIConfig {
@@ -26,27 +27,46 @@ export interface AIConfig {
   adminRole: string;
   logChannelId: string | undefined;
   chatChannelId: string | undefined;
+  enablePlanPreview: boolean;
+  enableReflection: boolean;
+}
+
+type ButtonCallback = () => Promise<void>;
+
+interface PendingButton {
+  userId: string;
+  callback: ButtonCallback;
+  executing: boolean;
 }
 
 export class AIService {
   private readonly permissionManager: PermissionManager;
-  private readonly historyManager: HistoryManager;
   private readonly toolRegistry: ToolRegistry;
   private readonly promptBuilder: PromptBuilder;
   private readonly planner: Planner;
   private readonly executor: Executor;
-  private readonly actionValidator: ActionValidator;
   private readonly executionLogger: ExecutionLogger;
+  private readonly memoryManager: MemoryManager;
+  private readonly workspaceMemory: WorkspaceMemory;
+  private readonly verifier: Verifier;
+  private readonly pendingButtons = new Map<string, PendingButton>();
 
   constructor(private readonly config: AIConfig) {
     this.permissionManager = new PermissionManager(config.adminRole);
-    this.historyManager = new HistoryManager();
     this.toolRegistry = new ToolRegistry();
     this.promptBuilder = new PromptBuilder(config.serverName);
     this.planner = new Planner(this.toolRegistry);
     this.executor = new Executor(this.toolRegistry);
-    this.actionValidator = new ActionValidator(this.toolRegistry);
     this.executionLogger = new ExecutionLogger(config.logChannelId);
+    this.memoryManager = new MemoryManager();
+    this.workspaceMemory = new WorkspaceMemory();
+    this.verifier = new Verifier();
+  }
+
+  async initialize(): Promise<void> {
+    await this.memoryManager.initialize();
+    await this.workspaceMemory.initialize();
+    logger.info(`AI model: ${this.planner.modelName}`);
   }
 
   start(client: Client): void {
@@ -57,54 +77,72 @@ export class AIService {
     });
 
     client.on('interactionCreate', interaction => {
-      if (interaction.isChatInputCommand() && interaction.commandName === 'ai') {
-        this.onSlashCommand(interaction as ChatInputCommandInteraction, client).catch(error => {
-          logger.error('AI slash command error', error);
-        });
-        return;
+      if (interaction.isChatInputCommand()) {
+        const name = interaction.commandName;
+        if (name === 'ai') {
+          this.onAICommand(interaction as ChatInputCommandInteraction, client).catch(err =>
+            logger.error('AI slash command error', err),
+          );
+          return;
+        }
+        if (name === 'forget') {
+          this.onForgetCommand(interaction as ChatInputCommandInteraction).catch(err =>
+            logger.error('Forget command error', err),
+          );
+          return;
+        }
+        if (name === 'memory') {
+          this.onMemoryCommand(interaction as ChatInputCommandInteraction).catch(err =>
+            logger.error('Memory command error', err),
+          );
+          return;
+        }
+        if (name === 'preferences') {
+          this.onPreferencesCommand(interaction as ChatInputCommandInteraction).catch(err =>
+            logger.error('Preferences command error', err),
+          );
+          return;
+        }
+        if (name === 'resetpreferences') {
+          this.onResetPrefsCommand(interaction as ChatInputCommandInteraction).catch(err =>
+            logger.error('Reset prefs command error', err),
+          );
+          return;
+        }
+        if (name === 'workspace') {
+          this.onWorkspaceCommand(interaction as ChatInputCommandInteraction).catch(err =>
+            logger.error('Workspace command error', err),
+          );
+          return;
+        }
       }
-      if (interaction.isChatInputCommand() && interaction.commandName === 'clear') {
-        this.onClearCommand(interaction as ChatInputCommandInteraction).catch(error => {
-          logger.error('AI clear command error', error);
-        });
-        return;
+
+      // Handle pending button clicks — bound to the initiating user only
+      if (interaction.isButton()) {
+        const entry = this.pendingButtons.get(interaction.customId);
+        if (entry) {
+          if (entry.userId !== interaction.user.id) {
+            interaction.reply({ content: '❌ This confirmation was not initiated by you.', ephemeral: true }).catch(() => {});
+            return;
+          }
+          if (entry.executing) return; // Idempotency guard — prevent double execution
+          entry.executing = true;
+          interaction.deferUpdate().then(entry.callback).catch(err => logger.error('Button handler error', err));
+        }
       }
-      this.actionValidator.handleInteraction(interaction).catch(error => {
-        logger.error('AI interaction handler error', error);
-      });
     });
 
     logger.success('AI Control Center is active');
     if (this.config.adminRole) logger.info(`AI admin role: "${this.config.adminRole}"`);
     if (this.config.chatChannelId) logger.info(`AI chat channel: ${this.config.chatChannelId}`);
     if (!this.config.logChannelId) logger.warning('CHANNEL_AI_LOG not set — execution logs will not be posted');
+    logger.info(`Plan preview: ${this.config.enablePlanPreview ? 'enabled' : 'disabled'}`);
+    logger.info(`Reflection: ${this.config.enableReflection ? 'enabled' : 'disabled'}`);
   }
 
-  // ─── Clear Command Handler ────────────────────────────────────────────────
+  // ── Slash Commands ────────────────────────────────────────────────────────
 
-  private async onClearCommand(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!interaction.guild) {
-      await interaction.reply({ content: '❌ This command can only be used inside a server.', ephemeral: true });
-      return;
-    }
-
-    const member = interaction.member instanceof GuildMember
-      ? interaction.member
-      : await interaction.guild.members.fetch(interaction.user.id);
-
-    if (!this.permissionManager.isAdmin(member)) {
-      await interaction.reply({ content: '❌ You do not have permission to use this command.', ephemeral: true });
-      return;
-    }
-
-    this.historyManager.clearChannel(interaction.channelId);
-    logger.info(`Conversation history cleared for channel ${interaction.channelId} by ${interaction.user.tag}`);
-    await interaction.reply({ content: '🧹 AI conversation history cleared for this channel. Starting fresh!', ephemeral: true });
-  }
-
-  // ─── Slash Command Handler ────────────────────────────────────────────────
-
-  private async onSlashCommand(interaction: ChatInputCommandInteraction, client: Client): Promise<void> {
+  private async onAICommand(interaction: ChatInputCommandInteraction, client: Client): Promise<void> {
     if (!interaction.guild) {
       await interaction.reply({ content: '❌ This command can only be used inside a server.', ephemeral: true });
       return;
@@ -127,39 +165,38 @@ export class AIService {
 
     await interaction.deferReply();
     const startTime = Date.now();
+    const userId = interaction.user.id;
+    const guildId = interaction.guild.id;
+
     logger.info(`/ai from ${interaction.user.tag}: "${content}"`);
 
     try {
-      this.historyManager.addUserMessage(interaction.channelId, content);
+      const userMsg: ConversationMessage = { role: 'user', content };
+      this.memoryManager.addUserMessage(userId, guildId, content);
+      this.syncToWorkspace(userId, guildId, userMsg);
 
-      const plan = await this.planner.plan(this.buildMessages(interaction.channelId));
+      const plan = await this.planner.plan(this.buildMessages(userId, guildId));
 
       if (plan.kind === 'text') {
-        this.historyManager.addAssistantMessage(interaction.channelId, { role: 'assistant', content: plan.content });
+        const assistantMsg: ConversationMessage = { role: 'assistant', content: plan.content };
+        this.memoryManager.addAssistantMessage(userId, guildId, assistantMsg);
+        this.syncToWorkspace(userId, guildId, assistantMsg);
         await interaction.editReply({ content: plan.content });
         return;
       }
 
-      if (this.actionValidator.hasDangerousActions(plan.toolCalls)) {
-        const confirmed = await this.showSlashConfirmation(interaction, plan.toolCalls);
+      // Plan preview
+      if (this.config.enablePlanPreview) {
+        const confirmed = await this.showSlashPlanPreview(interaction, plan.toolCalls, userId);
         if (!confirmed) return;
       }
 
-      const { responseText, results } = await this.runToolsAndFinalize(
-        interaction.channelId, plan.toolCalls, interaction.guild,
+      const { responseText } = await this.runPipeline(
+        userId, guildId, plan.toolCalls, interaction.guild, client,
+        interaction.user.id, interaction.user.tag, content, startTime,
       );
 
       await interaction.editReply({ content: responseText });
-
-      await this.executionLogger.log({
-        userId: interaction.user.id,
-        username: interaction.user.tag,
-        prompt: content,
-        toolsExecuted: results,
-        success: results.every(r => r.success),
-        durationMs: Date.now() - startTime,
-        timestamp: new Date(),
-      }, client);
 
     } catch (error) {
       logger.error('AI slash command execution error', error);
@@ -168,155 +205,254 @@ export class AIService {
     }
   }
 
-  private async showSlashConfirmation(
-    interaction: ChatInputCommandInteraction,
-    toolCalls: ToolCall[],
-  ): Promise<boolean> {
-    const dangerous = toolCalls.filter(tc => this.toolRegistry.isDangerous(tc.function.name));
+  private async onForgetCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used inside a server.', ephemeral: true });
+      return;
+    }
+    const member = interaction.member instanceof GuildMember
+      ? interaction.member
+      : await interaction.guild.members.fetch(interaction.user.id);
+    if (!this.permissionManager.isAdmin(member)) {
+      await interaction.reply({ content: '❌ You do not have permission.', ephemeral: true });
+      return;
+    }
+    this.memoryManager.clearSession(interaction.user.id, interaction.guild.id);
+    await interaction.reply({ content: '🧹 AI conversation memory cleared. Starting fresh!', ephemeral: true });
+  }
 
-    const actionLines = dangerous.map(tc => {
-      let args: Record<string, unknown> = {};
-      try { args = JSON.parse(tc.function.arguments) as Record<string, unknown>; } catch { /* ignore */ }
-      const paramStr = Object.entries(args).map(([k, v]) => `${k}: **${String(v)}**`).join(', ');
-      const desc = this.toolRegistry.getDangerDescription(tc.function.name);
-      return `• \`${tc.function.name}\`${paramStr ? ` — ${paramStr}` : ''}\n  _${desc}_`;
-    }).join('\n');
+  private async onMemoryCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used inside a server.', ephemeral: true });
+      return;
+    }
+    const member = interaction.member instanceof GuildMember
+      ? interaction.member
+      : await interaction.guild.members.fetch(interaction.user.id);
+    if (!this.permissionManager.isAdmin(member)) {
+      await interaction.reply({ content: '❌ You do not have permission.', ephemeral: true });
+      return;
+    }
 
+    const display = this.memoryManager.getDisplay(interaction.user.id, interaction.guild.id);
     const embed = new EmbedBuilder()
-      .setColor(0xf5a623)
-      .setTitle(`⚠️ Confirm — ${dangerous.length} Dangerous Action${dangerous.length > 1 ? 's' : ''}`)
-      .setDescription(`The following action${dangerous.length > 1 ? 's' : ''} will be executed:\n\n${actionLines}`)
-      .setFooter({ text: 'This confirmation expires in 60 seconds.' });
+      .setColor(0x5865f2)
+      .setTitle('🧠 AI Memory')
+      .addFields(
+        { name: 'Messages in context', value: String(display.messageCount), inline: true },
+        { name: 'Current task', value: display.task ?? 'None', inline: true },
+        { name: 'Active objects', value: display.objects.length > 0 ? display.objects.map(o => `${o.type}: ${o.name}`).join(', ') : 'None', inline: false },
+        { name: 'Context', value: [
+          display.context.category ? `📁 Category: ${display.context.category.name}` : null,
+          display.context.channel ? `💬 Channel: ${display.context.channel.name}` : null,
+          display.context.role ? `🎭 Role: ${display.context.role.name}` : null,
+        ].filter(Boolean).join('\n') || 'No active context', inline: false },
+      )
+      .setTimestamp(new Date(display.lastActivity));
 
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder().setCustomId('ai-slash-confirm').setLabel('✅  Confirm').setStyle(ButtonStyle.Danger),
-      new ButtonBuilder().setCustomId('ai-slash-cancel').setLabel('❌  Cancel').setStyle(ButtonStyle.Secondary),
-    );
+    await interaction.reply({ embeds: [embed], ephemeral: true });
+  }
 
-    const replyMsg = await interaction.editReply({ embeds: [embed], components: [row] });
+  private async onPreferencesCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used inside a server.', ephemeral: true });
+      return;
+    }
+    const prefs = this.memoryManager.getLongTermMemory().get(interaction.user.id);
+    if (!prefs) {
+      await interaction.reply({ content: '📝 No preferences saved yet. The AI will learn your preferences as you work.', ephemeral: true });
+      return;
+    }
+    const lines = Object.entries(prefs)
+      .filter(([k]) => k !== 'updatedAt')
+      .map(([k, v]) => `**${k}:** ${String(v)}`);
+    await interaction.reply({ content: `📝 **Your Preferences**\n${lines.join('\n') || 'None saved yet.'}`, ephemeral: true });
+  }
 
-    try {
-      const btn = await replyMsg.awaitMessageComponent({
-        filter: i => i.user.id === interaction.user.id,
-        time: 60_000,
-      });
-      await btn.deferUpdate();
+  private async onResetPrefsCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used inside a server.', ephemeral: true });
+      return;
+    }
+    const member = interaction.member instanceof GuildMember
+      ? interaction.member
+      : await interaction.guild.members.fetch(interaction.user.id);
+    if (!this.permissionManager.isAdmin(member)) {
+      await interaction.reply({ content: '❌ You do not have permission.', ephemeral: true });
+      return;
+    }
+    this.memoryManager.getLongTermMemory().reset(interaction.user.id);
+    await interaction.reply({ content: '🗑️ Long-term preferences have been reset.', ephemeral: true });
+  }
 
-      if (btn.customId === 'ai-slash-confirm') {
-        await interaction.editReply({ embeds: [embed.setColor(0x00d26a).setTitle('✅ Confirmed — Executing...')], components: [] });
-        return true;
+  private async onWorkspaceCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used inside a server.', ephemeral: true });
+      return;
+    }
+    const member = interaction.member instanceof GuildMember
+      ? interaction.member
+      : await interaction.guild.members.fetch(interaction.user.id);
+    if (!this.permissionManager.isAdmin(member)) {
+      await interaction.reply({ content: '❌ You do not have permission.', ephemeral: true });
+      return;
+    }
+
+    const sub = interaction.options.getSubcommand(false);
+    const userId = interaction.user.id;
+    const guildId = interaction.guild.id;
+
+    if (sub === 'start') {
+      const name = interaction.options.getString('name', true).trim();
+      const description = interaction.options.getString('description', false) ?? undefined;
+      const existing = this.workspaceMemory.findByName(userId, guildId, name);
+      if (existing) {
+        await interaction.reply({ content: `⚠️ A workspace named **"${name}"** already exists. Use \`/workspace resume\` to continue it.`, ephemeral: true });
+        return;
       }
+      const ws = this.workspaceMemory.create(name, userId, guildId, description);
+      this.memoryManager.setWorkspace(userId, guildId, ws.id);
+      await interaction.reply({ content: `✅ Started workspace **"${name}"**${description ? ` — ${description}` : ''}. All AI commands will now be saved to this workspace.`, ephemeral: true });
 
-      await interaction.editReply({
-        embeds: [embed.setColor(0x8e8e93).setTitle('❌ Action Cancelled').setFooter({ text: '' })],
-        components: [],
-      });
-      return false;
+    } else if (sub === 'resume') {
+      const name = interaction.options.getString('name', true).trim();
+      const ws = this.workspaceMemory.findByName(userId, guildId, name);
+      if (!ws) {
+        await interaction.reply({ content: `❌ Workspace **"${name}"** not found. Use \`/workspace list\` to see available workspaces.`, ephemeral: true });
+        return;
+      }
+      // Clear session and restore full workspace state (messages + structured state)
+      this.memoryManager.clearSession(userId, guildId);
+      const msgs = this.workspaceMemory.getMessages(ws.id);
+      for (const msg of msgs.slice(-30)) {
+        this.memoryManager.addRawMessage(userId, guildId, msg);
+      }
+      this.memoryManager.restoreWorkspaceSession(userId, guildId, ws);
+      this.memoryManager.setWorkspace(userId, guildId, ws.id);
+      await interaction.reply({ content: `▶️ Resumed workspace **"${name}"** — ${ws.objects.length} object(s), ${msgs.length} message(s) in history.`, ephemeral: true });
 
-    } catch {
-      await interaction.editReply({ components: [] }).catch(() => {});
-      return false;
+    } else if (sub === 'end') {
+      const wsId = this.memoryManager.getWorkspaceId(userId, guildId);
+      if (!wsId) {
+        await interaction.reply({ content: '❌ No active workspace.', ephemeral: true });
+        return;
+      }
+      const ws = this.workspaceMemory.get(wsId);
+      this.memoryManager.setWorkspace(userId, guildId, undefined);
+      await interaction.reply({ content: `⏹️ Ended workspace **"${ws?.name ?? wsId}"**. Conversation will no longer be saved to it.`, ephemeral: true });
+
+    } else if (sub === 'list') {
+      const workspaces = this.workspaceMemory.listForUser(userId, guildId);
+      if (workspaces.length === 0) {
+        await interaction.reply({ content: '📂 No workspaces found. Use `/workspace start <name>` to create one.', ephemeral: true });
+        return;
+      }
+      const currentId = this.memoryManager.getWorkspaceId(userId, guildId);
+      const lines = workspaces.map(ws =>
+        `${ws.id === currentId ? '▶️' : '📂'} **${ws.name}** — ${ws.objects.length} obj, last active <t:${Math.floor(ws.lastActivity / 1000)}:R>`,
+      );
+      await interaction.reply({ content: `**Your Workspaces**\n${lines.join('\n')}`, ephemeral: true });
+
+    } else if (sub === 'delete') {
+      const name = interaction.options.getString('name', true).trim();
+      const ws = this.workspaceMemory.findByName(userId, guildId, name);
+      if (!ws) {
+        await interaction.reply({ content: `❌ Workspace **"${name}"** not found.`, ephemeral: true });
+        return;
+      }
+      this.workspaceMemory.delete(ws.id);
+      if (this.memoryManager.getWorkspaceId(userId, guildId) === ws.id) {
+        this.memoryManager.setWorkspace(userId, guildId, undefined);
+      }
+      await interaction.reply({ content: `🗑️ Deleted workspace **"${name}"**.`, ephemeral: true });
+
+    } else {
+      await interaction.reply({ content: 'Use `/workspace start`, `/workspace resume`, `/workspace end`, `/workspace list`, or `/workspace delete`.', ephemeral: true });
     }
   }
 
-  // ─── Message Mention Handler ──────────────────────────────────────────────
+  // ── Message Handler ───────────────────────────────────────────────────────
 
   private async onMessage(message: Message, client: Client): Promise<void> {
-    if (message.author.bot) return;
-    if (!message.guild) return;
+    if (message.author.bot || !message.guild) return;
 
     const botUser = client.user;
     if (!botUser) return;
 
-    const inAiChannel = this.config.chatChannelId
-      ? message.channelId === this.config.chatChannelId
-      : false;
+    const inAiChannel = this.config.chatChannelId ? message.channelId === this.config.chatChannelId : false;
     const mentionsBot = message.mentions.has(botUser.id);
-
     if (!inAiChannel && !mentionsBot) return;
 
     const member = message.member ?? await message.guild.members.fetch(message.author.id);
-    if (!this.permissionManager.isAdmin(member)) {
-      logger.info(`Ignored message from non-admin: ${message.author.tag}`);
-      return;
-    }
+    if (!this.permissionManager.isAdmin(member)) return;
 
     const content = message.content
       .replace(`<@${botUser.id}>`, '')
       .replace(`<@!${botUser.id}>`, '')
       .trim();
-
     if (!content) return;
 
     const startTime = Date.now();
+    const userId = message.author.id;
+    const guildId = message.guild.id;
     logger.info(`AI @mention from ${message.author.tag}: "${content}"`);
 
+    // Show typing while processing
     let typingInterval: ReturnType<typeof setInterval> | null = null;
+    const stopTyping = (): void => {
+      if (typingInterval) { clearInterval(typingInterval); typingInterval = null; }
+    };
+
     if (message.channel.isTextBased()) {
-      const guildChannel = message.channel as GuildTextBasedChannel;
-      await guildChannel.sendTyping().catch(() => {});
+      await (message.channel as GuildTextBasedChannel).sendTyping().catch(() => {});
       typingInterval = setInterval(() => {
         (message.channel as GuildTextBasedChannel).sendTyping().catch(() => {});
       }, 8_000);
     }
 
-    const stopTyping = (): void => {
-      if (typingInterval) { clearInterval(typingInterval); typingInterval = null; }
-    };
-
     try {
-      this.historyManager.addUserMessage(message.channelId, content);
+      const userMsg: ConversationMessage = { role: 'user', content };
+      this.memoryManager.addUserMessage(userId, guildId, content);
+      this.syncToWorkspace(userId, guildId, userMsg);
 
-      const plan = await this.planner.plan(this.buildMessages(message.channelId));
+      const plan = await this.planner.plan(this.buildMessages(userId, guildId));
 
       if (plan.kind === 'text') {
         stopTyping();
-        this.historyManager.addAssistantMessage(message.channelId, { role: 'assistant', content: plan.content });
+        const assistantMsg: ConversationMessage = { role: 'assistant', content: plan.content };
+        this.memoryManager.addAssistantMessage(userId, guildId, assistantMsg);
+        this.syncToWorkspace(userId, guildId, assistantMsg);
         await message.reply({ content: plan.content });
         return;
       }
 
-      if (this.actionValidator.hasDangerousActions(plan.toolCalls)) {
+      if (this.config.enablePlanPreview) {
         stopTyping();
-        await this.actionValidator.requestConfirmation(
+        await this.showMessagePlanPreview(
           message,
           plan.toolCalls,
-          async toolCalls => {
-            const { responseText, results } = await this.runToolsAndFinalize(
-              message.channelId, toolCalls, message.guild!,
+          userId,
+          async confirmedToolCalls => {
+            const { responseText } = await this.runPipeline(
+              userId, guildId, confirmedToolCalls, message.guild!,
+              client, userId, member.user.tag, content, startTime,
             );
-            await message.reply({ content: responseText }).catch(() => {});
-            await this.executionLogger.log({
-              userId: message.author.id,
-              username: member.user.tag,
-              prompt: content,
-              toolsExecuted: results,
-              success: results.every(r => r.success),
-              durationMs: Date.now() - startTime,
-              timestamp: new Date(),
-            }, client);
+            await message.reply({ content: responseText }).catch(err =>
+              logger.error('Failed to send AI response', err),
+            );
           },
         );
         return;
       }
 
       stopTyping();
-      const { responseText, results } = await this.runToolsAndFinalize(
-        message.channelId, plan.toolCalls, message.guild,
+      const { responseText } = await this.runPipeline(
+        userId, guildId, plan.toolCalls, message.guild, client,
+        userId, member.user.tag, content, startTime,
       );
-      await message.reply({ content: responseText }).catch(error => {
-        logger.error('Failed to send AI response', error);
-      });
-
-      await this.executionLogger.log({
-        userId: message.author.id,
-        username: member.user.tag,
-        prompt: content,
-        toolsExecuted: results,
-        success: results.every(r => r.success),
-        durationMs: Date.now() - startTime,
-        timestamp: new Date(),
-      }, client);
+      await message.reply({ content: responseText }).catch(err =>
+        logger.error('Failed to send AI response', err),
+      );
 
     } catch (error) {
       stopTyping();
@@ -326,46 +462,265 @@ export class AIService {
     }
   }
 
-  // ─── Shared Pipeline Helpers ──────────────────────────────────────────────
+  // ── Core Pipeline ─────────────────────────────────────────────────────────
 
-  private buildMessages(channelId: string): ConversationMessage[] {
-    return [
-      { role: 'system', content: this.promptBuilder.build() },
-      ...this.historyManager.getHistory(channelId),
-    ];
-  }
-
-  private async runToolsAndFinalize(
-    channelId: string,
+  private async runPipeline(
+    userId: string,
+    guildId: string,
     toolCalls: ToolCall[],
-    guild: NonNullable<Message['guild']>,
+    guild: Guild,
+    client: Client,
+    executorId: string,
+    executorTag: string,
+    prompt: string,
+    startTime: number,
   ): Promise<{ responseText: string; results: ToolResult[] }> {
+    // Execute
     const results = await this.executor.execute(toolCalls, guild);
 
-    this.historyManager.addAssistantMessage(channelId, {
-      role: 'assistant',
-      content: null,
-      tool_calls: toolCalls,
-    });
+    // Verify
+    await this.verifier.verify(toolCalls, results, guild);
+
+    // Update memory with tool results — single combined assistant message for all tool calls
+    const assistantCallMsg: ConversationMessage = { role: 'assistant', content: null, tool_calls: toolCalls };
+    this.memoryManager.addAssistantMessage(userId, guildId, assistantCallMsg);
+    this.syncToWorkspace(userId, guildId, assistantCallMsg);
 
     for (const result of results) {
-      this.historyManager.addToolResult(
-        channelId,
-        result.toolCallId,
-        JSON.stringify({ success: result.success, message: result.message }),
-      );
+      const resultContent = JSON.stringify({ success: result.success, message: result.message });
+      this.memoryManager.addToolResult(userId, guildId, result.toolCallId, resultContent);
+      this.syncToWorkspace(userId, guildId, { role: 'tool', tool_call_id: result.toolCallId, content: resultContent });
     }
+    this.memoryManager.processToolResults(userId, guildId, toolCalls, results);
 
-    const finalPlan = await this.planner.plan(this.buildMessages(channelId));
-
+    // Get final AI summary
+    const finalPlan = await this.planner.plan(this.buildMessages(userId, guildId));
     let responseText: string;
     if (finalPlan.kind === 'text') {
       responseText = finalPlan.content;
-      this.historyManager.addAssistantMessage(channelId, { role: 'assistant', content: responseText });
+      const summaryMsg: ConversationMessage = { role: 'assistant', content: responseText };
+      this.memoryManager.addAssistantMessage(userId, guildId, summaryMsg);
+      this.syncToWorkspace(userId, guildId, summaryMsg);
     } else {
       responseText = results.map(r => `${r.success ? '✅' : '❌'} ${r.message}`).join('\n');
     }
 
+    // Optional reflection
+    if (this.config.enableReflection && results.some(r => r.success)) {
+      const suggestion = await this.generateReflection(userId, guildId, results);
+      if (suggestion) responseText += `\n\n💡 **Suggestion:** ${suggestion}`;
+    }
+
+    // Log
+    await this.executionLogger.log({
+      userId: executorId,
+      username: executorTag,
+      prompt,
+      toolsExecuted: results,
+      success: results.every(r => r.success),
+      durationMs: Date.now() - startTime,
+      timestamp: new Date(),
+    }, client);
+
     return { responseText, results };
+  }
+
+  // ── Plan Preview ──────────────────────────────────────────────────────────
+
+  private buildPlanEmbed(toolCalls: ToolCall[]): EmbedBuilder {
+    const hasDangerous = toolCalls.some(tc => this.toolRegistry.isDangerous(tc.function.name));
+
+    const steps = toolCalls.map((tc, i) => {
+      let args: Record<string, unknown> = {};
+      try { args = JSON.parse(tc.function.arguments) as Record<string, unknown>; } catch { /* skip */ }
+      const paramStr = Object.entries(args)
+        .slice(0, 3)
+        .map(([k, v]) => `${k}: **${String(v)}**`)
+        .join(', ');
+      const dangerous = this.toolRegistry.isDangerous(tc.function.name) ? ' ⚠️' : '';
+      return `\`${i + 1}.\` \`${tc.function.name}\`${dangerous}${paramStr ? ` — ${paramStr}` : ''}`;
+    }).join('\n');
+
+    return new EmbedBuilder()
+      .setColor(hasDangerous ? 0xf5a623 : 0x5865f2)
+      .setTitle(`📋 Execution Plan — ${toolCalls.length} action${toolCalls.length > 1 ? 's' : ''}`)
+      .setDescription(steps)
+      .addFields({
+        name: 'Risk Level',
+        value: hasDangerous ? '⚠️ Contains destructive actions — review carefully' : '✅ Safe — all actions are reversible',
+        inline: false,
+      })
+      .setFooter({ text: 'This plan expires in 60 seconds · Click Execute to proceed' });
+  }
+
+  private async showSlashPlanPreview(
+    interaction: ChatInputCommandInteraction,
+    toolCalls: ToolCall[],
+    authorUserId: string,
+  ): Promise<boolean> {
+    const embed = this.buildPlanEmbed(toolCalls);
+    const confirmId = `ai-plan-confirm-${interaction.id}`;
+    const cancelId = `ai-plan-cancel-${interaction.id}`;
+
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setCustomId(confirmId).setLabel('✅  Execute').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(cancelId).setLabel('❌  Cancel').setStyle(ButtonStyle.Secondary),
+    );
+
+    const msg = await interaction.editReply({ embeds: [embed], components: [row] });
+
+    return new Promise(resolve => {
+      const cleanup = (): void => {
+        this.pendingButtons.delete(confirmId);
+        this.pendingButtons.delete(cancelId);
+      };
+
+      const timeout = setTimeout(() => {
+        cleanup();
+        msg.edit({ components: [] }).catch(() => {});
+        resolve(false);
+      }, 60_000);
+
+      this.pendingButtons.set(confirmId, {
+        userId: authorUserId,
+        executing: false,
+        callback: async () => {
+          cleanup();
+          clearTimeout(timeout);
+          await msg.edit({
+            embeds: [embed.setColor(0x57f287).setTitle('⚙️ Executing...')],
+            components: [],
+          }).catch(() => {});
+          resolve(true);
+        },
+      });
+
+      this.pendingButtons.set(cancelId, {
+        userId: authorUserId,
+        executing: false,
+        callback: async () => {
+          cleanup();
+          clearTimeout(timeout);
+          await msg.edit({
+            embeds: [embed.setColor(0x8e8e93).setTitle('❌ Cancelled').setFooter({ text: '' })],
+            components: [],
+          }).catch(() => {});
+          resolve(false);
+        },
+      });
+    });
+  }
+
+  private async showMessagePlanPreview(
+    message: Message,
+    toolCalls: ToolCall[],
+    authorUserId: string,
+    onConfirm: (toolCalls: ToolCall[]) => Promise<void>,
+  ): Promise<void> {
+    const embed = this.buildPlanEmbed(toolCalls);
+    const confirmId = `ai-plan-confirm-${message.id}`;
+    const cancelId = `ai-plan-cancel-${message.id}`;
+
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setCustomId(confirmId).setLabel('✅  Execute').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(cancelId).setLabel('❌  Cancel').setStyle(ButtonStyle.Secondary),
+    );
+
+    const reply = await message.reply({ embeds: [embed], components: [row] });
+
+    const cleanup = (): void => {
+      this.pendingButtons.delete(confirmId);
+      this.pendingButtons.delete(cancelId);
+    };
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      reply.edit({ components: [] }).catch(() => {});
+    }, 60_000);
+
+    const capturedToolCalls = toolCalls;
+
+    this.pendingButtons.set(confirmId, {
+      userId: authorUserId,
+      executing: false,
+      callback: async () => {
+        cleanup();
+        clearTimeout(timeout);
+        try {
+          await reply.edit({
+            embeds: [embed.setColor(0x57f287).setTitle('⚙️ Executing...')],
+            components: [],
+          }).catch(() => {});
+          await onConfirm(capturedToolCalls);
+        } catch (error) {
+          logger.error('Error during plan execution', error);
+          await reply.edit({
+            embeds: [embed.setColor(0xed4245).setTitle('❌ Execution Failed')],
+            components: [],
+          }).catch(() => {});
+        }
+      },
+    });
+
+    this.pendingButtons.set(cancelId, {
+      userId: authorUserId,
+      executing: false,
+      callback: async () => {
+        cleanup();
+        clearTimeout(timeout);
+        await reply.edit({
+          embeds: [embed.setColor(0x8e8e93).setTitle('❌ Cancelled').setFooter({ text: '' })],
+          components: [],
+        }).catch(() => {});
+      },
+    });
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  private buildMessages(userId: string, guildId: string): ConversationMessage[] {
+    const memCtx = this.memoryManager.buildContextText(userId, guildId);
+    return [
+      { role: 'system', content: this.promptBuilder.build(memCtx) },
+      ...this.memoryManager.getMessages(userId, guildId),
+    ];
+  }
+
+  private async generateReflection(
+    _userId: string,
+    _guildId: string,
+    results: ToolResult[],
+  ): Promise<string | null> {
+    try {
+      const successCount = results.filter(r => r.success).length;
+      const reflectionMessages: ConversationMessage[] = [
+        {
+          role: 'system',
+          content: 'You are a helpful AI assistant. Respond with ONLY a single brief suggestion for what the user might want to add or improve next (1 sentence max), or respond with exactly "COMPLETE" if nothing more is needed.',
+        },
+        {
+          role: 'user',
+          content: `${successCount} action(s) were just completed. What should the user consider adding or configuring next?`,
+        },
+      ];
+      const response = await this.planner.reflect(reflectionMessages);
+      if (!response || response.trim() === 'COMPLETE') return null;
+      return response.trim().slice(0, 200);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Flush workspace state on graceful shutdown before stopping memory cleanup. */
+  stop(): void {
+    this.workspaceMemory.flush().catch(err => logger.error('Workspace flush error on shutdown', err));
+    this.memoryManager.stop();
+  }
+
+  // ── Workspace Sync Helper ─────────────────────────────────────────────────
+
+  private syncToWorkspace(userId: string, guildId: string, msg: ConversationMessage): void {
+    const wsId = this.memoryManager.getWorkspaceId(userId, guildId);
+    if (wsId) this.workspaceMemory.addMessage(wsId, msg);
   }
 }

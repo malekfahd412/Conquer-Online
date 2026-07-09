@@ -3,6 +3,7 @@ import { config as loadDotenv } from 'dotenv';
 loadDotenv();
 
 export type DataSource = 'mssql' | 'api' | 'mock';
+export type AIProviderName = 'gemini' | 'openai' | 'openrouter' | 'groq';
 
 export interface MssqlConfig {
   server: string;
@@ -17,9 +18,13 @@ export interface ApiConfig {
 }
 
 export interface AIModuleConfig {
+  provider: AIProviderName;
   adminRole: string;
   logChannelId: string | undefined;
   chatChannelId: string | undefined;
+  enablePlanPreview: boolean;
+  enableReflection: boolean;
+  enableObserver: boolean;
 }
 
 export interface AppConfig {
@@ -62,6 +67,13 @@ function optionalEnv(key: string): string | undefined {
   return value && value.trim() !== '' ? value : undefined;
 }
 
+function parseBoolean(key: string, defaultValue: boolean): boolean {
+  const val = process.env[key]?.toLowerCase();
+  if (val === 'true' || val === '1') return true;
+  if (val === 'false' || val === '0') return false;
+  return defaultValue;
+}
+
 export function loadConfig(): AppConfig {
   const rawDataSource = process.env['DATA_SOURCE'];
   const validSources: DataSource[] = ['mssql', 'api', 'mock'];
@@ -84,10 +96,14 @@ export function loadConfig(): AppConfig {
   }
 
   if (dataSource === 'api') {
-    api = {
-      baseUrl: requireEnv('GAME_SERVER_API_URL'),
-    };
+    api = { baseUrl: requireEnv('GAME_SERVER_API_URL') };
   }
+
+  const rawProvider = (process.env['AI_PROVIDER'] ?? 'gemini').toLowerCase().trim();
+  const validProviders: AIProviderName[] = ['gemini', 'openai', 'openrouter', 'groq'];
+  const aiProvider: AIProviderName = validProviders.includes(rawProvider as AIProviderName)
+    ? (rawProvider as AIProviderName)
+    : 'gemini';
 
   return {
     discord: {
@@ -110,11 +126,15 @@ export function loadConfig(): AppConfig {
     dataSource,
     mssql,
     api,
-    updateIntervalMs: parseInt(process.env['UPDATE_INTERVAL_MS'] ?? '30000', 10),
+    updateIntervalMs: Math.max(5000, parseInt(process.env['UPDATE_INTERVAL_MS'] ?? '30000', 10) || 30000),
     ai: {
+      provider: aiProvider,
       adminRole: optionalEnv('ROLE_ADMIN') ?? '',
       logChannelId: optionalEnv('CHANNEL_AI_LOG'),
       chatChannelId: optionalEnv('CHANNEL_AI_CHAT'),
+      enablePlanPreview: parseBoolean('AI_PLAN_PREVIEW', true),
+      enableReflection: parseBoolean('AI_REFLECTION', false),
+      enableObserver: parseBoolean('AI_OBSERVER', true),
     },
   };
 }

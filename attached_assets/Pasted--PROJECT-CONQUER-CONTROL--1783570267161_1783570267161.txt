@@ -1,0 +1,692 @@
+# =====================================================================
+# PROJECT: CONQUER CONTROL CENTER
+# VERSION: 2.0
+# GOAL:
+# Transform this Discord bot into an AI-powered Discord Operating System.
+# =====================================================================
+
+You are NOT upgrading a Discord bot.
+
+You are building a Discord Operating System (DOS).
+
+The AI must become capable of understanding, planning, executing, verifying, remembering and improving Discord servers.
+
+DO NOT generate placeholders.
+
+DO NOT generate mock implementations.
+
+Everything must be production-ready.
+
+Everything must be written in TypeScript.
+
+Follow Clean Architecture.
+
+Follow SOLID.
+
+Use Dependency Injection.
+
+Strong typing everywhere.
+
+No duplicated code.
+
+Fix every compilation error before finishing.
+
+Run full typecheck.
+
+Run lint.
+
+Do not finish until everything builds successfully.
+
+====================================================================
+EXISTING FEATURES
+====================================================================
+
+Keep existing modules working.
+
+- Live Server Status
+- AI Control Center
+- Memory Engine
+- Status Embed
+- Tool Registry
+
+Do NOT remove them.
+
+====================================================================
+NEW ARCHITECTURE
+====================================================================
+
+Create
+
+src/
+
+ai/
+
+brain/
+planner/
+reasoner/
+executor/
+validator/
+observer/
+memory/
+knowledge/
+context/
+conversation/
+tools/
+permissions/
+events/
+logger/
+providers/
+
+====================================================================
+AI BRAIN
+====================================================================
+
+The AI Brain is responsible for
+
+Understanding
+
+Reasoning
+
+Planning
+
+Execution
+
+Verification
+
+Reflection
+
+Memory
+
+Tool Selection
+
+Error Recovery
+
+The Brain never talks directly to Discord.
+
+Everything goes through Tools.
+
+====================================================================
+TOOL SYSTEM
+====================================================================
+
+Every Discord capability must be represented as a Tool.
+
+Examples
+
+CreateChannel
+
+DeleteChannel
+
+RenameChannel
+
+MoveChannel
+
+CloneChannel
+
+CreateCategory
+
+DeleteCategory
+
+CreateRole
+
+DeleteRole
+
+RenameRole
+
+MoveRole
+
+SetPermissions
+
+CreateVoiceChannel
+
+CreateStageChannel
+
+CreateForumChannel
+
+CreateThread
+
+ArchiveThread
+
+CreateWebhook
+
+DeleteWebhook
+
+CreateEmoji
+
+DeleteEmoji
+
+CreateSticker
+
+DeleteSticker
+
+CreateScheduledEvent
+
+EditScheduledEvent
+
+DeleteScheduledEvent
+
+CreateInvite
+
+DeleteInvite
+
+KickMember
+
+BanMember
+
+TimeoutMember
+
+RemoveTimeout
+
+WarnMember
+
+MuteMember
+
+UnmuteMember
+
+ChangeNickname
+
+MoveVoiceMember
+
+DisconnectVoiceMember
+
+SendMessage
+
+EditMessage
+
+DeleteMessage
+
+PinMessage
+
+UnpinMessage
+
+ReactMessage
+
+CreateEmbed
+
+CreateButton
+
+CreateSelectMenu
+
+CreateModal
+
+CreateSlashCommand
+
+CreateContextMenu
+
+CreateAutoModRule
+
+CreateWelcomeSystem
+
+CreateTicketSystem
+
+CreateLoggingSystem
+
+CreateVerificationSystem
+
+CreateAnnouncementSystem
+
+CreateGiveaway
+
+CreatePoll
+
+CreateCountdown
+
+CreateDashboard
+
+Every tool must contain
+
+name
+
+description
+
+required permissions
+
+examples
+
+parameter schema
+
+execution function
+
+rollback function
+
+validation
+
+====================================================================
+PLANNER
+====================================================================
+
+The Planner receives
+
+User Prompt
+
+Conversation Memory
+
+Current Server State
+
+Long-Term Preferences
+
+Tool Registry
+
+The Planner creates
+
+Execution Plan
+
+Risk Analysis
+
+Required Permissions
+
+Estimated Changes
+
+Affected Objects
+
+Rollback Plan
+
+====================================================================
+PLAN PREVIEW
+====================================================================
+
+Before execution
+
+show
+
+Execution Plan
+
+Affected Objects
+
+Estimated Time
+
+Risk Level
+
+Buttons
+
+Execute
+
+Cancel
+
+====================================================================
+EXECUTOR
+====================================================================
+
+Execute
+
+step
+
+by
+
+step.
+
+After every step
+
+verify
+
+that it actually succeeded.
+
+If one step fails
+
+retry
+
+If still failing
+
+rollback completed changes whenever possible.
+
+====================================================================
+VERIFIER
+====================================================================
+
+Every Discord action
+
+must be verified.
+
+Example
+
+Create Channel
+
+↓
+
+Check
+
+Channel Exists
+
+Correct Category
+
+Correct Permissions
+
+Correct Position
+
+Only then continue.
+
+====================================================================
+OBSERVER
+====================================================================
+
+Continuously monitor
+
+Guild
+
+Channels
+
+Roles
+
+Members
+
+Events
+
+Permissions
+
+Threads
+
+Forum Posts
+
+Voice
+
+Audit Logs
+
+If something changes externally
+
+update memory.
+
+====================================================================
+MEMORY
+====================================================================
+
+Conversation Memory
+
+Task Memory
+
+Long-Term Memory
+
+Workspace Memory
+
+Reference Resolver
+
+Smart Summaries
+
+Object Registry
+
+Undo History
+
+The AI must remember
+
+current task
+
+current objects
+
+current category
+
+current channel
+
+current role
+
+current embed
+
+current server
+
+current event
+
+current ticket
+
+preferred styles
+
+preferred layouts
+
+preferred colors
+
+preferred naming
+
+====================================================================
+WORKSPACE MODE
+====================================================================
+
+Every conversation belongs to a Workspace.
+
+Examples
+
+Ticket System
+
+Moderation
+
+Server Setup
+
+Embeds
+
+Events
+
+The AI can resume any workspace later.
+
+Example
+
+Continue Ticket System.
+
+====================================================================
+REFLECTION
+====================================================================
+
+After execution
+
+AI evaluates
+
+Could this be improved?
+
+If yes
+
+suggest improvements.
+
+====================================================================
+DISCORD KNOWLEDGE
+====================================================================
+
+The AI must understand
+
+Guild
+
+Community
+
+Channels
+
+Categories
+
+Forum Channels
+
+Threads
+
+Roles
+
+Members
+
+Permissions
+
+Permission Overwrites
+
+Audit Logs
+
+Events
+
+Stage Channels
+
+Voice
+
+Buttons
+
+Embeds
+
+Components
+
+Slash Commands
+
+Context Menus
+
+Auto Moderation
+
+Invites
+
+Widgets
+
+Boosts
+
+Onboarding
+
+Integrations
+
+Webhooks
+
+Stickers
+
+Emojis
+
+Applications
+
+Activities
+
+====================================================================
+SMART EXECUTION
+====================================================================
+
+If user says
+
+Create a complete Ticket System.
+
+The AI decides
+
+Create Category
+
+Create Channel
+
+Create Buttons
+
+Permissions
+
+Embeds
+
+Logs
+
+Close System
+
+Transcript
+
+Claim System
+
+No need for user to explain every step.
+
+====================================================================
+UNDO SYSTEM
+====================================================================
+
+Every action
+
+must support rollback whenever Discord API allows.
+
+====================================================================
+AI CHAT
+====================================================================
+
+The AI must behave like ChatGPT/Gemini.
+
+Natural conversation.
+
+Multi-turn understanding.
+
+Context awareness.
+
+No need to repeat previous requests.
+
+====================================================================
+MULTI PROVIDER AI
+====================================================================
+
+Support
+
+Gemini
+
+OpenAI
+
+OpenRouter
+
+Groq
+
+Provider selected through
+
+AI_PROVIDER
+
+Gemini should be default.
+
+====================================================================
+SECURITY
+====================================================================
+
+The AI must NEVER execute
+
+Delete All Channels
+
+Delete All Roles
+
+Mass Ban
+
+Mass Kick
+
+Without explicit confirmation.
+
+Dangerous actions require confirmation buttons.
+
+====================================================================
+ADMIN LOGGING
+====================================================================
+
+Every AI action
+
+creates
+
+Professional Embed
+
+Containing
+
+Executor
+
+Time
+
+Affected Objects
+
+Workspace
+
+Execution Time
+
+Result
+
+====================================================================
+ERROR RECOVERY
+====================================================================
+
+If execution fails
+
+AI should explain
+
+why
+
+what failed
+
+what was completed
+
+what was rolled back
+
+how to fix it.
+
+====================================================================
+FINAL REQUIREMENTS
+====================================================================
+
+The project must feel like an intelligent operating system for Discord—not a command bot.
+
+The AI should think before acting.
+
+The AI should remember.
+
+The AI should verify.
+
+The AI should improve.
+
+The AI should learn user preferences.
+
+The AI should continue unfinished work.
+
+The AI should chain dozens of Discord actions automatically.
+
+Do not finish until every module is integrated and the entire project compiles successfully.

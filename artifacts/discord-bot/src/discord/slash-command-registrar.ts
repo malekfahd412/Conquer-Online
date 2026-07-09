@@ -3,12 +3,12 @@ import { logger } from '../utils/logger';
 
 const AI_COMMAND = {
   name: 'ai',
-  description: 'Send a natural language command to the AI server administrator',
+  description: 'Send a natural language command to the AI Control Center',
   options: [
     {
       name: 'prompt',
       type: ApplicationCommandOptionType.String,
-      description: 'What would you like the AI to do? (e.g. "lock the trading channel")',
+      description: 'What would you like the AI to do? (e.g. "Create a ticket system")',
       required: true,
       min_length: 1,
       max_length: 1000,
@@ -36,7 +36,76 @@ const RESET_PREFS_COMMAND = {
   description: 'Reset all your stored long-term AI preferences',
 };
 
-const ALL_COMMANDS = [AI_COMMAND, FORGET_COMMAND, MEMORY_COMMAND, PREFERENCES_COMMAND, RESET_PREFS_COMMAND];
+const WORKSPACE_COMMAND = {
+  name: 'workspace',
+  description: 'Manage AI workspaces — named, resumable conversation sessions',
+  options: [
+    {
+      name: 'start',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Start a new named workspace',
+      options: [
+        {
+          name: 'name',
+          type: ApplicationCommandOptionType.String,
+          description: 'Workspace name (e.g. "Ticket System", "Server Setup")',
+          required: true,
+        },
+        {
+          name: 'description',
+          type: ApplicationCommandOptionType.String,
+          description: 'Optional description for this workspace',
+          required: false,
+        },
+      ],
+    },
+    {
+      name: 'resume',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Resume a previous workspace by name',
+      options: [
+        {
+          name: 'name',
+          type: ApplicationCommandOptionType.String,
+          description: 'Name of the workspace to resume',
+          required: true,
+        },
+      ],
+    },
+    {
+      name: 'end',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'End the current workspace (keeps it saved for later)',
+    },
+    {
+      name: 'list',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'List all your saved workspaces',
+    },
+    {
+      name: 'delete',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Permanently delete a workspace',
+      options: [
+        {
+          name: 'name',
+          type: ApplicationCommandOptionType.String,
+          description: 'Name of the workspace to delete',
+          required: true,
+        },
+      ],
+    },
+  ],
+};
+
+const ALL_COMMANDS = [
+  AI_COMMAND,
+  FORGET_COMMAND,
+  MEMORY_COMMAND,
+  PREFERENCES_COMMAND,
+  RESET_PREFS_COMMAND,
+  WORKSPACE_COMMAND,
+];
 
 const GUILD_ID = '1213437502078062674';
 

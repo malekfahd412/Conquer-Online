@@ -6,6 +6,11 @@ export interface ToolExecuteResult {
   data?: unknown;
 }
 
+export interface ToolRollbackResult {
+  success: boolean;
+  message: string;
+}
+
 export interface ToolParameterSchema {
   type: string;
   description: string;
@@ -24,9 +29,12 @@ export interface ToolDefinition {
   };
   dangerous: boolean;
   dangerDescription?: string;
+  examples?: string[];
 }
 
 export interface ITool {
   readonly definition: ToolDefinition;
   execute(params: Record<string, unknown>, guild: Guild): Promise<ToolExecuteResult>;
+  rollback?(params: Record<string, unknown>, data: unknown, guild: Guild): Promise<ToolRollbackResult>;
+  verify?(params: Record<string, unknown>, guild: Guild): Promise<{ verified: boolean; message: string }>;
 }

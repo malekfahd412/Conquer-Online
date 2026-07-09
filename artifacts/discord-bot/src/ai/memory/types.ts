@@ -1,6 +1,6 @@
 import type { ConversationMessage } from '../types';
 
-export type ObjectType = 'channel' | 'category' | 'role' | 'embed' | 'message' | 'thread' | 'event';
+export type ObjectType = 'channel' | 'category' | 'role' | 'embed' | 'message' | 'thread' | 'event' | 'webhook' | 'invite';
 
 export interface CreatedObject {
   type: ObjectType;
@@ -49,6 +49,7 @@ export interface ConversationSession {
   actions: ExecutedAction[];
   context: CurrentContext;
   summary: string | null;
+  workspaceId?: string;
 }
 
 export interface UserPreferences {
@@ -75,4 +76,23 @@ export interface MemoryDisplay {
   messageCount: number;
   lastActivity: number;
   hasSummary: boolean;
+  workspaceId?: string;
+}
+
+// ── Workspace ─────────────────────────────────────────────────────────────────
+
+export interface Workspace {
+  id: string;
+  name: string;
+  description?: string;
+  guildId: string;
+  userId: string;
+  createdAt: number;
+  lastActivity: number;
+  messages: ConversationMessage[];
+  objects: CreatedObject[];
+  actions: ExecutedAction[];
+  context: CurrentContext;
+  task: string | null;
+  taskSteps: TaskStep[];
 }

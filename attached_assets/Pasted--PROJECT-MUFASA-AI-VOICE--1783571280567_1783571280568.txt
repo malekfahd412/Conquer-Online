@@ -1,0 +1,442 @@
+# =====================================================================
+# PROJECT: MUFASA AI VOICE
+# FEATURE: Real-Time Voice Assistant for Discord
+# =====================================================================
+
+You are upgrading the existing Conquer Control Center.
+
+DO NOT remove or break any existing features.
+
+Keep working:
+
+- Live Server Status
+- AI Control Center
+- Conversation Memory
+- Workspace Memory
+- Tool Registry
+- Planner
+- Executor
+- Discord Management Tools
+
+The goal is to transform the bot into a real-time Voice AI Assistant similar to Gemini Live.
+
+====================================================================
+OBJECTIVE
+====================================================================
+
+The bot must be able to:
+
+• Join voice channels
+• Listen to users
+• Convert speech to text
+• Understand natural conversation
+• Remember context
+• Execute Discord actions through the existing Tool system
+• Reply using natural speech
+• Hold continuous conversations without requiring slash commands for every interaction
+
+The experience should feel similar to Gemini Live or ChatGPT Voice.
+
+====================================================================
+VOICE PIPELINE
+====================================================================
+
+Implement the following architecture:
+
+Discord Voice
+
+↓
+
+Audio Receiver
+
+↓
+
+Speech-To-Text
+
+↓
+
+Conversation Memory
+
+↓
+
+AI Planner
+
+↓
+
+Reasoner
+
+↓
+
+Tool Executor
+
+↓
+
+Natural Response
+
+↓
+
+Text-To-Speech
+
+↓
+
+Discord Voice Output
+
+====================================================================
+VOICE MODULES
+====================================================================
+
+Create
+
+src/voice/
+
+VoiceManager.ts
+
+VoiceSession.ts
+
+VoiceReceiver.ts
+
+VoicePlayer.ts
+
+WakeWord.ts
+
+SpeechRecognizer.ts
+
+SpeechSynthesizer.ts
+
+VoiceConversation.ts
+
+VoicePermissions.ts
+
+LatencyMonitor.ts
+
+====================================================================
+VOICE FEATURES
+====================================================================
+
+Support
+
+Join Voice Channel
+
+Leave Voice Channel
+
+Auto reconnect
+
+Multiple voice sessions
+
+Session timeout
+
+Noise filtering (if provider supports it)
+
+Silence detection
+
+Interruption handling
+
+Automatic resume
+
+Voice activity detection
+
+====================================================================
+WAKE WORD
+====================================================================
+
+Default wake words:
+
+"Mufasa"
+
+"Hey Mufasa"
+
+The bot should ignore random conversations until the wake word is detected.
+
+====================================================================
+CONVERSATION
+====================================================================
+
+The bot must support natural multi-turn conversations.
+
+Example
+
+User:
+
+Mufasa
+
+Bot:
+
+Yes?
+
+User:
+
+Create an announcements channel.
+
+Bot:
+
+Done.
+
+User:
+
+Rename it to news.
+
+Bot:
+
+Done.
+
+User:
+
+Lock it.
+
+Bot:
+
+Done.
+
+Conversation Memory must be shared with the existing AI Memory Engine.
+
+====================================================================
+VOICE COMMANDS
+====================================================================
+
+Support natural language only.
+
+Do NOT require slash commands during voice conversations.
+
+Examples
+
+Create channels
+
+Create roles
+
+Edit permissions
+
+Create embeds
+
+Create events
+
+Create tickets
+
+Moderation actions
+
+Announcements
+
+Everything must use the existing Tool Registry.
+
+====================================================================
+TEXT TO SPEECH
+====================================================================
+
+Create a SpeechSynthesizer abstraction.
+
+Support multiple providers.
+
+Google Cloud TTS
+
+ElevenLabs
+
+Azure
+
+OpenAI TTS
+
+Future providers
+
+Select provider through
+
+TTS_PROVIDER
+
+====================================================================
+SPEECH TO TEXT
+====================================================================
+
+Create a SpeechRecognizer abstraction.
+
+Support
+
+Google Speech
+
+Deepgram
+
+AssemblyAI
+
+Whisper
+
+Future providers
+
+Select provider through
+
+STT_PROVIDER
+
+====================================================================
+AI PROVIDER
+====================================================================
+
+Continue using the existing AI abstraction.
+
+Default provider:
+
+Gemini
+
+Support
+
+Gemini
+
+OpenAI
+
+Groq
+
+OpenRouter
+
+Provider selected through
+
+AI_PROVIDER
+
+====================================================================
+VOICE PERSONALITY
+====================================================================
+
+Create configurable personalities.
+
+Friendly
+
+Professional
+
+Gaming
+
+Funny
+
+Assistant
+
+Responses should be natural and conversational.
+
+====================================================================
+VOICE MEMORY
+====================================================================
+
+The bot must remember:
+
+Current conversation
+
+Current task
+
+Current Discord objects
+
+Current users
+
+Current workspace
+
+Previous voice interactions
+
+====================================================================
+VOICE LATENCY
+====================================================================
+
+Measure
+
+Speech recognition time
+
+AI generation time
+
+Speech synthesis time
+
+Total response time
+
+Log these metrics.
+
+====================================================================
+SECURITY
+====================================================================
+
+The bot must never execute dangerous actions without confirmation.
+
+Examples
+
+Delete channels
+
+Delete roles
+
+Ban members
+
+Mass actions
+
+Require confirmation before execution.
+
+====================================================================
+SECRETS
+====================================================================
+
+If any required secret is missing,
+
+DO NOT hardcode values.
+
+Instead:
+
+1. Detect the missing secret.
+2. Print a clear setup message.
+3. Continue building every other module.
+
+Required secrets may include (depending on selected providers):
+
+AI_PROVIDER
+
+GEMINI_API_KEY
+
+GOOGLE_APPLICATION_CREDENTIALS
+
+GOOGLE_PROJECT_ID
+
+STT_PROVIDER
+
+TTS_PROVIDER
+
+DEEPGRAM_API_KEY
+
+ASSEMBLYAI_API_KEY
+
+ELEVENLABS_API_KEY
+
+AZURE_SPEECH_KEY
+
+AZURE_SPEECH_REGION
+
+OPENAI_API_KEY
+
+VOICE_LANGUAGE
+
+VOICE_NAME
+
+====================================================================
+SETUP WIZARD
+====================================================================
+
+Create a Startup Diagnostics system.
+
+On startup display
+
+✓ Configured
+
+⚠ Missing
+
+❌ Invalid
+
+for every required secret.
+
+If a provider cannot start,
+
+show exactly which secret is missing and how to configure it.
+
+Never crash because of missing optional providers.
+
+====================================================================
+FINAL REQUIREMENTS
+====================================================================
+
+Everything must be production-ready.
+
+No placeholders.
+
+No mock implementations.
+
+TypeScript only.
+
+Run typecheck.
+
+Fix every error.
+
+Verify every module builds successfully.
+
+Do not stop until the project compiles successfully and all new Voice AI modules are integrated with the existing architecture.

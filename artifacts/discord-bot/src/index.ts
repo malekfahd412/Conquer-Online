@@ -8,6 +8,7 @@ import { MessageManager } from './discord/message-manager';
 import { buildStatusEmbed } from './discord/embed-builder';
 import { buildSocialButtons } from './discord/button-builder';
 import { AIService } from './ai/ai.service';
+import { GuildObserver } from './ai/observer/guild-observer';
 import { registerSlashCommands } from './discord/slash-command-registrar';
 
 const RETRY_CONNECT_INTERVAL_MS = 15_000;
@@ -45,6 +46,7 @@ async function main(): Promise<void> {
   logger.success(`Configuration loaded — Server: ${config.server.name}`);
   logger.info(`Data source: ${config.dataSource}`);
   logger.info(`Update interval: ${config.updateIntervalMs}ms`);
+  logger.info(`AI provider: ${config.ai.provider}`);
 
   const provider = createProvider(config);
   const repository = new ServerStatusRepository(provider);
@@ -79,44 +81,59 @@ async function main(): Promise<void> {
     });
   }
 
+  // ── AI Control Center ──────────────────────────────────────────────────
   logger.info('Initializing AI Control Center...');
   const aiService = new AIService({
     serverName: config.server.name,
     adminRole: config.ai.adminRole,
     logChannelId: config.ai.logChannelId,
     chatChannelId: config.ai.chatChannelId,
+    enablePlanPreview: config.ai.enablePlanPreview,
+    enableReflection: config.ai.enableReflection,
   });
+  await aiService.initialize();
   aiService.start(client);
 
+  // ── Guild Observer ─────────────────────────────────────────────────────
+  if (config.ai.enableObserver) {
+    logger.info('Initializing Guild Observer...');
+    const observer = new GuildObserver({ logChannelId: config.ai.logChannelId });
+    observer.start(client);
+  }
+
+  // ── Live Status Loop ───────────────────────────────────────────────────
   logger.info('Initializing message manager...');
   const messageManager = new MessageManager(client, config.discord.statusChannelId);
   await messageManager.initialize();
 
   logger.success('Bot is running — starting update loop');
 
+  let updateRunning = false;
+
   const runUpdate = async (): Promise<void> => {
+    if (updateRunning) return; // Prevent overlapping updates
+    updateRunning = true;
     try {
       const status = await service.getServerStatus(config.server.name);
       const embed = buildStatusEmbed(status, embedOptions);
       await messageManager.updateEmbed(embed, socialButtons);
     } catch (error) {
       logger.error('Failed to update status embed', error);
-
       if (!provider.isConnected()) {
         connectWithRetry(provider, config.dataSource).catch(err => {
           logger.error('Reconnection attempt failed', err);
         });
       }
+    } finally {
+      updateRunning = false;
+      // Schedule next update only after this one completes
+      setTimeout(() => {
+        runUpdate().catch(err => logger.error('Unhandled error in update loop', err));
+      }, config.updateIntervalMs);
     }
   };
 
   await runUpdate();
-
-  setInterval(() => {
-    runUpdate().catch(error => {
-      logger.error('Unhandled error in update loop', error);
-    });
-  }, config.updateIntervalMs);
 }
 
 main().catch(error => {

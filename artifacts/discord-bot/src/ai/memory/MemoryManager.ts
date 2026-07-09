@@ -1,5 +1,5 @@
 import type { ConversationMessage, ToolCall, ToolResult } from '../types';
-import type { CreatedObject, ExecutedAction, MemoryContext, MemoryDisplay } from './types';
+import type { CreatedObject, ExecutedAction, MemoryContext, MemoryDisplay, Workspace } from './types';
 import { ConversationMemory } from './ConversationMemory';
 import { LongTermMemory } from './LongTermMemory';
 import { MemoryStorage } from './MemoryStorage';
@@ -15,8 +15,13 @@ const CREATES_OBJECT: Record<string, CreatedObject['type']> = {
   create_category: 'category',
   create_channel: 'channel',
   clone_channel: 'channel',
+  create_forum_channel: 'channel',
   create_role: 'role',
   create_embed: 'embed',
+  create_thread: 'thread',
+  create_scheduled_event: 'event',
+  create_webhook: 'webhook',
+  create_invite: 'invite',
 };
 
 const RENAMES: Record<string, ContextKey> = {
@@ -27,6 +32,7 @@ const RENAMES: Record<string, ContextKey> = {
 
 export class MemoryManager {
   private readonly sessions = new Map<string, ConversationMemory>();
+  private readonly workspaceIds = new Map<string, string | undefined>();
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
   private readonly ltm: LongTermMemory;
 
@@ -47,13 +53,11 @@ export class MemoryManager {
   getMemory(userId: string, guildId: string): ConversationMemory {
     const k = this.key(userId, guildId);
     let mem = this.sessions.get(k);
-
     if (!mem || mem.isExpired()) {
       if (mem) logger.info(`Memory expired for user ${userId} — fresh session started`);
       mem = new ConversationMemory(userId, guildId);
       this.sessions.set(k, mem);
     }
-
     return mem;
   }
 
@@ -69,6 +73,11 @@ export class MemoryManager {
 
   addToolResult(userId: string, guildId: string, toolCallId: string, content: string): void {
     this.getMemory(userId, guildId).addMessage({ role: 'tool', tool_call_id: toolCallId, content });
+  }
+
+  /** Add a raw ConversationMessage (used when restoring workspace history). */
+  addRawMessage(userId: string, guildId: string, msg: ConversationMessage): void {
+    this.getMemory(userId, guildId).addMessage(msg);
   }
 
   getMessages(userId: string, guildId: string): ConversationMessage[] {
@@ -102,10 +111,8 @@ export class MemoryManager {
         timestamp: Date.now(),
       };
       mem.recordAction(action);
-
       if (!result.success) continue;
 
-      // Auto-register created objects in the object registry
       const objType = CREATES_OBJECT[result.toolName];
       if (objType && typeof params['name'] === 'string') {
         const obj: CreatedObject = {
@@ -119,7 +126,6 @@ export class MemoryManager {
         if (DEBUG) logger.info(`[MEMORY] Registered: ${obj.type} "${obj.name}"`);
       }
 
-      // Update context on rename
       const renameKey = RENAMES[result.toolName];
       if (renameKey && typeof params['newName'] === 'string') {
         const ctx = mem.getContext();
@@ -151,6 +157,30 @@ export class MemoryManager {
     };
   }
 
+  // ── Workspace ─────────────────────────────────────────────────────────────
+
+  setWorkspace(userId: string, guildId: string, workspaceId: string | undefined): void {
+    this.workspaceIds.set(this.key(userId, guildId), workspaceId);
+    if (workspaceId) {
+      this.getMemory(userId, guildId).setWorkspaceId(workspaceId);
+    }
+  }
+
+  getWorkspaceId(userId: string, guildId: string): string | undefined {
+    return this.workspaceIds.get(this.key(userId, guildId));
+  }
+
+  /** Restore structured state (objects, context, task) from a workspace into the active session. */
+  restoreWorkspaceSession(userId: string, guildId: string, ws: Workspace): void {
+    this.getMemory(userId, guildId).restoreState({
+      objects: ws.objects,
+      actions: ws.actions,
+      context: ws.context,
+      currentTask: ws.task,
+      taskSteps: ws.taskSteps,
+    });
+  }
+
   // ── Display ───────────────────────────────────────────────────────────────
 
   getDisplay(userId: string, guildId: string): MemoryDisplay {
@@ -163,6 +193,7 @@ export class MemoryManager {
       messageCount: session.messages.length,
       lastActivity: session.lastActivity,
       hasSummary: !!session.summary,
+      workspaceId: session.workspaceId,
     };
   }
 

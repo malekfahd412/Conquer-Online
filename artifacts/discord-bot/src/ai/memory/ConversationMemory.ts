@@ -130,6 +130,26 @@ export class ConversationMemory {
     return this.session;
   }
 
+  setWorkspaceId(workspaceId: string): void {
+    this.session.workspaceId = workspaceId;
+  }
+
+  /** Restore structured session state from a previously persisted workspace. */
+  restoreState(partial: {
+    objects?: CreatedObject[];
+    actions?: ExecutedAction[];
+    context?: CurrentContext;
+    currentTask?: string | null;
+    taskSteps?: TaskStep[];
+  }): void {
+    if (partial.objects !== undefined) this.session.objects = [...partial.objects];
+    if (partial.actions !== undefined) this.session.actions = [...partial.actions];
+    if (partial.context !== undefined) this.session.context = { ...partial.context };
+    if (partial.currentTask !== undefined) this.session.currentTask = partial.currentTask;
+    if (partial.taskSteps !== undefined) this.session.taskSteps = [...partial.taskSteps];
+    this.touch();
+  }
+
   clear(): void {
     this.session.messages = [];
     this.session.currentTask = null;
@@ -138,6 +158,7 @@ export class ConversationMemory {
     this.session.actions = [];
     this.session.context = emptyContext();
     this.session.summary = null;
+    this.session.workspaceId = undefined;
     this.touch();
   }
 }
