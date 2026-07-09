@@ -32,7 +32,9 @@ export class VoicePlayer {
 
     return new Promise<void>((resolve, reject) => {
       try {
-        const stream = Readable.from(audioBuffer);
+        // Wrap in array so Readable.from emits the whole Buffer as a single chunk.
+        // Readable.from(buffer) without wrapping iterates bytes individually — broken for audio.
+        const stream = Readable.from([audioBuffer]);
         // StreamType.Arbitrary lets @discordjs/voice use ffmpeg to transcode MP3 → Opus
         const resource = createAudioResource(stream, { inputType: StreamType.Arbitrary });
 

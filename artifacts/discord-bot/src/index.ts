@@ -142,3 +142,13 @@ main().catch(error => {
   logger.error('Fatal error during startup', error);
   process.exit(1);
 });
+
+// ── Clean shutdown on SIGTERM / SIGINT ─────────────────────────────────────
+// Ensures the process exits promptly when the workflow manager restarts it,
+// preventing stale duplicate instances from competing for Discord interactions.
+const shutdown = (): void => {
+  logger.info('Shutting down gracefully...');
+  process.exit(0);
+};
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

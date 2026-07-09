@@ -408,24 +408,25 @@ export class AIService {
   // ── Voice Command Handler ─────────────────────────────────────────────────
 
   private async onVoiceCommand(interaction: ChatInputCommandInteraction, client: Client): Promise<void> {
-    void client; // client available for future use
-
     if (!interaction.guild) {
-      await interaction.reply({ content: '❌ This command can only be used inside a server.', ephemeral: true });
+      await interaction.reply({ content: '❌ This command can only be used inside a server.', flags: [4096] });
       return;
     }
+
+    // Defer immediately — member fetch + voice join can exceed the 3-second window
+    await interaction.deferReply({ flags: [64] }); // 64 = Ephemeral
 
     const member = interaction.member instanceof GuildMember
       ? interaction.member
       : await interaction.guild.members.fetch(interaction.user.id);
 
     if (!this.permissionManager.isAdmin(member)) {
-      await interaction.reply({ content: '❌ You do not have permission to use Voice AI.', ephemeral: true });
+      await interaction.editReply({ content: '❌ You do not have permission to use Voice AI.' });
       return;
     }
 
     if (!this.voiceManager) {
-      await interaction.reply({ content: '❌ Voice AI is not enabled. Set `STT_PROVIDER` and `TTS_PROVIDER` environment variables to activate it.', ephemeral: true });
+      await interaction.editReply({ content: '❌ Voice AI is not enabled. Set `STT_PROVIDER` and `TTS_PROVIDER` environment variables to activate it.' });
       return;
     }
 
@@ -434,28 +435,27 @@ export class AIService {
     if (sub === 'join') {
       const voiceChannel = VoiceManager.getMemberVoiceChannel(member);
       if (!voiceChannel) {
-        await interaction.reply({ content: '❌ You need to be in a voice channel first.', ephemeral: true });
+        await interaction.editReply({ content: '❌ You need to be in a voice channel first.' });
         return;
       }
-      await interaction.deferReply({ ephemeral: true });
       const result = await this.voiceManager.join(interaction.guild, voiceChannel, member, client);
       await interaction.editReply({ content: result.message });
 
     } else if (sub === 'leave') {
       const result = this.voiceManager.leave(interaction.guild);
-      await interaction.reply({ content: result.message, ephemeral: true });
+      await interaction.editReply({ content: result.message });
 
     } else if (sub === 'status') {
       const status = this.voiceManager.getStatus(interaction.guild.id);
-      await interaction.reply({ content: status, ephemeral: true });
+      await interaction.editReply({ content: status });
 
     } else if (sub === 'personality') {
       const type = interaction.options.getString('type', true) as VoicePersonality;
       const result = this.voiceManager.setPersonality(interaction.guild, type);
-      await interaction.reply({ content: result.message, ephemeral: true });
+      await interaction.editReply({ content: result.message });
 
     } else {
-      await interaction.reply({ content: 'Use `/voice join`, `/voice leave`, `/voice status`, or `/voice personality`.', ephemeral: true });
+      await interaction.editReply({ content: 'Use `/voice join`, `/voice leave`, `/voice status`, or `/voice personality`.' });
     }
   }
 

@@ -73,14 +73,18 @@ export class VoiceManager {
     // Wait for connection to be ready before playing audio
     try {
       await session.waitForReady();
-    } catch {
-      logger.warning('[VoiceManager] Connection did not reach Ready state in time — skipping greeting');
+      logger.info('[VoiceManager] Connection is Ready — playing greeting');
+    } catch (err) {
+      logger.warning(`[VoiceManager] Connection did not reach Ready state in time — skipping greeting: ${String(err)}`);
     }
 
     // Announce on join
+    logger.info('[VoiceManager] Synthesizing greeting...');
     await session.announce(
       `Hello! I'm Mufasa. Say "Hey Mufasa" to start a conversation.`,
-    ).catch(() => {});
+    ).catch(err => {
+      logger.error('[VoiceManager] Greeting announce failed', err);
+    });
 
     logger.success(`[VoiceManager] Joined #${channel.name} in ${guild.name}`);
     return { success: true, message: `✅ Joined **#${channel.name}**. Say **"Hey Mufasa"** to start a conversation.` };
