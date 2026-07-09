@@ -1,0 +1,666 @@
+# MASTER TASK 1 — Build the Discord Operating System Core
+
+You are a Senior Software Architect, AI Engineer, Discord API Expert, TypeScript Expert, and System Designer.
+
+Your mission is to build the foundation of an enterprise-grade AI-powered Discord Operating System from scratch.
+
+This project is NOT a normal Discord bot.
+
+It must become an intelligent operating system capable of understanding natural language, planning actions, executing them safely, verifying results, learning from interactions, remembering context, and managing Discord servers autonomously.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## PRIMARY GOAL
+
+Build ONLY the CORE.
+
+Do NOT build ticket systems, moderation systems, economy systems, music systems or server templates yet.
+
+Instead, build the infrastructure that every future feature will depend on.
+
+Think like you're building Windows before Microsoft Office.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# NON-NEGOTIABLE REQUIREMENTS
+
+The final project MUST:
+
+• Production Ready
+• Clean Architecture
+• SOLID
+• Dependency Injection
+• Modular
+• Strict TypeScript
+• Zero duplicated logic
+• Zero TODO comments
+• Zero mock code
+• Zero placeholder implementations
+• Zero TypeScript errors
+• Zero ESLint errors
+• Easy to maintain
+• Easily extensible
+
+Never generate temporary code.
+
+Never skip implementations.
+
+Never fake any functionality.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# ARCHITECTURE
+
+Create a layered architecture.
+
+Presentation Layer
+
+↓
+
+AI Layer
+
+↓
+
+Planning Layer
+
+↓
+
+Execution Layer
+
+↓
+
+Tool Layer
+
+↓
+
+Discord Layer
+
+↓
+
+Infrastructure Layer
+
+↓
+
+Storage Layer
+
+Every layer must depend only on abstractions.
+
+Never create circular dependencies.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# FOLDER STRUCTURE
+
+Design a scalable folder structure.
+
+Separate:
+
+AI
+
+Brain
+
+Planner
+
+Reasoner
+
+Memory
+
+Voice
+
+Providers
+
+Discord
+
+Tools
+
+Events
+
+Services
+
+Repositories
+
+Interfaces
+
+Utilities
+
+Configuration
+
+Logging
+
+Diagnostics
+
+Permissions
+
+Validation
+
+Rollback
+
+Observer
+
+Workspace
+
+Conversation
+
+Plugins
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# CORE MODULES
+
+Implement the following modules.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1.
+
+AI Brain
+
+Responsibilities
+
+Receive requests.
+
+Maintain context.
+
+Understand intent.
+
+Choose tools.
+
+Create execution plans.
+
+Manage conversations.
+
+Handle interruptions.
+
+Handle retries.
+
+Coordinate every subsystem.
+
+The Brain must NEVER directly call Discord APIs.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+2.
+
+Planner
+
+Receive an objective.
+
+Split it into ordered executable tasks.
+
+Detect dependencies.
+
+Estimate execution order.
+
+Support:
+
+Single task
+
+Multi-step workflow
+
+Conditional execution
+
+Parallel execution
+
+Sequential execution
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+3.
+
+Reasoner
+
+Before execution:
+
+Validate logic.
+
+Detect impossible actions.
+
+Detect missing information.
+
+Request clarification.
+
+Suggest better alternatives.
+
+Reject unsafe plans.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+4.
+
+Executor
+
+Responsible for executing tools.
+
+Features:
+
+Queue
+
+Retries
+
+Timeouts
+
+Cancellation
+
+Result collection
+
+Execution logs
+
+Failure recovery
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+5.
+
+Validator
+
+Verify EVERY action.
+
+Never assume success.
+
+Example:
+
+Create Channel
+
+↓
+
+Check channel exists
+
+↓
+
+Return success
+
+Same for every operation.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+6.
+
+Rollback Engine
+
+Every reversible tool must implement rollback.
+
+Example:
+
+Create Role
+
+↓
+
+Failure
+
+↓
+
+Delete Role automatically
+
+Generate rollback reports.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+7.
+
+Tool Registry
+
+Every tool registers automatically.
+
+Each tool exposes:
+
+id
+
+name
+
+description
+
+parameters
+
+examples
+
+required permissions
+
+estimated complexity
+
+risk level
+
+confirmation required
+
+rollback available
+
+validator
+
+executor
+
+metadata
+
+The AI must discover tools dynamically.
+
+Never hardcode tool lists.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+8.
+
+Memory System
+
+Implement:
+
+Conversation Memory
+
+Workspace Memory
+
+Project Memory
+
+Long-Term Memory
+
+Preference Memory
+
+Summary Memory
+
+Compressed Context
+
+Named Workspaces
+
+Persistent Storage
+
+Automatic Summaries
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+9.
+
+Permission Engine
+
+Validate:
+
+Discord permissions
+
+Bot permissions
+
+User permissions
+
+Role hierarchy
+
+Tool permissions
+
+Confirmation requirements
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+10.
+
+Confirmation System
+
+Dangerous actions require:
+
+Preview
+
+Impact explanation
+
+Execute button
+
+Cancel button
+
+Timeout
+
+Requester validation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+11.
+
+Observer
+
+Observe:
+
+Guild updates
+
+Channels
+
+Roles
+
+Members
+
+Messages
+
+Threads
+
+Voice
+
+Scheduled Events
+
+Forum updates
+
+Audit Logs
+
+Generate structured events.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+12.
+
+Diagnostics
+
+Provide:
+
+Health checks
+
+Dependency status
+
+Connected providers
+
+Voice status
+
+Memory status
+
+Registered tools
+
+Loaded plugins
+
+Environment validation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+13.
+
+Logging
+
+Structured logs.
+
+Every action.
+
+Every error.
+
+Every warning.
+
+Execution time.
+
+AI reasoning summary.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+14.
+
+Configuration System
+
+Validate every environment variable.
+
+Support:
+
+Gemini
+
+OpenAI
+
+Groq
+
+OpenRouter
+
+Voice Providers
+
+Database Providers
+
+Future Providers
+
+Configuration must be strongly typed.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+15.
+
+Voice Foundation
+
+Do NOT build advanced Voice AI yet.
+
+Only create the architecture.
+
+Support:
+
+Wake Word
+
+Speech Pipeline
+
+STT abstraction
+
+TTS abstraction
+
+Voice Sessions
+
+Conversation State
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+16.
+
+Plugin System
+
+Create a plugin loader.
+
+Future plugins should be installable without modifying the core.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+17.
+
+Dependency Injection
+
+Avoid singletons.
+
+Inject everything.
+
+Use interfaces.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+18.
+
+Error Handling
+
+Typed errors.
+
+Recoverable errors.
+
+Fatal errors.
+
+Validation errors.
+
+Permission errors.
+
+Provider errors.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+19.
+
+Performance
+
+Avoid blocking code.
+
+Use async operations.
+
+Minimize memory usage.
+
+Lazy initialization where appropriate.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+20.
+
+Startup
+
+When the bot starts.
+
+Print a beautiful startup report.
+
+Example:
+
+Discord Connected
+
+AI Provider
+
+Voice Provider
+
+Loaded Tools
+
+Loaded Plugins
+
+Memory
+
+Diagnostics
+
+Observers
+
+Configuration
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# FINAL VERIFICATION
+
+Do NOT finish until ALL of the following are true.
+
+✔ Project builds successfully.
+
+✔ No TypeScript errors.
+
+✔ No ESLint errors.
+
+✔ No duplicated logic.
+
+✔ Clean Architecture.
+
+✔ Dependency Injection.
+
+✔ Modular.
+
+✔ All modules initialized.
+
+✔ Diagnostics working.
+
+✔ Memory working.
+
+✔ Tool Registry working.
+
+✔ Planner working.
+
+✔ Executor working.
+
+✔ Validator working.
+
+✔ Rollback working.
+
+✔ Configuration validated.
+
+✔ Startup report displayed.
+
+Finally generate a complete implementation report explaining:
+
+Architecture
+
+Modules
+
+Files created
+
+Dependencies
+
+Execution flow
+
+Future extension points
+
+Known limitations
+
+Do NOT leave any unfinished implementation.
