@@ -20,6 +20,10 @@ import { ExecutionLogger } from './execution-logger';
 import { MemoryManager } from './memory/MemoryManager';
 import { WorkspaceMemory } from './memory/WorkspaceMemory';
 import { Verifier } from './verifier';
+import { VoiceManager } from '../voice/VoiceManager';
+import { VoiceDiagnostics } from '../voice/VoiceDiagnostics';
+import type { VoicePersonality } from '../voice/VoiceConversation';
+import type { VoiceModuleConfig } from '../config/config';
 import { logger } from '../utils/logger';
 
 export interface AIConfig {
@@ -29,6 +33,7 @@ export interface AIConfig {
   chatChannelId: string | undefined;
   enablePlanPreview: boolean;
   enableReflection: boolean;
+  voice?: VoiceModuleConfig;
 }
 
 type ButtonCallback = () => Promise<void>;
@@ -50,6 +55,7 @@ export class AIService {
   private readonly workspaceMemory: WorkspaceMemory;
   private readonly verifier: Verifier;
   private readonly pendingButtons = new Map<string, PendingButton>();
+  private voiceManager: VoiceManager | null = null;
 
   constructor(private readonly config: AIConfig) {
     this.permissionManager = new PermissionManager(config.adminRole);
@@ -67,6 +73,28 @@ export class AIService {
     await this.memoryManager.initialize();
     await this.workspaceMemory.initialize();
     logger.info(`AI model: ${this.planner.modelName}`);
+
+    // ── Voice AI ──────────────────────────────────────────────────────────
+    if (this.config.voice) {
+      const { voice } = this.config;
+      VoiceDiagnostics.run(voice.sttProvider, voice.ttsProvider);
+      this.voiceManager = new VoiceManager({
+        ai: {
+          memoryManager: this.memoryManager,
+          planner: this.planner,
+          toolRegistry: this.toolRegistry,
+          executor: this.executor,
+          promptBuilder: this.promptBuilder,
+        },
+        sttProvider: voice.sttProvider,
+        ttsProvider: voice.ttsProvider,
+        personality: voice.personality,
+        adminRoleIdentifier: this.config.adminRole,
+        confirmChannelId: voice.confirmChannelId,
+        pendingButtons: this.pendingButtons,
+      });
+      logger.success('Voice AI ready — say "Hey Mufasa" after joining a voice channel');
+    }
   }
 
   start(client: Client): void {
@@ -112,6 +140,12 @@ export class AIService {
         if (name === 'workspace') {
           this.onWorkspaceCommand(interaction as ChatInputCommandInteraction).catch(err =>
             logger.error('Workspace command error', err),
+          );
+          return;
+        }
+        if (name === 'voice') {
+          this.onVoiceCommand(interaction as ChatInputCommandInteraction, client).catch(err =>
+            logger.error('Voice command error', err),
           );
           return;
         }
@@ -368,6 +402,60 @@ export class AIService {
 
     } else {
       await interaction.reply({ content: 'Use `/workspace start`, `/workspace resume`, `/workspace end`, `/workspace list`, or `/workspace delete`.', ephemeral: true });
+    }
+  }
+
+  // ── Voice Command Handler ─────────────────────────────────────────────────
+
+  private async onVoiceCommand(interaction: ChatInputCommandInteraction, client: Client): Promise<void> {
+    void client; // client available for future use
+
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used inside a server.', ephemeral: true });
+      return;
+    }
+
+    const member = interaction.member instanceof GuildMember
+      ? interaction.member
+      : await interaction.guild.members.fetch(interaction.user.id);
+
+    if (!this.permissionManager.isAdmin(member)) {
+      await interaction.reply({ content: '❌ You do not have permission to use Voice AI.', ephemeral: true });
+      return;
+    }
+
+    if (!this.voiceManager) {
+      await interaction.reply({ content: '❌ Voice AI is not enabled. Set `STT_PROVIDER` and `TTS_PROVIDER` environment variables to activate it.', ephemeral: true });
+      return;
+    }
+
+    const sub = interaction.options.getSubcommand(false);
+
+    if (sub === 'join') {
+      const voiceChannel = VoiceManager.getMemberVoiceChannel(member);
+      if (!voiceChannel) {
+        await interaction.reply({ content: '❌ You need to be in a voice channel first.', ephemeral: true });
+        return;
+      }
+      await interaction.deferReply({ ephemeral: true });
+      const result = await this.voiceManager.join(interaction.guild, voiceChannel, member, client);
+      await interaction.editReply({ content: result.message });
+
+    } else if (sub === 'leave') {
+      const result = this.voiceManager.leave(interaction.guild);
+      await interaction.reply({ content: result.message, ephemeral: true });
+
+    } else if (sub === 'status') {
+      const status = this.voiceManager.getStatus(interaction.guild.id);
+      await interaction.reply({ content: status, ephemeral: true });
+
+    } else if (sub === 'personality') {
+      const type = interaction.options.getString('type', true) as VoicePersonality;
+      const result = this.voiceManager.setPersonality(interaction.guild, type);
+      await interaction.reply({ content: result.message, ephemeral: true });
+
+    } else {
+      await interaction.reply({ content: 'Use `/voice join`, `/voice leave`, `/voice status`, or `/voice personality`.', ephemeral: true });
     }
   }
 

@@ -13,7 +13,7 @@ export class VoicePlayer {
   readonly player: AudioPlayer;
   private isDestroyed = false;
 
-  constructor(private readonly connection: VoiceConnection) {
+  constructor(connection: VoiceConnection) {
     this.player = createAudioPlayer();
     connection.subscribe(this.player);
 

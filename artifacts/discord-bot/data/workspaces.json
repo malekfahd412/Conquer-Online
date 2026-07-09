@@ -1,0 +1,20 @@
+{
+  "fc880cd6-a6ea-4768-9384-35ed732ab5c7": {
+    "id": "fc880cd6-a6ea-4768-9384-35ed732ab5c7",
+    "name": "Server Setup",
+    "guildId": "1213437502078062674",
+    "userId": "727578927593291796",
+    "createdAt": 1783606237635,
+    "lastActivity": 1783606237635,
+    "messages": [],
+    "objects": [],
+    "actions": [],
+    "context": {
+      "mentionedMembers": [],
+      "mentionedChannels": [],
+      "mentionedRoles": []
+    },
+    "task": null,
+    "taskSteps": []
+  }
+}

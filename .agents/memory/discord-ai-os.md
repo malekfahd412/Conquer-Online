@@ -1,41 +1,31 @@
 ---
 name: Discord AI OS architecture
-description: Key design decisions, security patterns, and gotchas for the Conquer Online AI Discord bot
+description: Key design decisions for the Conquer Online Discord AI bot (multi-provider AI, voice pipeline, 37 tools, plan preview, workspace memory)
 ---
 
-## Multi-provider AI
-`AI_PROVIDER` env var selects: `gemini` (default), `openai`, `openrouter`, `groq`. All OpenAI-compatible providers share `OpenAICompatibleProvider` (fetch-based). Factory lives at `src/ai/providers/provider.factory.ts`.
+# Discord AI OS — Architecture Decisions
 
-**Why:** Gemini is the default and uses `@google/genai`; the others use the OpenAI `/chat/completions` REST format — one provider class handles all three via different base URLs.
+## Voice AI integration
+Voice is wired through `AIService` — `VoiceManager` is created inside `AIService.initialize()` when `config.voice` is present (always set from env). It shares the same `pendingButtons` Map so text-channel confirmation buttons from voice dangerous-action prompts are handled by the same `interactionCreate` listener.
 
-## Plan preview button security
-Pending confirmation buttons are stored as `Map<string, PendingButton>` where `PendingButton = { userId, executing, callback }`. The `interactionCreate` handler checks `entry.userId === interaction.user.id` before executing. `executing: boolean` guards against double execution if two interactions resolve near-simultaneously.
+**Why:** Keeps the button dispatch map as a single source of truth; avoids a second listener competing for button interactions.
 
-**Why:** Any user who can see the embed could previously click Execute/Cancel — broken access control on the highest-risk path.
+**How to apply:** If adding new button-based confirmation flows in voice, register them against `this.pendingButtons` (exposed to VoiceManager at construction time) not a new map.
 
-## Workspace sync — all branches must sync
-User messages AND assistant responses (including text-only turns) must be synced to the active workspace via `syncToWorkspace()`. Originally only tool-call turns were synced. The helper `syncToWorkspace(userId, guildId, msg)` centralizes this.
+## Voice authorization gate
+`VoiceSession.setupReceiver` caches per-speaker authorization in `authorizedUsers`/`deniedUsers` Sets. On first utterance from a user, it fetches the guild member and runs `VoicePermissions.canUseVoiceAI`. Subsequent utterances use the cache.
 
-**Why:** Resumed workspaces missed user prompts and text-only responses, breaking context continuity.
+**Why:** Non-admins could otherwise trigger tool execution by speaking in the channel after an admin runs `/voice join`. The cache avoids a Discord API call on every utterance.
 
-## Workspace resume restores structured state
-`/workspace resume` calls both `addRawMessage` (for the last 30 messages) AND `memoryManager.restoreWorkspaceSession(userId, guildId, ws)` which calls `ConversationMemory.restoreState()` to restore objects, actions, context, currentTask, taskSteps.
+**How to apply:** Any future per-speaker feature in VoiceSession should follow the same fetch-once-cache pattern.
 
-**Why:** Without this, resumed sessions had messages but lost the AI's awareness of what objects existed.
+## AI components are owned by AIService
+`MemoryManager`, `Planner`, `Executor`, `ToolRegistry`, `PromptBuilder` are all private fields of `AIService`. Voice gets them via the `VoiceAIComponents` object passed at VoiceManager construction.
 
-## Workspace flush on shutdown
-`AIService.stop()` calls `workspaceMemory.flush()` before `memoryManager.stop()`. The periodic flush is every 5 minutes.
+**Why:** Keeps a single instance of each component shared across text/slash and voice pipelines — conversation memory is unified.
 
-**Why:** A restart or crash between periodic flushes would lose up to 5 minutes of workspace writes.
-
-## Memory is per-user/guild (NOT per-channel)
-`MemoryManager` keys sessions by `${userId}:${guildId}`. Supports independent conversations per admin per server.
-
-## Tool count
-37 tools registered at startup (was 23 before this session).
-
-## Slash commands registered
-6 commands in guild `1213437502078062674`: `/ai`, `/forget`, `/memory`, `/preferences`, `/resetpreferences`, `/workspace` (with 5 subcommands).
-
-## ConversationMemory expiry
-Sessions expire after 30 minutes of inactivity (EXPIRY_MS constant). Checked lazily on next access; cleanup interval runs every 5 minutes.
+## Config defaults
+- STT defaults to `whisper` (needs `OPENAI_API_KEY`)
+- TTS defaults to `openai` (needs `OPENAI_API_KEY`)
+- Voice personality defaults to `assistant`
+- `CHANNEL_AI_LOG` is reused as the voice confirmation channel (can be overridden by pointing `confirmChannelId` to a different channel in future)

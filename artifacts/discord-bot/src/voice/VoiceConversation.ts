@@ -12,7 +12,7 @@ import type { Planner } from '../ai/planner';
 import type { ToolRegistry } from '../ai/tool-registry';
 import type { Executor } from '../ai/executor';
 import type { PromptBuilder } from '../ai/prompt-builder';
-import type { ConversationMessage } from '../ai/types';
+import type { ConversationMessage, ToolCall } from '../ai/types';
 import { logger } from '../utils/logger';
 
 export type VoicePersonality = 'friendly' | 'professional' | 'gaming' | 'funny' | 'assistant';
@@ -44,7 +44,7 @@ export class VoiceConversation {
     private readonly userId: string,
     private readonly guildId: string,
     private readonly guild: Guild,
-    private readonly client: Client,
+    _client: Client, // reserved for future features (e.g. DM confirmations)
     private readonly player: VoicePlayer,
     private readonly recognizer: ISpeechRecognizer,
     private readonly synthesizer: ISpeechSynthesizer,
@@ -183,7 +183,7 @@ export class VoiceConversation {
   }
 
   private async handleDangerousTools(
-    toolCalls: typeof ([] as import('../ai/types').ToolCall[]),
+    toolCalls: ToolCall[],
     latency: LatencyMonitor,
   ): Promise<void> {
     if (this.confirmChannel) {

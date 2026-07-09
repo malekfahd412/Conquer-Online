@@ -46,7 +46,7 @@ export class VoiceReceiver extends EventEmitter {
     import('prism-media').then(prismModule => {
       const prism = prismModule.default ?? prismModule;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      const decoder = new (prism as Record<string, Record<string, new (opts: object) => NodeJS.ReadWriteStream>>)['opus']['Decoder']({
+      const decoder = new (prism as unknown as Record<string, Record<string, new (opts: object) => NodeJS.ReadWriteStream>>)['opus']['Decoder']({
         rate: 48000,
         channels: 2,
         frameSize: 960,

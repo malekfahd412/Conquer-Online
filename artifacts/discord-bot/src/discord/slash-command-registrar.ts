@@ -98,6 +98,48 @@ const WORKSPACE_COMMAND = {
   ],
 };
 
+const VOICE_COMMAND = {
+  name: 'voice',
+  description: 'Control the Voice AI assistant (join, leave, status)',
+  options: [
+    {
+      name: 'join',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Join your current voice channel and start listening',
+    },
+    {
+      name: 'leave',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Leave the voice channel',
+    },
+    {
+      name: 'status',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Show Voice AI status for this server',
+    },
+    {
+      name: 'personality',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Change the voice personality',
+      options: [
+        {
+          name: 'type',
+          type: ApplicationCommandOptionType.String,
+          description: 'Personality type',
+          required: true,
+          choices: [
+            { name: 'Friendly', value: 'friendly' },
+            { name: 'Professional', value: 'professional' },
+            { name: 'Gaming', value: 'gaming' },
+            { name: 'Funny', value: 'funny' },
+            { name: 'Assistant', value: 'assistant' },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
 const ALL_COMMANDS = [
   AI_COMMAND,
   FORGET_COMMAND,
@@ -105,6 +147,7 @@ const ALL_COMMANDS = [
   PREFERENCES_COMMAND,
   RESET_PREFS_COMMAND,
   WORKSPACE_COMMAND,
+  VOICE_COMMAND,
 ];
 
 const GUILD_ID = '1213437502078062674';

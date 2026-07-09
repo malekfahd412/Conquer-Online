@@ -83,6 +83,7 @@ async function main(): Promise<void> {
 
   // ── AI Control Center ──────────────────────────────────────────────────
   logger.info('Initializing AI Control Center...');
+  logger.info(`Voice AI: STT=${config.voice.sttProvider}, TTS=${config.voice.ttsProvider}, personality=${config.voice.personality}`);
   const aiService = new AIService({
     serverName: config.server.name,
     adminRole: config.ai.adminRole,
@@ -90,6 +91,7 @@ async function main(): Promise<void> {
     chatChannelId: config.ai.chatChannelId,
     enablePlanPreview: config.ai.enablePlanPreview,
     enableReflection: config.ai.enableReflection,
+    voice: config.voice,
   });
   await aiService.initialize();
   aiService.start(client);

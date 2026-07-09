@@ -14,6 +14,7 @@ import type {
 import { VoicePlayer } from './VoicePlayer';
 import { VoiceReceiver } from './VoiceReceiver';
 import { VoiceConversation, type VoicePersonality, type VoiceAIComponents } from './VoiceConversation';
+import { VoicePermissions } from './VoicePermissions';
 import type { ISpeechRecognizer } from './SpeechRecognizer';
 import type { ISpeechSynthesizer } from './SpeechSynthesizer';
 import { logger } from '../utils/logger';
@@ -38,8 +39,12 @@ export class VoiceSession {
   private connection: VoiceConnection;
   private readonly receiver: VoiceReceiver;
   private readonly player: VoicePlayer;
+  private readonly permissions: VoicePermissions;
   /** Map of userId → VoiceConversation */
   private readonly conversations = new Map<string, VoiceConversation>();
+  /** Caches of authorization results to avoid per-utterance member fetches */
+  private readonly authorizedUsers = new Set<string>();
+  private readonly deniedUsers = new Set<string>();
   private readonly opts: VoiceSessionOptions;
   private isDestroyed = false;
   readonly guildId: string;
@@ -49,6 +54,7 @@ export class VoiceSession {
 
   constructor(opts: VoiceSessionOptions) {
     this.opts = opts;
+    this.permissions = new VoicePermissions(opts.adminRoleIdentifier);
     this.guildId = opts.guild.id;
     this.channelId = opts.channel.id;
     this.channelName = opts.channel.name;
@@ -98,6 +104,28 @@ export class VoiceSession {
   private setupReceiver(): void {
     this.receiver.on('utterance', async evt => {
       if (this.isDestroyed) return;
+
+      // ── Authorization gate ──────────────────────────────────────────────
+      // Only admins (per VoicePermissions/PermissionManager rules) may interact
+      // with the voice AI. Results are cached per-session to avoid repeated
+      // guild member fetches on every utterance.
+      if (this.deniedUsers.has(evt.userId)) return;
+      if (!this.authorizedUsers.has(evt.userId)) {
+        try {
+          const member = await this.opts.guild.members.fetch(evt.userId);
+          if (this.permissions.canUseVoiceAI(member)) {
+            this.authorizedUsers.add(evt.userId);
+          } else {
+            this.deniedUsers.add(evt.userId);
+            logger.info(`[VoiceSession] Unauthorized speaker ${evt.userId} — ignoring`);
+            return;
+          }
+        } catch {
+          // Can't fetch member — deny by default
+          return;
+        }
+      }
+      // ───────────────────────────────────────────────────────────────────
 
       const conversation = this.getOrCreateConversation(evt.userId);
       if (!conversation) return;

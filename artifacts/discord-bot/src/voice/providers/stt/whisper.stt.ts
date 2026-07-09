@@ -21,7 +21,7 @@ export class WhisperSTT implements ISpeechRecognizer {
     if (wavBuffer.length < 1024) return ''; // too short to be real speech
 
     const formData = new FormData();
-    formData.append('file', new Blob([wavBuffer], { type: 'audio/wav' }), 'audio.wav');
+    formData.append('file', new Blob([new Uint8Array(wavBuffer)], { type: 'audio/wav' }), 'audio.wav');
     formData.append('model', this.model);
     formData.append('language', this.language);
     formData.append('response_format', 'text');

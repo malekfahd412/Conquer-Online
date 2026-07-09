@@ -4,6 +4,9 @@ loadDotenv();
 
 export type DataSource = 'mssql' | 'api' | 'mock';
 export type AIProviderName = 'gemini' | 'openai' | 'openrouter' | 'groq';
+export type STTProviderName = 'whisper' | 'deepgram' | 'assemblyai' | 'google';
+export type TTSProviderName = 'openai' | 'elevenlabs' | 'azure' | 'google';
+export type VoicePersonality = 'friendly' | 'professional' | 'gaming' | 'funny' | 'assistant';
 
 export interface MssqlConfig {
   server: string;
@@ -25,6 +28,13 @@ export interface AIModuleConfig {
   enablePlanPreview: boolean;
   enableReflection: boolean;
   enableObserver: boolean;
+}
+
+export interface VoiceModuleConfig {
+  sttProvider: STTProviderName;
+  ttsProvider: TTSProviderName;
+  personality: VoicePersonality;
+  confirmChannelId: string | undefined;
 }
 
 export interface AppConfig {
@@ -50,6 +60,7 @@ export interface AppConfig {
   api: ApiConfig | undefined;
   updateIntervalMs: number;
   ai: AIModuleConfig;
+  voice: VoiceModuleConfig;
 }
 
 function requireEnv(key: string): string {
@@ -105,6 +116,20 @@ export function loadConfig(): AppConfig {
     ? (rawProvider as AIProviderName)
     : 'gemini';
 
+  const rawSTT = (process.env['STT_PROVIDER'] ?? 'whisper').toLowerCase().trim();
+  const validSTT: STTProviderName[] = ['whisper', 'deepgram', 'assemblyai', 'google'];
+  const sttProvider: STTProviderName = (validSTT as string[]).includes(rawSTT) ? (rawSTT as STTProviderName) : 'whisper';
+
+  const rawTTS = (process.env['TTS_PROVIDER'] ?? 'openai').toLowerCase().trim();
+  const validTTS: TTSProviderName[] = ['openai', 'elevenlabs', 'azure', 'google'];
+  const ttsProvider: TTSProviderName = (validTTS as string[]).includes(rawTTS) ? (rawTTS as TTSProviderName) : 'openai';
+
+  const rawPersonality = (process.env['VOICE_PERSONALITY'] ?? 'assistant').toLowerCase().trim();
+  const validPersonalities: VoicePersonality[] = ['friendly', 'professional', 'gaming', 'funny', 'assistant'];
+  const personality: VoicePersonality = (validPersonalities as string[]).includes(rawPersonality)
+    ? (rawPersonality as VoicePersonality)
+    : 'assistant';
+
   return {
     discord: {
       token: requireEnv('DISCORD_BOT_TOKEN'),
@@ -135,6 +160,12 @@ export function loadConfig(): AppConfig {
       enablePlanPreview: parseBoolean('AI_PLAN_PREVIEW', true),
       enableReflection: parseBoolean('AI_REFLECTION', false),
       enableObserver: parseBoolean('AI_OBSERVER', true),
+    },
+    voice: {
+      sttProvider,
+      ttsProvider,
+      personality,
+      confirmChannelId: optionalEnv('CHANNEL_AI_LOG'), // reuse the AI log channel for voice confirmations
     },
   };
 }

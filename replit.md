@@ -57,6 +57,42 @@ A Discord bot that serves as a live server status dashboard **and** an AI-powere
 | `/workspace end` | End the current workspace |
 | `/workspace list` | List all your workspaces |
 | `/workspace delete <name>` | Delete a workspace |
+| `/voice join` | Join your current voice channel and start listening |
+| `/voice leave` | Leave the voice channel |
+| `/voice status` | Show voice session status |
+| `/voice personality <type>` | Change voice personality (friendly/professional/gaming/funny/assistant) |
+
+## Voice AI
+
+The bot supports real-time voice conversations similar to Gemini Live.
+
+**How it works:**
+1. Admin runs `/voice join` — bot joins your voice channel
+2. Say **"Hey Mufasa"** or **"Mufasa"** to wake it up
+3. Give natural language commands — it executes them using the same 37 Discord tools
+4. Say **"Goodbye"** or **"Bye"** to end the conversation
+
+**Voice Pipeline:** Discord Audio → Opus decode → PCM → WAV → STT → AI Planner → Tool Executor → Response text → TTS → Audio playback
+
+**Authorization:** Only users with Administrator permission or the configured admin role can interact with the voice AI. All other speakers are silently ignored.
+
+**Dangerous actions** (delete channel, ban member, etc.) require text-channel confirmation before executing — same plan preview system as slash commands.
+
+## Voice Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `STT_PROVIDER` | `whisper` | Speech-to-text: `whisper`, `deepgram`, `assemblyai`, `google` |
+| `TTS_PROVIDER` | `openai` | Text-to-speech: `openai`, `elevenlabs`, `azure`, `google` |
+| `VOICE_PERSONALITY` | `assistant` | Voice style: `friendly`, `professional`, `gaming`, `funny`, `assistant` |
+| `VOICE_LANGUAGE` | `en` | Language code for STT/TTS (e.g. `en`, `es`, `ar`) |
+| `VOICE_NAME` | provider default | Voice name (e.g. `onyx` for OpenAI, `Rachel` for ElevenLabs) |
+| `DEEPGRAM_API_KEY` | — | Required if `STT_PROVIDER=deepgram` |
+| `ASSEMBLYAI_API_KEY` | — | Required if `STT_PROVIDER=assemblyai` |
+| `GOOGLE_API_KEY` | — | Required if `STT_PROVIDER=google` or `TTS_PROVIDER=google` |
+| `ELEVENLABS_API_KEY` | — | Required if `TTS_PROVIDER=elevenlabs` |
+| `AZURE_SPEECH_KEY` | — | Required if `TTS_PROVIDER=azure` |
+| `AZURE_SPEECH_REGION` | — | Required if `TTS_PROVIDER=azure` |
 
 ## Stack
 
