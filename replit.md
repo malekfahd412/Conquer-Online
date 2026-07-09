@@ -1,36 +1,59 @@
-# [Project name]
+# Conquer Online Live Server Status Bot
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A Discord bot that displays a live game server status embed in a designated channel, updating every 30 seconds. Built for a Conquer Online private server.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- **Discord Bot workflow** — starts automatically; runs `pnpm --filter @workspace/discord-bot run dev`
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000, optional REST data source)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+
+## Required Secrets
+
+| Secret | Description |
+|--------|-------------|
+| `DISCORD_BOT_TOKEN` | Bot token from Discord Developer Portal → Bot → Token |
+| `CHANNEL_SERVER_STATUS` | Channel ID where the status embed is posted |
+
+## Optional Environment Variables (shared)
+
+| Variable | Description |
+|----------|-------------|
+| `SERVER_NAME` | Display name of the game server |
+| `DATA_SOURCE` | `mssql`, `api`, or `mock` (default: `mock`) |
+| `MSSQL_SERVER`, `MSSQL_PORT`, `MSSQL_DATABASE`, `MSSQL_USER`, `MSSQL_PASSWORD` | MSSQL credentials (required when `DATA_SOURCE=mssql`) |
+| `GAME_SERVER_API_URL` | REST API base URL (required when `DATA_SOURCE=api`) |
+| `SERVER_LOGO_URL` | URL for the server logo shown in the embed |
+| `SERVER_WEBSITE`, `FACEBOOK_URL`, `WHATSAPP_URL`, `DISCORD_INVITE`, `INSTAGRAM_URL`, `YOUTUBE_URL`, `TIKTOK_URL` | Social link buttons shown below the embed |
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Discord: discord.js v14
+- DB (optional): MSSQL via `mssql` package
+- AI module: Google Gemini (`@google/genai`)
+- Build: tsx (dev), esbuild (prod)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/discord-bot/src/` — all bot source code
+  - `config/config.ts` — env var loading and validation (single source of truth)
+  - `discord/` — client, message manager, embed builder, button builder, slash commands
+  - `providers/` — data source abstraction (MSSQL, API, mock)
+  - `repositories/` — ServerStatusRepository
+  - `services/` — ServerStatusService
+  - `ai/` — AI Control Center (Gemini-powered)
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Provider pattern: switching data sources (`DATA_SOURCE` env var) requires no code changes — only config
+- Bot edits a single status message (never duplicates); message ID is recovered on restart by scanning channel history
+- Without a real data source, bot stays online and shows "Waiting for Server Connection" — never crashes
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+The bot posts one embed to a Discord channel showing live Conquer Online server stats (players online, peak, uptime, active events, next events) with social link buttons below. The embed updates every 30 seconds in place.
 
 ## User preferences
 
@@ -38,7 +61,8 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- If the Discord bot token is reset in the Developer Portal, the old token immediately becomes invalid — update `DISCORD_BOT_TOKEN` secret and restart the workflow
+- `DATA_SOURCE` defaults to `mock` if unset or invalid — the bot won't show real data until MSSQL credentials or an API URL are configured
 
 ## Pointers
 
