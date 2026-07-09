@@ -70,9 +70,16 @@ export class VoiceManager {
 
     this.sessions.set(guild.id, session);
 
+    // Wait for connection to be ready before playing audio
+    try {
+      await session.waitForReady();
+    } catch {
+      logger.warning('[VoiceManager] Connection did not reach Ready state in time — skipping greeting');
+    }
+
     // Announce on join
     await session.announce(
-      `Hello! I'm Mufasa. Say "Hey Mufasa" to start a conversation. I'm using ${recognizer.providerName} for speech recognition and ${synthesizer.providerName} for voice synthesis.`,
+      `Hello! I'm Mufasa. Say "Hey Mufasa" to start a conversation.`,
     ).catch(() => {});
 
     logger.success(`[VoiceManager] Joined #${channel.name} in ${guild.name}`);

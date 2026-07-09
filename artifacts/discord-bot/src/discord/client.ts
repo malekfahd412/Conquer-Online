@@ -8,6 +8,7 @@ export function createDiscordClient(): Client {
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.MessageContent,
       GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.GuildVoiceStates,
     ],
   });
 }

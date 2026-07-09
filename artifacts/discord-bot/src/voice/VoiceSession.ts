@@ -4,6 +4,8 @@ import {
   entersState,
   type VoiceConnection,
 } from '@discordjs/voice';
+
+const CONNECTION_READY_TIMEOUT_MS = 15_000;
 import type {
   Guild,
   VoiceChannel,
@@ -206,6 +208,15 @@ export class VoiceSession {
       );
     }
     logger.info(`[VoiceSession] Personality set to: ${personality}`);
+  }
+
+  /**
+   * Wait for the voice connection to reach Ready state before playing audio.
+   * Rejects if the connection doesn't become ready within the timeout.
+   */
+  async waitForReady(): Promise<void> {
+    if (this.connection.state.status === VoiceConnectionStatus.Ready) return;
+    await entersState(this.connection, VoiceConnectionStatus.Ready, CONNECTION_READY_TIMEOUT_MS);
   }
 
   get status(): 'connected' | 'connecting' | 'disconnected' | 'destroyed' {
