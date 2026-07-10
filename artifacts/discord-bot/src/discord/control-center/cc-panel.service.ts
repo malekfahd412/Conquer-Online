@@ -189,7 +189,7 @@ export class ControlCenterService {
     if (tool.definition.dangerous) {
       const key = `${interaction.user.id}:${toolName}`;
       this.pendingExec.set(key, { toolName, params: {}, category: inferCategory(toolName) });
-      await this.nav(interaction, buildConfirm(tool, '_None_'));
+      await this.nav(interaction, buildConfirm(tool, '_None_', inferCategory(toolName)));
     } else {
       await interaction.deferUpdate();
       await this.executeTool(interaction, guild, toolName, {});
@@ -221,7 +221,7 @@ export class ControlCenterService {
       this.pendingExec.set(key, { toolName, params, category: inferCategory(toolName) });
 
       await interaction.deferReply({ ephemeral: true });
-      await interaction.editReply(buildConfirm(tool, paramSummary));
+      await interaction.editReply(buildConfirm(tool, paramSummary, inferCategory(toolName)));
       return;
     }
 

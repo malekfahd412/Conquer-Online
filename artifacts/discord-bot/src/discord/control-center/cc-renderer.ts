@@ -10,7 +10,7 @@ import {
   TextInputStyle,
 } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from '../../ai/tools/tool.interface';
-import { CATEGORY_META, CATEGORY_ORDER, inferCategory, toolDisplayName, truncate } from './cc-categories';
+import { CATEGORY_META, CATEGORY_ORDER, toolDisplayName, truncate } from './cc-categories';
 import type { CategoryKey } from './cc-categories';
 
 export const TOOLS_PER_PAGE = 20;
@@ -184,7 +184,7 @@ export function buildResult(toolName: string, result: ToolExecuteResult, categor
 
 // ── Confirm (dangerous, no-param tools) ───────────────────────────────────
 
-export function buildConfirm(tool: ITool, paramSummary: string): CCPayload {
+export function buildConfirm(tool: ITool, paramSummary: string, category: CategoryKey): CCPayload {
   const d = tool.definition;
   const embed = new EmbedBuilder()
     .setColor(0xf5a623)
