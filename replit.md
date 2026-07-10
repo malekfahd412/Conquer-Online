@@ -137,6 +137,13 @@ The bot supports real-time voice conversations similar to Gemini Live.
 
 _Populate as you build — explicit user instructions worth remembering across sessions._
 
+## Setup status
+
+- Bot is running via the "Discord Bot" workflow, connected to Discord, AI Control Center active (Gemini provider).
+- Configured secrets: `DISCORD_BOT_TOKEN`, `CHANNEL_SERVER_STATUS`, `GEMINI_API_KEY`. Shared env var `SERVER_NAME=Mufasa Conquer`.
+- `DATA_SOURCE` is unset (defaults to `mock`) — the status embed shows "Waiting for Server Connection" until MSSQL or API credentials are added.
+- Voice AI's STT/TTS providers (Whisper/OpenAI TTS) need `OPENAI_API_KEY` — not yet configured, so voice features are limited until added.
+
 ## Gotchas
 
 - If the Discord bot token is reset in the Developer Portal, the old token immediately becomes invalid — update `DISCORD_BOT_TOKEN` secret and restart the workflow
