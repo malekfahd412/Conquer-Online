@@ -1,0 +1,79 @@
+Continue implementing the remaining modules.
+
+Do NOT stop to ask questions.
+
+Do NOT redesign the architecture.
+
+Reuse the existing ITool implementation pattern already used by the current 170 tools.
+
+Keep the existing registration mechanism (ALL_TOOLS array).
+
+Implement the following modules in order:
+
+1) MODULE 16 — Complete Webhook Management
+Implement every Discord-supported webhook operation including:
+- Create Webhook
+- Delete Webhook
+- Rename Webhook
+- Edit Avatar
+- Move Webhook to another channel (where supported)
+- Send Webhook Message
+- Edit Webhook Message
+- Delete Webhook Message
+- Clone Webhook
+- Export Webhook Metadata
+- Import Webhook Configuration (where technically possible)
+- Webhook Inspector
+- Webhook Analytics
+
+If Discord API does not support an operation directly, implement the closest supported behavior and document the limitation.
+
+2) MODULE 17 — Complete Scheduled Events
+Implement:
+- Create Event
+- Edit Event
+- Delete Event
+- Start Event (where API permits)
+- End Event
+- Cancel Event
+- Duplicate Event
+- List Events
+- Event Details
+- Event Participants
+- Event Reminder
+- Event Analytics
+
+3) MODULE 18 — Complete AutoMod
+Implement every native Discord AutoMod capability exposed by discord.js / Discord API:
+- Keyword Rules
+- Mention Spam Protection
+- Spam Protection
+- Invite Blocking
+- Link Blocking
+- Profanity Rules
+- Keyword Lists
+- Whitelist
+- Blacklist
+- Rule Enable / Disable
+- Rule Delete
+- Rule Export
+- Rule Import
+- Rule Inspector
+- Rule Analytics
+
+Requirements:
+- Follow the existing ITool interface.
+- Integrate with the existing audit logging.
+- Use existing confirmation flow for dangerous actions.
+- Implement rollback where technically possible.
+- Validate permissions before execution.
+- No placeholder code.
+- No mock implementations.
+- Build successfully.
+- Return only the implementation report with:
+  - New tools added
+  - Updated total tool count
+  - Files created
+  - Files modified
+  - Build status
+  - Remaining unsupported Discord API limitations

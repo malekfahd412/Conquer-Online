@@ -87,6 +87,49 @@ import { InviteCleanupTool } from './invite-cleanup.tool';
 import { InviteInspectorTool } from './invite-inspector.tool';
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// MODULE 16: Webhook Management — Complete
+// ═══════════════════════════════════════════════════════════════════════════════
+import { RenameWebhookTool } from './rename-webhook.tool';
+import { EditWebhookAvatarTool } from './edit-webhook-avatar.tool';
+import { MoveWebhookTool } from './move-webhook.tool';
+import { SendWebhookMessageTool } from './send-webhook-message.tool';
+import { EditWebhookMessageTool } from './edit-webhook-message.tool';
+import { DeleteWebhookMessageTool } from './delete-webhook-message.tool';
+import { CloneWebhookTool } from './clone-webhook.tool';
+import { ExportWebhookTool } from './export-webhook.tool';
+import { ImportWebhookTool } from './import-webhook.tool';
+import { WebhookInspectorTool } from './webhook-inspector.tool';
+import { WebhookAnalyticsTool } from './webhook-analytics.tool';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULE 17: Scheduled Events — Complete
+// ═══════════════════════════════════════════════════════════════════════════════
+import { EditScheduledEventTool } from './edit-scheduled-event.tool';
+import { StartScheduledEventTool } from './start-scheduled-event.tool';
+import { EndScheduledEventTool } from './end-scheduled-event.tool';
+import { CancelScheduledEventTool } from './cancel-scheduled-event.tool';
+import { DuplicateScheduledEventTool } from './duplicate-scheduled-event.tool';
+import { ListScheduledEventsTool } from './list-scheduled-events.tool';
+import { ScheduledEventDetailsTool } from './scheduled-event-details.tool';
+import { ScheduledEventParticipantsTool } from './scheduled-event-participants.tool';
+import { ScheduledEventReminderTool } from './scheduled-event-reminder.tool';
+import { ScheduledEventAnalyticsTool } from './scheduled-event-analytics.tool';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULE 18: AutoMod — Complete
+// ═══════════════════════════════════════════════════════════════════════════════
+import { CreateAutomodRuleTool } from './create-automod-rule.tool';
+import { EditAutomodRuleTool } from './edit-automod-rule.tool';
+import { EnableAutomodRuleTool } from './enable-automod-rule.tool';
+import { DisableAutomodRuleTool } from './disable-automod-rule.tool';
+import { DeleteAutomodRuleTool } from './delete-automod-rule.tool';
+import { ListAutomodRulesTool } from './list-automod-rules.tool';
+import { AutomodInspectorTool } from './automod-inspector.tool';
+import { ExportAutomodRulesTool } from './export-automod-rules.tool';
+import { ImportAutomodRulesTool } from './import-automod-rules.tool';
+import { AutomodAnalyticsTool } from './automod-analytics.tool';
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MODULE 1: Guild Management
 // ═══════════════════════════════════════════════════════════════════════════════
 import { EditGuildTool } from './edit-guild.tool';
@@ -441,4 +484,41 @@ export const ALL_TOOLS: ToolConstructor[] = [
   InviteAnalyticsTool,
   InviteCleanupTool,
   InviteInspectorTool,
+
+  // ── MODULE 16: Webhook Management (11 new, + existing create/delete) ───────
+  RenameWebhookTool,
+  EditWebhookAvatarTool,
+  MoveWebhookTool,
+  SendWebhookMessageTool,
+  EditWebhookMessageTool,
+  DeleteWebhookMessageTool,
+  CloneWebhookTool,
+  ExportWebhookTool,
+  ImportWebhookTool,
+  WebhookInspectorTool,
+  WebhookAnalyticsTool,
+
+  // ── MODULE 17: Scheduled Events (10 new, + existing create/delete) ─────────
+  EditScheduledEventTool,
+  StartScheduledEventTool,
+  EndScheduledEventTool,
+  CancelScheduledEventTool,
+  DuplicateScheduledEventTool,
+  ListScheduledEventsTool,
+  ScheduledEventDetailsTool,
+  ScheduledEventParticipantsTool,
+  ScheduledEventReminderTool,
+  ScheduledEventAnalyticsTool,
+
+  // ── MODULE 18: AutoMod (10) ──────────────────────────────────────────────
+  CreateAutomodRuleTool,
+  EditAutomodRuleTool,
+  EnableAutomodRuleTool,
+  DisableAutomodRuleTool,
+  DeleteAutomodRuleTool,
+  ListAutomodRulesTool,
+  AutomodInspectorTool,
+  ExportAutomodRulesTool,
+  ImportAutomodRulesTool,
+  AutomodAnalyticsTool,
 ];
