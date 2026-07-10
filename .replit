@@ -1,4 +1,4 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-20", "web", "bash"]
 
 [deployment]
 router = "application"
@@ -32,7 +32,7 @@ args = "pnpm --filter @workspace/discord-bot run dev"
 outputType = "console"
 
 [agent]
-stack = "PNPM_WORKSPACE"
+stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
 
 [postMerge]
@@ -45,3 +45,6 @@ timeoutMs = 20000
 FACEBOOK_URL = "https://www.facebook.com/mufasaaconquer"
 SERVER_WEBSITE = "https://www.mufasaconquer.com/"
 SERVER_NAME = "Conquer"
+
+[nix]
+channel = "stable-25_05"
