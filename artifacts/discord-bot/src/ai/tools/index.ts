@@ -116,6 +116,52 @@ import { ScheduledEventReminderTool } from './scheduled-event-reminder.tool';
 import { ScheduledEventAnalyticsTool } from './scheduled-event-analytics.tool';
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// MODULE 11: Embed System — Complete
+// ═══════════════════════════════════════════════════════════════════════════════
+import { EditEmbedTool } from './edit-embed.tool';
+import { MoveEmbedTool } from './move-embed.tool';
+import { ImportEmbedJsonTool } from './import-embed-json.tool';
+import { EmbedInspectorTool } from './embed-inspector.tool';
+import { EmbedValidatorTool } from './embed-validator.tool';
+import { EmbedOptimizerTool } from './embed-optimizer.tool';
+import { EmbedPreviewTool } from './embed-preview.tool';
+import { EmbedLibraryTool } from './embed-library.tool';
+import { SaveEmbedTemplateTool } from './save-embed-template.tool';
+import { LoadEmbedTemplateTool } from './load-embed-template.tool';
+import { DeleteEmbedTemplateTool } from './delete-embed-template.tool';
+import { RenameEmbedTemplateTool } from './rename-embed-template.tool';
+import { DuplicateEmbedTemplateTool } from './duplicate-embed-template.tool';
+import { ListEmbedTemplatesTool } from './list-embed-templates.tool';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULE 12: Component System — Complete
+// ═══════════════════════════════════════════════════════════════════════════════
+import { SendButtonPanelTool } from './send-button-panel.tool';
+import { SendStringSelectTool } from './send-string-select.tool';
+import { SendRoleSelectTool } from './send-role-select.tool';
+import { SendUserSelectTool } from './send-user-select.tool';
+import { SendChannelSelectTool } from './send-channel-select.tool';
+import { SendMentionableSelectTool } from './send-mentionable-select.tool';
+import { SaveModalTemplateTool } from './save-modal-template.tool';
+import { ListModalTemplatesTool } from './list-modal-templates.tool';
+import { SaveComponentTemplateTool } from './save-component-template.tool';
+import { LoadComponentTemplateTool } from './load-component-template.tool';
+import { DeleteComponentTemplateTool } from './delete-component-template.tool';
+import { ListComponentTemplatesTool } from './list-component-templates.tool';
+import { ComponentInspectorTool } from './component-inspector.tool';
+import { SendVerificationPanelTool } from './send-verification-panel.tool';
+import { SendTicketPanelTool } from './send-ticket-panel.tool';
+import { SendRulesPanelTool } from './send-rules-panel.tool';
+import { SendWelcomePanelTool } from './send-welcome-panel.tool';
+import { SendGiveawayPanelTool } from './send-giveaway-panel.tool';
+import { SendAnnouncementPanelTool } from './send-announcement-panel.tool';
+import { SendSupportPanelTool } from './send-support-panel.tool';
+import { SendApplicationsPanelTool } from './send-applications-panel.tool';
+import { SendFaqPanelTool } from './send-faq-panel.tool';
+import { SendReactionRolesPanelTool } from './send-reaction-roles-panel.tool';
+import { SendModerationPanelTool } from './send-moderation-panel.tool';
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MODULE 18: AutoMod — Complete
 // ═══════════════════════════════════════════════════════════════════════════════
 import { CreateAutomodRuleTool } from './create-automod-rule.tool';
@@ -521,4 +567,52 @@ export const ALL_TOOLS: ToolConstructor[] = [
   ExportAutomodRulesTool,
   ImportAutomodRulesTool,
   AutomodAnalyticsTool,
+
+  // ── MODULE 11: Embed System — Complete (14) ──────────────────────────────
+  EditEmbedTool,
+  MoveEmbedTool,
+  ImportEmbedJsonTool,
+  EmbedInspectorTool,
+  EmbedValidatorTool,
+  EmbedOptimizerTool,
+  EmbedPreviewTool,
+  EmbedLibraryTool,
+  SaveEmbedTemplateTool,
+  LoadEmbedTemplateTool,
+  DeleteEmbedTemplateTool,
+  RenameEmbedTemplateTool,
+  DuplicateEmbedTemplateTool,
+  ListEmbedTemplatesTool,
+
+  // ── MODULE 12: Component System — Selects & Buttons (7) ─────────────────
+  SendButtonPanelTool,
+  SendStringSelectTool,
+  SendRoleSelectTool,
+  SendUserSelectTool,
+  SendChannelSelectTool,
+  SendMentionableSelectTool,
+
+  // ── MODULE 12: Component System — Modals (2) ────────────────────────────
+  SaveModalTemplateTool,
+  ListModalTemplatesTool,
+
+  // ── MODULE 12: Component System — Management (5) ────────────────────────
+  SaveComponentTemplateTool,
+  LoadComponentTemplateTool,
+  DeleteComponentTemplateTool,
+  ListComponentTemplatesTool,
+  ComponentInspectorTool,
+
+  // ── MODULE 12: UI Templates — Pre-built Panels (11) ─────────────────────
+  SendVerificationPanelTool,
+  SendTicketPanelTool,
+  SendRulesPanelTool,
+  SendWelcomePanelTool,
+  SendGiveawayPanelTool,
+  SendAnnouncementPanelTool,
+  SendSupportPanelTool,
+  SendApplicationsPanelTool,
+  SendFaqPanelTool,
+  SendReactionRolesPanelTool,
+  SendModerationPanelTool,
 ];

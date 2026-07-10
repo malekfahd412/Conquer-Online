@@ -1,1 +1,1 @@
-- [Discord AI OS architecture](discord-ai-os.md) — multi-provider AI bot with plan preview, workspace memory, and 37 tools; key design decisions documented.
+- [Discord AI OS architecture](discord-ai-os.md) — multi-provider AI bot with plan preview, workspace memory, and 239 tools; key design decisions documented.
