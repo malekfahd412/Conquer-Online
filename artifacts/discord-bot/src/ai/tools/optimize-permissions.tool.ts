@@ -1,4 +1,4 @@
-import { ChannelType, PermissionsBitField } from 'discord.js';
+import { ChannelType } from 'discord.js';
 import type { Guild } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from './tool.interface';
 

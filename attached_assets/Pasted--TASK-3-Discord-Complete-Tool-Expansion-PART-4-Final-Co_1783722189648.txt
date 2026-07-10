@@ -1,0 +1,295 @@
+# TASK 3 — Discord Complete Tool Expansion
+
+# PART 4 (Final)
+
+Continue from the current implementation.
+
+Current status:
+
+* 239 production tools implemented.
+* Existing architecture is complete.
+* Do NOT redesign or rewrite any existing system.
+* Do NOT remove or replace any tool.
+* Only extend the platform.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MISSION
+
+Complete the Discord management platform by implementing every remaining capability exposed by the official Discord API and discord.js v14.
+
+This is the FINAL expansion of the Tool Library.
+
+All tools must continue using the existing ITool contract and integrate with the current architecture.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MODULE 19 — AUDIT & SERVER INSPECTION
+
+Implement:
+
+View Audit Logs
+
+Search Audit Logs
+
+Filter Audit Logs
+
+Export Audit Logs
+
+Audit Timeline
+
+Recent Changes
+
+Role Changes
+
+Channel Changes
+
+Permission Changes
+
+Member Changes
+
+Moderator Activity
+
+Security Report
+
+Configuration Report
+
+Server Health Report
+
+Server Inspector
+
+Unused Channels Report
+
+Unused Roles Report
+
+Unused Emojis Report
+
+Unused Stickers Report
+
+Duplicate Resource Detection
+
+Broken Permission Detection
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MODULE 20 — ANALYTICS
+
+Implement:
+
+Server Analytics
+
+Member Analytics
+
+Channel Analytics
+
+Role Analytics
+
+Message Analytics
+
+Voice Analytics
+
+Activity Analytics
+
+Growth Analytics
+
+Retention Analytics
+
+Engagement Analytics
+
+Reaction Analytics
+
+Invite Analytics
+
+Boost Analytics
+
+Leaderboard Analytics
+
+Trend Analysis
+
+Heatmap Generation
+
+Daily Reports
+
+Weekly Reports
+
+Monthly Reports
+
+Export Analytics
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MODULE 21 — SERVER BACKUP
+
+Implement:
+
+Backup Entire Server
+
+Restore Server
+
+Incremental Backup
+
+Snapshot
+
+Snapshot Compare
+
+Snapshot History
+
+Export Backup
+
+Import Backup
+
+Selective Restore
+
+Backup Verification
+
+Backup Inspector
+
+Backup Cleanup
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MODULE 22 — SERVER TEMPLATE
+
+Implement:
+
+Create Server Template
+
+Export Template
+
+Import Template
+
+Duplicate Template
+
+Edit Template
+
+Delete Template
+
+List Templates
+
+Validate Template
+
+Apply Template
+
+Preview Template
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MODULE 23 — SERVER CLONE
+
+Implement:
+
+Clone Categories
+
+Clone Channels
+
+Clone Roles
+
+Clone Permissions
+
+Clone Emojis
+
+Clone Stickers
+
+Clone Structure
+
+Clone Configuration
+
+Clone Complete Layout
+
+Partial Clone
+
+Clone Preview
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MODULE 24 — SERVER UTILITIES
+
+Implement:
+
+Cleanup Empty Channels
+
+Cleanup Empty Categories
+
+Cleanup Unused Roles
+
+Cleanup Unused Emojis
+
+Cleanup Unused Stickers
+
+Cleanup Expired Invites
+
+Cleanup Inactive Threads
+
+Optimize Categories
+
+Optimize Permissions
+
+Optimize Roles
+
+Optimize Channel Layout
+
+Generate Server Documentation
+
+Generate Permission Documentation
+
+Generate Role Documentation
+
+Generate Channel Documentation
+
+Generate Configuration Documentation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GENERAL REQUIREMENTS
+
+Every tool must:
+
+Use the existing ITool interface.
+
+Integrate with:
+
+* AI Brain
+* Planner
+* Reasoner
+* Tool Registry
+* Memory
+* Validation
+* Rollback
+* Audit Logging
+* Diagnostics
+
+Support confirmation for destructive operations.
+
+Implement rollback where technically possible.
+
+Reuse existing services.
+
+Avoid duplicate code.
+
+No placeholder implementations.
+
+No mock implementations.
+
+Document every Discord API limitation encountered.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FINAL VERIFICATION
+
+Run:
+
+* Full TypeScript validation
+* Full build verification
+* Runtime verification
+
+Return ONLY:
+
+* New tools added
+* Updated total tool count
+* Files created
+* Files modified
+* Build status
+* Runtime status
+* Final tool total
+* Remaining Discord API limitations
+* Coverage summary of supported Discord capabilities

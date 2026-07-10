@@ -32,10 +32,10 @@ export class CreateSnapshotTool implements ITool {
       preferredLocale: guild.preferredLocale,
       categories: [...guild.channels.cache.values()]
         .filter(c => c.type === ChannelType.GuildCategory)
-        .map(c => ({ id: c.id, name: c.name, type: c.type, position: c.rawPosition, parentId: null, permissionOverwrites: [] })),
+        .map(c => ({ id: c.id, name: c.name, type: c.type, position: ('rawPosition' in c ? (c as { rawPosition: number }).rawPosition : 0), parentId: null, permissionOverwrites: [] })),
       channels: [...guild.channels.cache.values()]
         .filter(c => c.type !== ChannelType.GuildCategory)
-        .map(c => ({ id: c.id, name: c.name, type: c.type, position: c.rawPosition, parentId: null, permissionOverwrites: [] })),
+        .map(c => ({ id: c.id, name: c.name, type: c.type, position: ('rawPosition' in c ? (c as { rawPosition: number }).rawPosition : 0), parentId: null, permissionOverwrites: [] })),
       roles: [...guild.roles.cache.values()].filter(r => r.id !== guild.id)
         .map(r => ({ id: r.id, name: r.name, color: r.color, hoist: r.hoist, mentionable: r.mentionable, permissions: r.permissions.bitfield.toString(), position: r.position })),
       emojis: [...guild.emojis.cache.values()].map(e => ({ id: e.id, name: e.name, animated: e.animated ?? false, roles: [] })),

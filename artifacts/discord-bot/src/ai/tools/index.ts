@@ -329,6 +329,114 @@ import { PermissionResetTool } from './permission-reset.tool';
 import { PermissionExportTool } from './permission-export.tool';
 import { PermissionImportTool } from './permission-import.tool';
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULE 19: Audit & Server Inspection
+// ═══════════════════════════════════════════════════════════════════════════════
+import { AuditLogFilterTool } from './audit-log-filter.tool';
+import { AuditTimelineTool } from './audit-timeline.tool';
+import { RecentChangesTool } from './recent-changes.tool';
+import { RoleChangesLogTool } from './role-changes-log.tool';
+import { ChannelChangesLogTool } from './channel-changes-log.tool';
+import { PermissionChangesLogTool } from './permission-changes-log.tool';
+import { MemberChangesLogTool } from './member-changes-log.tool';
+import { ModeratorActivityReportTool } from './moderator-activity-report.tool';
+import { SecurityReportTool } from './security-report.tool';
+import { ConfigurationReportTool } from './configuration-report.tool';
+import { ServerInspectorTool } from './server-inspector.tool';
+import { UnusedChannelsReportTool } from './unused-channels-report.tool';
+import { UnusedRolesReportTool } from './unused-roles-report.tool';
+import { UnusedEmojisReportTool } from './unused-emojis-report.tool';
+import { UnusedStickersReportTool } from './unused-stickers-report.tool';
+import { DuplicateResourceDetectionTool } from './duplicate-resource-detection.tool';
+import { BrokenPermissionDetectionTool } from './broken-permission-detection.tool';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULE 20: Analytics
+// ═══════════════════════════════════════════════════════════════════════════════
+import { ServerAnalyticsTool } from './server-analytics.tool';
+import { MemberAnalyticsTool } from './member-analytics.tool';
+import { ChannelAnalyticsTool } from './channel-analytics.tool';
+import { RoleAnalyticsTool } from './role-analytics.tool';
+import { VoiceAnalyticsTool } from './voice-analytics.tool';
+import { ActivityAnalyticsTool } from './activity-analytics.tool';
+import { GrowthAnalyticsTool } from './growth-analytics.tool';
+import { RetentionAnalyticsTool } from './retention-analytics.tool';
+import { EngagementAnalyticsTool } from './engagement-analytics.tool';
+import { ReactionAnalyticsTool } from './reaction-analytics.tool';
+import { BoostAnalyticsTool } from './boost-analytics.tool';
+import { LeaderboardAnalyticsTool } from './leaderboard-analytics.tool';
+import { TrendAnalysisTool } from './trend-analysis.tool';
+import { HeatmapGenerationTool } from './heatmap-generation.tool';
+import { DailyReportTool } from './daily-report.tool';
+import { WeeklyReportTool } from './weekly-report.tool';
+import { MonthlyReportTool } from './monthly-report.tool';
+import { ExportAnalyticsTool } from './export-analytics.tool';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULE 21: Server Backup
+// ═══════════════════════════════════════════════════════════════════════════════
+import { BackupServerTool } from './backup-server.tool';
+import { RestoreServerTool } from './restore-server.tool';
+import { IncrementalBackupTool } from './incremental-backup.tool';
+import { CreateSnapshotTool } from './create-snapshot.tool';
+import { CompareSnapshotsTool } from './compare-snapshots.tool';
+import { ListSnapshotsTool } from './list-snapshots.tool';
+import { ExportBackupTool } from './export-backup.tool';
+import { ImportBackupTool } from './import-backup.tool';
+import { SelectiveRestoreTool } from './selective-restore.tool';
+import { VerifyBackupTool } from './verify-backup.tool';
+import { InspectBackupTool } from './inspect-backup.tool';
+import { CleanupBackupsTool } from './cleanup-backups.tool';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULE 22: Server Template
+// ═══════════════════════════════════════════════════════════════════════════════
+import { CreateServerTemplateTool } from './create-server-template.tool';
+import { ExportServerTemplateTool } from './export-server-template.tool';
+import { ImportServerTemplateTool } from './import-server-template.tool';
+import { DuplicateServerTemplateTool } from './duplicate-server-template.tool';
+import { EditServerTemplateTool } from './edit-server-template.tool';
+import { DeleteServerTemplateTool } from './delete-server-template.tool';
+import { ListServerTemplatesTool } from './list-server-templates.tool';
+import { ValidateServerTemplateTool } from './validate-server-template.tool';
+import { ApplyServerTemplateTool } from './apply-server-template.tool';
+import { PreviewServerTemplateTool } from './preview-server-template.tool';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULE 23: Server Clone
+// ═══════════════════════════════════════════════════════════════════════════════
+import { CloneAllCategoriesTool } from './clone-all-categories.tool';
+import { CloneAllChannelsTool } from './clone-all-channels.tool';
+import { CloneAllRolesTool } from './clone-all-roles.tool';
+import { ClonePermissionsStructureTool } from './clone-permissions-structure.tool';
+import { CloneAllEmojisTool } from './clone-all-emojis.tool';
+import { CloneAllStickersTool } from './clone-all-stickers.tool';
+import { CloneServerStructureTool } from './clone-server-structure.tool';
+import { CloneServerConfigTool } from './clone-server-config.tool';
+import { CloneCompleteLayoutTool } from './clone-complete-layout.tool';
+import { PartialCloneTool } from './partial-clone.tool';
+import { ClonePreviewTool } from './clone-preview.tool';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULE 24: Server Utilities
+// ═══════════════════════════════════════════════════════════════════════════════
+import { CleanupEmptyChannelsTool } from './cleanup-empty-channels.tool';
+import { CleanupEmptyCatsTool } from './cleanup-empty-categories.tool';
+import { CleanupUnusedRolesTool } from './cleanup-unused-roles.tool';
+import { CleanupUnusedEmojisTool } from './cleanup-unused-emojis.tool';
+import { CleanupUnusedStickersTool } from './cleanup-unused-stickers.tool';
+import { CleanupExpiredInvitesTool } from './cleanup-expired-invites.tool';
+import { CleanupInactiveThreadsTool } from './cleanup-inactive-threads.tool';
+import { OptimizeCategoriesTool } from './optimize-categories.tool';
+import { OptimizePermissionsTool } from './optimize-permissions.tool';
+import { OptimizeRolesTool } from './optimize-roles.tool';
+import { OptimizeChannelLayoutTool } from './optimize-channel-layout.tool';
+import { GenerateServerDocsTool } from './generate-server-docs.tool';
+import { GeneratePermissionDocsTool } from './generate-permission-docs.tool';
+import { GenerateRoleDocsTool } from './generate-role-docs.tool';
+import { GenerateChannelDocsTool } from './generate-channel-docs.tool';
+import { GenerateConfigDocsTool } from './generate-config-docs.tool';
+
 export type ToolConstructor = new () => ITool;
 
 export const ALL_TOOLS: ToolConstructor[] = [
@@ -615,4 +723,100 @@ export const ALL_TOOLS: ToolConstructor[] = [
   SendFaqPanelTool,
   SendReactionRolesPanelTool,
   SendModerationPanelTool,
+
+  // ── MODULE 19: Audit & Server Inspection (17) ────────────────────────────
+  AuditLogFilterTool,
+  AuditTimelineTool,
+  RecentChangesTool,
+  RoleChangesLogTool,
+  ChannelChangesLogTool,
+  PermissionChangesLogTool,
+  MemberChangesLogTool,
+  ModeratorActivityReportTool,
+  SecurityReportTool,
+  ConfigurationReportTool,
+  ServerInspectorTool,
+  UnusedChannelsReportTool,
+  UnusedRolesReportTool,
+  UnusedEmojisReportTool,
+  UnusedStickersReportTool,
+  DuplicateResourceDetectionTool,
+  BrokenPermissionDetectionTool,
+
+  // ── MODULE 20: Analytics (18) ────────────────────────────────────────────
+  ServerAnalyticsTool,
+  MemberAnalyticsTool,
+  ChannelAnalyticsTool,
+  RoleAnalyticsTool,
+  VoiceAnalyticsTool,
+  ActivityAnalyticsTool,
+  GrowthAnalyticsTool,
+  RetentionAnalyticsTool,
+  EngagementAnalyticsTool,
+  ReactionAnalyticsTool,
+  BoostAnalyticsTool,
+  LeaderboardAnalyticsTool,
+  TrendAnalysisTool,
+  HeatmapGenerationTool,
+  DailyReportTool,
+  WeeklyReportTool,
+  MonthlyReportTool,
+  ExportAnalyticsTool,
+
+  // ── MODULE 21: Server Backup (12) ────────────────────────────────────────
+  BackupServerTool,
+  RestoreServerTool,
+  IncrementalBackupTool,
+  CreateSnapshotTool,
+  CompareSnapshotsTool,
+  ListSnapshotsTool,
+  ExportBackupTool,
+  ImportBackupTool,
+  SelectiveRestoreTool,
+  VerifyBackupTool,
+  InspectBackupTool,
+  CleanupBackupsTool,
+
+  // ── MODULE 22: Server Template (10) ──────────────────────────────────────
+  CreateServerTemplateTool,
+  ExportServerTemplateTool,
+  ImportServerTemplateTool,
+  DuplicateServerTemplateTool,
+  EditServerTemplateTool,
+  DeleteServerTemplateTool,
+  ListServerTemplatesTool,
+  ValidateServerTemplateTool,
+  ApplyServerTemplateTool,
+  PreviewServerTemplateTool,
+
+  // ── MODULE 23: Server Clone (11) ─────────────────────────────────────────
+  CloneAllCategoriesTool,
+  CloneAllChannelsTool,
+  CloneAllRolesTool,
+  ClonePermissionsStructureTool,
+  CloneAllEmojisTool,
+  CloneAllStickersTool,
+  CloneServerStructureTool,
+  CloneServerConfigTool,
+  CloneCompleteLayoutTool,
+  PartialCloneTool,
+  ClonePreviewTool,
+
+  // ── MODULE 24: Server Utilities (16) ─────────────────────────────────────
+  CleanupEmptyChannelsTool,
+  CleanupEmptyCatsTool,
+  CleanupUnusedRolesTool,
+  CleanupUnusedEmojisTool,
+  CleanupUnusedStickersTool,
+  CleanupExpiredInvitesTool,
+  CleanupInactiveThreadsTool,
+  OptimizeCategoriesTool,
+  OptimizePermissionsTool,
+  OptimizeRolesTool,
+  OptimizeChannelLayoutTool,
+  GenerateServerDocsTool,
+  GeneratePermissionDocsTool,
+  GenerateRoleDocsTool,
+  GenerateChannelDocsTool,
+  GenerateConfigDocsTool,
 ];

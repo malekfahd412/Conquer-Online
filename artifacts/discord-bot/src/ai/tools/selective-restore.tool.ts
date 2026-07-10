@@ -1,4 +1,4 @@
-import { ChannelType, PermissionsBitField } from 'discord.js';
+import { PermissionsBitField } from 'discord.js';
 import type { Guild } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from './tool.interface';
 import { getBackup } from './backup-store';
@@ -39,7 +39,7 @@ export class SelectiveRestoreTool implements ITool {
       const existing = guild.channels.cache.find(c => c.name.toLowerCase() === name);
       if (existing) { failed.push(`channel "${name}" already exists`); continue; }
       try {
-        await guild.channels.create({ name: chData.name, type: chData.type as ChannelType, reason: `Selective restore from ${backup.id}` });
+        await guild.channels.create({ name: chData.name, type: chData.type as never, reason: `Selective restore from ${backup.id}` });
         created.channels++;
       } catch { failed.push(`failed to create channel "${name}"`); }
     }

@@ -36,14 +36,14 @@ export class BackupServerTool implements ITool {
     // Serialize channels (non-category)
     const channels: ChannelBackup[] = [...guild.channels.cache.values()]
       .filter(c => c.type !== ChannelType.GuildCategory)
-      .sort((a, b) => a.rawPosition - b.rawPosition)
+      .sort((a, b) => (('rawPosition' in a ? (a as { rawPosition: number }).rawPosition : 0) - ('rawPosition' in b ? (b as { rawPosition: number }).rawPosition : 0)))
       .map(c => {
         const ch: ChannelBackup = {
-          id: c.id, name: c.name, type: c.type, position: c.rawPosition,
+          id: c.id, name: c.name, type: c.type, position: ('rawPosition' in c ? (c as { rawPosition: number }).rawPosition : 0),
           parentId: 'parentId' in c ? (c as { parentId?: string | null }).parentId ?? null : null,
-          permissionOverwrites: [...c.permissionOverwrites.cache.values()].map(ow => ({
+          permissionOverwrites: 'permissionOverwrites' in c ? [...(c as { permissionOverwrites: { cache: Map<string, { id: string; type: number; allow: { bitfield: bigint }; deny: { bitfield: bigint } }> } }).permissionOverwrites.cache.values()].map(ow => ({
             id: ow.id, type: ow.type, allow: ow.allow.bitfield.toString(), deny: ow.deny.bitfield.toString(),
-          })),
+          })) : [],
         };
         if ('topic' in c) ch.topic = (c as { topic?: string | null }).topic;
         if ('nsfw' in c) ch.nsfw = (c as { nsfw?: boolean }).nsfw;

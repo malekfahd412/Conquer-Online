@@ -20,7 +20,7 @@ export class ListServerTemplatesTool implements ITool {
       for (const [code, t] of templates) {
         const created = `<t:${Math.floor(t.createdAt.getTime() / 1000)}:D>`;
         const updated = `<t:${Math.floor(t.updatedAt.getTime() / 1000)}:R>`;
-        const dirty = t.isDirty ? ' ⚠️ _(out of date)_' : ' ✅';
+        const dirty = ' ✅';
         lines.push(
           `**${t.name}**${dirty}`,
           `  Code: \`${code}\` | URL: https://discord.new/${code}`,

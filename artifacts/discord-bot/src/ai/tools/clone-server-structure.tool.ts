@@ -42,7 +42,7 @@ export class CloneServerStructureTool implements ITool {
       const originalParentId = 'parentId' in ch ? (ch as { parentId?: string | null }).parentId ?? null : null;
       const newParentId = originalParentId ? catIdMap[originalParentId] : undefined;
       try {
-        await guild.channels.create({ name: `${ch.name}${suffix}`.slice(0, 100), type: ch.type as ChannelType, parent: newParentId, reason: 'Clone server structure' });
+        await guild.channels.create({ name: `${ch.name}${suffix}`.slice(0, 100), type: ch.type as never, parent: newParentId, reason: 'Clone server structure' });
         chCreated++;
       } catch { /* skip */ }
     }

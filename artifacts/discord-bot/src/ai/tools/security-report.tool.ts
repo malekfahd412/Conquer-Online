@@ -1,4 +1,4 @@
-import { VerificationLevel, ExplicitContentFilter, GuildDefaultMessageNotifications, ChannelType } from 'discord.js';
+import { GuildVerificationLevel, GuildExplicitContentFilter, ChannelType } from 'discord.js';
 import type { Guild } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from './tool.interface';
 
@@ -21,8 +21,8 @@ export class SecurityReportTool implements ITool {
     // Verification level
     const verLevel = guild.verificationLevel;
     const verNames = ['None', 'Low', 'Medium', 'High', 'Very High'];
-    if (verLevel === VerificationLevel.None) issues.push({ severity: 'critical', message: 'Verification level is **None** — anyone can join and message immediately' });
-    else if (verLevel === VerificationLevel.Low) issues.push({ severity: 'medium', message: 'Verification level is **Low** — requires only verified email' });
+    if (verLevel === GuildVerificationLevel.None) issues.push({ severity: 'critical', message: 'Verification level is **None** — anyone can join and message immediately' });
+    else if (verLevel === GuildVerificationLevel.Low) issues.push({ severity: 'medium', message: 'Verification level is **Low** — requires only verified email' });
     else strengths.push(`✅ Verification level: **${verNames[verLevel]}**`);
 
     // MFA requirement
@@ -30,8 +30,8 @@ export class SecurityReportTool implements ITool {
     else strengths.push('✅ 2FA required for moderators');
 
     // Explicit content filter
-    if (guild.explicitContentFilter === ExplicitContentFilter.Disabled) issues.push({ severity: 'high', message: 'Explicit content filter is **disabled** — NSFW images can be shared' });
-    else if (guild.explicitContentFilter === ExplicitContentFilter.MembersWithoutRoles) issues.push({ severity: 'medium', message: 'Explicit content filter only applies to **members without roles**' });
+    if (guild.explicitContentFilter === GuildExplicitContentFilter.Disabled) issues.push({ severity: 'high', message: 'Explicit content filter is **disabled** — NSFW images can be shared' });
+    else if (guild.explicitContentFilter === GuildExplicitContentFilter.MembersWithoutRoles) issues.push({ severity: 'medium', message: 'Explicit content filter only applies to **members without roles**' });
     else strengths.push('✅ Explicit content filter covers all members');
 
     // Admin roles
@@ -50,7 +50,7 @@ export class SecurityReportTool implements ITool {
 
     // NSFW channels
     const nsfwChannels = guild.channels.cache.filter(c => c.type === ChannelType.GuildText && 'nsfw' in c && c.nsfw);
-    if (nsfwChannels.size > 0 && verLevel < VerificationLevel.Medium) {
+    if (nsfwChannels.size > 0 && verLevel < GuildVerificationLevel.Medium) {
       issues.push({ severity: 'medium', message: `${nsfwChannels.size} NSFW channel(s) with low verification level` });
     }
 

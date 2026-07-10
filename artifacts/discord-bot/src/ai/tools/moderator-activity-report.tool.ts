@@ -36,7 +36,7 @@ export class ModeratorActivityReportTool implements ITool {
         for (const entry of logs.entries.values()) {
           if (!entry.executor) continue;
           const id = entry.executor.id;
-          if (!modStats[id]) modStats[id] = { username: entry.executor.username, actions: {}, total: 0 };
+          if (!modStats[id]) modStats[id] = { username: entry.executor.username ?? entry.executor.id, actions: {}, total: 0 };
           const actionKey = entry.action.toString().replace(/_/g, ' ').toLowerCase();
           modStats[id].actions[actionKey] = (modStats[id].actions[actionKey] ?? 0) + 1;
           modStats[id].total++;

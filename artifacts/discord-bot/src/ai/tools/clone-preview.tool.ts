@@ -35,9 +35,9 @@ export class ClonePreviewTool implements ITool {
     }
 
     if (include === 'all' || include === 'channels') {
-      const chs = guild.channels.cache.filter(c => c.type === ChannelType.GuildText || c.type === ChannelType.GuildVoice).sort((a, b) => a.rawPosition - b.rawPosition);
+      const chs = guild.channels.cache.filter(c => c.type === ChannelType.GuildText || c.type === ChannelType.GuildVoice).sort((a, b) => (('rawPosition' in a ? (a as { rawPosition: number }).rawPosition : 0) - ('rawPosition' in b ? (b as { rawPosition: number }).rawPosition : 0)));
       lines.push(`**📺 Channels (${chs.size} → ${chs.size} copies):**`);
-      for (const [, ch] of chs.first ? [...chs.values()].slice(0, 15) : []) {
+      for (const ch of [...chs.values()].slice(0, 15)) {
         lines.push(`  • \`${ch.name}\` → \`${ch.name}${suffix}\``);
       }
       if (chs.size > 15) lines.push(`  _...and ${chs.size - 15} more_`);

@@ -37,12 +37,12 @@ export class GenerateServerDocsTool implements ITool {
       '## Channel Structure',
     ];
 
-    const cats = guild.channels.cache.filter(c => c.type === ChannelType.GuildCategory).sort((a, b) => a.rawPosition - b.rawPosition);
+    const cats = guild.channels.cache.filter(c => c.type === ChannelType.GuildCategory).sort((a, b) => (('rawPosition' in a ? (a as { rawPosition: number }).rawPosition : 0) - ('rawPosition' in b ? (b as { rawPosition: number }).rawPosition : 0)));
     const uncategorized = guild.channels.cache.filter(c => c.type !== ChannelType.GuildCategory && !('parentId' in c && (c as { parentId?: string }).parentId));
 
     for (const [, cat] of cats) {
       lines.push(`### 📁 ${cat.name}`);
-      const children = guild.channels.cache.filter(c => 'parentId' in c && (c as { parentId?: string }).parentId === cat.id).sort((a, b) => a.rawPosition - b.rawPosition);
+      const children = guild.channels.cache.filter(c => 'parentId' in c && (c as { parentId?: string }).parentId === cat.id).sort((a, b) => (('rawPosition' in a ? (a as { rawPosition: number }).rawPosition : 0) - ('rawPosition' in b ? (b as { rawPosition: number }).rawPosition : 0)));
       for (const [, ch] of children) {
         const topic = 'topic' in ch && (ch as { topic?: string }).topic ? ` — ${(ch as { topic: string }).topic}` : '';
         const typeLabel = ch.type === ChannelType.GuildVoice ? '🔊' : ch.type === ChannelType.GuildForum ? '💬' : '#';

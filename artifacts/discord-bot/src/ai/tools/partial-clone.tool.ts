@@ -36,7 +36,7 @@ export class PartialCloneTool implements ITool {
       const ch = guild.channels.cache.find(c => c.name.toLowerCase() === name && (c.type === ChannelType.GuildText || c.type === ChannelType.GuildVoice));
       if (!ch) { notFound.push(`channel "${name}"`); continue; }
       try {
-        await guild.channels.create({ name: `${ch.name}${suffix}`.slice(0, 100), type: ch.type as ChannelType, reason: 'Partial clone' });
+        await guild.channels.create({ name: `${ch.name}${suffix}`.slice(0, 100), type: ch.type as never, reason: 'Partial clone' });
         created.push(`#${ch.name}${suffix}`);
       } catch { notFound.push(`failed: channel "${name}"`); }
     }

@@ -1,6 +1,6 @@
 import type { Guild } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from './tool.interface';
-import { getBackup, listBackupsFull } from './backup-store';
+import { listBackupsFull } from './backup-store';
 import { promises as fs } from 'fs';
 import path from 'path';
 

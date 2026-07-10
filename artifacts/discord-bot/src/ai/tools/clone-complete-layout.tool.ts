@@ -42,12 +42,12 @@ export class CloneCompleteLayoutTool implements ITool {
     }
 
     // Channels
-    const chs = guild.channels.cache.filter(c => c.type !== ChannelType.GuildCategory).sort((a, b) => a.rawPosition - b.rawPosition);
+    const chs = guild.channels.cache.filter(c => c.type !== ChannelType.GuildCategory).sort((a, b) => (('rawPosition' in a ? (a as { rawPosition: number }).rawPosition : 0) - ('rawPosition' in b ? (b as { rawPosition: number }).rawPosition : 0)));
     for (const [, ch] of chs) {
       const origParent = 'parentId' in ch ? (ch as { parentId?: string | null }).parentId ?? null : null;
       const newParent = origParent ? catIdMap[origParent] : undefined;
       try {
-        await guild.channels.create({ name: `${ch.name}${suffix}`.slice(0, 100), type: ch.type as ChannelType, parent: newParent, reason: 'Clone complete layout' });
+        await guild.channels.create({ name: `${ch.name}${suffix}`.slice(0, 100), type: ch.type as never, parent: newParent, reason: 'Clone complete layout' });
         created.channels++;
       } catch { /* skip */ }
     }

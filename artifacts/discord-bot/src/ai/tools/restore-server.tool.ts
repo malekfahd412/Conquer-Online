@@ -73,7 +73,7 @@ export class RestoreServerTool implements ITool {
           const parentName = backup.data.categories.find(c => c.id === chData.parentId)?.name;
           const parentId = parentName ? guild.channels.cache.find(c => c.name === parentName && c.type === ChannelType.GuildCategory)?.id : undefined;
           await guild.channels.create({
-            name: chData.name, type: chData.type as ChannelType,
+            name: chData.name, type: chData.type as never,
             parent: parentId,
             topic: chData.topic ?? undefined,
             nsfw: chData.nsfw,

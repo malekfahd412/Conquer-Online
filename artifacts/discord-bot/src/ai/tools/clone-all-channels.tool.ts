@@ -31,13 +31,13 @@ export class CloneAllChannelsTool implements ITool {
       if (typeFilter === 'text') return c.type === ChannelType.GuildText;
       if (typeFilter === 'voice') return c.type === ChannelType.GuildVoice;
       return c.type === ChannelType.GuildText || c.type === ChannelType.GuildVoice;
-    }).sort((a, b) => a.rawPosition - b.rawPosition);
+    }).sort((a, b) => (('rawPosition' in a ? (a as { rawPosition: number }).rawPosition : 0) - ('rawPosition' in b ? (b as { rawPosition: number }).rawPosition : 0)));
 
     for (const [, ch] of channels) {
       const newName = `${ch.name}${suffix}`.slice(0, 100);
       const parentId = 'parentId' in ch ? (ch as { parentId?: string | null }).parentId ?? undefined : undefined;
       try {
-        await guild.channels.create({ name: newName, type: ch.type as ChannelType, parent: parentId, reason: 'Clone all channels' });
+        await guild.channels.create({ name: newName, type: ch.type as never, parent: parentId, reason: 'Clone all channels' });
         created.push(newName);
       } catch { failed.push(ch.name); }
     }

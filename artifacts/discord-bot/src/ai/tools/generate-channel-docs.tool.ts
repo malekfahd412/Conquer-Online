@@ -29,7 +29,7 @@ export class GenerateChannelDocsTool implements ITool {
       '',
     ];
 
-    const categories = guild.channels.cache.filter(c => c.type === ChannelType.GuildCategory).sort((a, b) => a.rawPosition - b.rawPosition);
+    const categories = guild.channels.cache.filter(c => c.type === ChannelType.GuildCategory).sort((a, b) => (('rawPosition' in a ? (a as { rawPosition: number }).rawPosition : 0) - ('rawPosition' in b ? (b as { rawPosition: number }).rawPosition : 0)));
     const uncategorized = guild.channels.cache.filter(c => c.type !== ChannelType.GuildCategory && !('parentId' in c && (c as { parentId?: string }).parentId));
 
     const describeChannel = (ch: { name: string; type: number; id: string; permissionOverwrites: { cache: Map<string, unknown> }; rawPosition?: number }) => {
@@ -56,7 +56,7 @@ export class GenerateChannelDocsTool implements ITool {
       lines.push(`- ID: \`${cat.id}\``);
       lines.push(`- Permission Overwrites: ${cat.permissionOverwrites.cache.size}`);
       lines.push('');
-      const children = guild.channels.cache.filter(c => 'parentId' in c && (c as { parentId?: string }).parentId === cat.id).sort((a, b) => a.rawPosition - b.rawPosition);
+      const children = guild.channels.cache.filter(c => 'parentId' in c && (c as { parentId?: string }).parentId === cat.id).sort((a, b) => (('rawPosition' in a ? (a as { rawPosition: number }).rawPosition : 0) - ('rawPosition' in b ? (b as { rawPosition: number }).rawPosition : 0)));
       for (const [, ch] of children) lines.push(describeChannel(ch as Parameters<typeof describeChannel>[0]), '');
     }
 

@@ -36,7 +36,7 @@ export class ClonePermissionsStructureTool implements ITool {
 
     for (const [id, ow] of overwrites) {
       try {
-        await tgt.permissionOverwrites.edit(id, { allow: ow.allow, deny: ow.deny }, { reason: `Clone permissions from #${src.name}` });
+        await tgt.permissionOverwrites.edit(id, ow as never, { reason: `Clone permissions from #${src.name}` });
         applied++;
       } catch { /* skip inaccessible role/user */ }
     }

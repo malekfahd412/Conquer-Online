@@ -1,4 +1,4 @@
-import { ChannelType, VerificationLevel, ExplicitContentFilter } from 'discord.js';
+import { ChannelType, GuildVerificationLevel, GuildExplicitContentFilter } from 'discord.js';
 import type { Guild } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from './tool.interface';
 
@@ -15,8 +15,8 @@ export class ConfigurationReportTool implements ITool {
   };
 
   async execute(_params: Record<string, unknown>, guild: Guild): Promise<ToolExecuteResult> {
-    const verNames = { [VerificationLevel.None]: 'None', [VerificationLevel.Low]: 'Low', [VerificationLevel.Medium]: 'Medium', [VerificationLevel.High]: 'High', [VerificationLevel.VeryHigh]: 'Very High' };
-    const filterNames = { [ExplicitContentFilter.Disabled]: 'Disabled', [ExplicitContentFilter.MembersWithoutRoles]: 'Members without roles', [ExplicitContentFilter.AllMembers]: 'All members' };
+    const verNames = { [GuildVerificationLevel.None]: 'None', [GuildVerificationLevel.Low]: 'Low', [GuildVerificationLevel.Medium]: 'Medium', [GuildVerificationLevel.High]: 'High', [GuildVerificationLevel.VeryHigh]: 'Very High' };
+    const filterNames = { [GuildExplicitContentFilter.Disabled]: 'Disabled', [GuildExplicitContentFilter.MembersWithoutRoles]: 'Members without roles', [GuildExplicitContentFilter.AllMembers]: 'All members' };
 
     const cats = guild.channels.cache.filter(c => c.type === ChannelType.GuildCategory).size;
     const textChs = guild.channels.cache.filter(c => c.type === ChannelType.GuildText).size;

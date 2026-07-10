@@ -143,7 +143,7 @@ _Populate as you build — explicit user instructions worth remembering across s
 - Configured secrets: `DISCORD_BOT_TOKEN`, `CHANNEL_SERVER_STATUS`, `GEMINI_API_KEY`. Shared env vars: `SERVER_NAME=Mufasa Conquer`, `SERVER_WEBSITE`, `FACEBOOK_URL`.
 - `DATA_SOURCE` is unset (defaults to `mock`) — the status embed shows "Waiting for Server Connection" until MSSQL or API credentials are added.
 - Voice AI's STT/TTS providers (Whisper/OpenAI TTS) need `OPENAI_API_KEY` — not yet configured, so voice features are limited until added.
-- **Total tools: 239** (201 original + 38 new from Module 11 & 12)
+- **Total tools: 323** (239 previous + 84 new from Modules 19–24)
 
 ## Gotchas
 

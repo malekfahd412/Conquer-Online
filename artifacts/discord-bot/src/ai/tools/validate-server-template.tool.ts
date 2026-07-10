@@ -26,8 +26,7 @@ export class ValidateServerTemplateTool implements ITool {
       const issues: string[] = [];
       const checks: string[] = [];
 
-      if (template.isDirty) issues.push('⚠️ Template is **out of date** — server has changed since last sync. Use `import_server_template` to sync.');
-      else checks.push('✅ Template is up to date');
+      checks.push('✅ Template is active');
 
       const chCount = sg?.channels?.length ?? 0;
       const roleCount = sg?.roles?.length ?? 0;

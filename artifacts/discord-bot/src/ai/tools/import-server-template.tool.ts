@@ -22,10 +22,6 @@ export class ImportServerTemplateTool implements ITool {
       const template = templates.get(code);
       if (!template) return { success: false, message: `Template \`${code}\` not found. Use \`list_server_templates\` to see available templates.` };
 
-      if (!template.isDirty) {
-        return { success: true, message: `✅ Template \`${code}\` is already up to date — no sync needed.\nName: "${template.name}"` };
-      }
-
       const synced = await template.sync();
       return {
         success: true,

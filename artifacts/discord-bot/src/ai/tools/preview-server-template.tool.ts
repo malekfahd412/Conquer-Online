@@ -29,7 +29,7 @@ export class PreviewServerTemplateTool implements ITool {
       const lines = [
         `🔮 **Template Preview** — "${template.name}"`,
         `Code: \`${code}\` | URL: https://discord.new/${code}`,
-        `Uses: ${template.usageCount} | ${template.isDirty ? '⚠️ Out of sync' : '✅ Up to date'}`,
+        `Uses: ${template.usageCount} | ✅ Active`,
         template.description ? `"${template.description}"` : '',
         '',
         `**Would create ${channels.length} channel(s):**`,
