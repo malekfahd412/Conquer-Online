@@ -180,6 +180,16 @@ import { ConvertToEmbedTool } from './convert-to-embed.tool';
 import { ConvertEmbedToJsonTool } from './convert-embed-to-json.tool';
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// MODULE 11: Audit Log
+// ═══════════════════════════════════════════════════════════════════════════════
+import { ViewAuditLogTool } from './view-audit-log.tool';
+import { AuditLogByModeratorTool } from './audit-log-by-moderator.tool';
+import { AuditLogByTargetTool } from './audit-log-by-target.tool';
+import { AuditLogSummaryTool } from './audit-log-summary.tool';
+import { AuditLogSearchTool } from './audit-log-search.tool';
+import { ExportAuditLogTool } from './export-audit-log.tool';
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MODULE 10: Permission Management (Complete)
 // ═══════════════════════════════════════════════════════════════════════════════
 import { PermissionCalculatorTool } from './permission-calculator.tool';
@@ -360,4 +370,11 @@ export const ALL_TOOLS: ToolConstructor[] = [
   PermissionResetTool,
   PermissionExportTool,
   PermissionImportTool,
+  // MODULE 11: Audit Log
+  ViewAuditLogTool,
+  AuditLogByModeratorTool,
+  AuditLogByTargetTool,
+  AuditLogSummaryTool,
+  AuditLogSearchTool,
+  ExportAuditLogTool,
 ];
