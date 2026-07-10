@@ -52,6 +52,41 @@ import { DeleteScheduledEventTool } from './delete-scheduled-event.tool';
 import { CreateInviteTool } from './create-invite.tool';
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// MODULE 12: Emoji Management
+// ═══════════════════════════════════════════════════════════════════════════════
+import { UploadEmojiTool } from './upload-emoji.tool';
+import { DeleteEmojiTool } from './delete-emoji.tool';
+import { RenameEmojiTool } from './rename-emoji.tool';
+import { CloneEmojiTool } from './clone-emoji.tool';
+import { ExportEmojiTool } from './export-emoji.tool';
+import { ImportEmojiTool } from './import-emoji.tool';
+import { EmojiInfoTool } from './emoji-info.tool';
+import { EmojiAnalyticsTool } from './emoji-analytics.tool';
+import { EmojiCleanupTool } from './emoji-cleanup.tool';
+import { EmojiSearchTool } from './emoji-search.tool';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULE 13: Sticker Management
+// ═══════════════════════════════════════════════════════════════════════════════
+import { UploadStickerTool } from './upload-sticker.tool';
+import { DeleteStickerTool } from './delete-sticker.tool';
+import { RenameStickerTool } from './rename-sticker.tool';
+import { CloneStickerTool } from './clone-sticker.tool';
+import { ExportStickerTool } from './export-sticker.tool';
+import { ImportStickerTool } from './import-sticker.tool';
+import { StickerInfoTool } from './sticker-info.tool';
+import { StickerAnalyticsTool } from './sticker-analytics.tool';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULE 14: Invite Management
+// ═══════════════════════════════════════════════════════════════════════════════
+import { DeleteInviteTool } from './delete-invite.tool';
+import { ListInvitesTool } from './list-invites.tool';
+import { InviteAnalyticsTool } from './invite-analytics.tool';
+import { InviteCleanupTool } from './invite-cleanup.tool';
+import { InviteInspectorTool } from './invite-inspector.tool';
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MODULE 1: Guild Management
 // ═══════════════════════════════════════════════════════════════════════════════
 import { EditGuildTool } from './edit-guild.tool';
@@ -377,4 +412,33 @@ export const ALL_TOOLS: ToolConstructor[] = [
   AuditLogSummaryTool,
   AuditLogSearchTool,
   ExportAuditLogTool,
+
+  // ── MODULE 12: Emoji Management (10) ────────────────────────────────────────
+  UploadEmojiTool,
+  DeleteEmojiTool,
+  RenameEmojiTool,
+  CloneEmojiTool,
+  ExportEmojiTool,
+  ImportEmojiTool,
+  EmojiInfoTool,
+  EmojiAnalyticsTool,
+  EmojiCleanupTool,
+  EmojiSearchTool,
+
+  // ── MODULE 13: Sticker Management (8) ───────────────────────────────────────
+  UploadStickerTool,
+  DeleteStickerTool,
+  RenameStickerTool,
+  CloneStickerTool,
+  ExportStickerTool,
+  ImportStickerTool,
+  StickerInfoTool,
+  StickerAnalyticsTool,
+
+  // ── MODULE 14: Invite Management (5 new, + existing create_invite) ─────────
+  DeleteInviteTool,
+  ListInvitesTool,
+  InviteAnalyticsTool,
+  InviteCleanupTool,
+  InviteInspectorTool,
 ];
