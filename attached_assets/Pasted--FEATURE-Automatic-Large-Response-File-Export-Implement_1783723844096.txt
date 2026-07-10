@@ -1,0 +1,161 @@
+# FEATURE — Automatic Large Response File Export
+
+Implement a production-grade response delivery system.
+
+Do NOT redesign the existing AI architecture.
+
+Only extend the response pipeline.
+
+## Goal
+
+Whenever the AI response is too large to fit in a Discord message, the bot must automatically send it as a downloadable `.txt` file instead of failing.
+
+This should work for every AI response automatically.
+
+---
+
+## Requirements
+
+### Automatic Detection
+
+Before sending any Discord message:
+
+* Measure the final message length.
+* If it is within Discord's safe limit, send it normally.
+* If it exceeds the safe limit (use ~1900 characters as the threshold), automatically switch to file mode.
+
+Never allow Discord to return:
+
+* `Invalid Form Body`
+* `content[BASE_TYPE_MAX_LENGTH]`
+
+---
+
+### File Mode
+
+Generate a UTF-8 `.txt` file.
+
+Filename format:
+
+* ai-response.txt
+* task-report.txt
+* implementation-report.txt
+* workflow.txt
+* `<timestamp>-response.txt`
+
+when appropriate.
+
+The file must contain the complete AI response with no truncation.
+
+---
+
+### Discord Response
+
+Instead of failing, send:
+
+* A short confirmation message such as:
+
+  * "The response was too large for Discord, so I've attached it as a text file."
+
+* Attach the generated `.txt` file to the message.
+
+Users should be able to download it directly from Discord.
+
+---
+
+### Formatting
+
+Preserve:
+
+* Paragraphs
+* Lists
+* Markdown
+* Code blocks
+* JSON
+* Logs
+* Reports
+
+No formatting should be lost.
+
+---
+
+### Streaming Support
+
+If streaming responses are enabled:
+
+* Collect the entire response first.
+* Then determine whether to send as text or file.
+
+Never upload partial files.
+
+---
+
+### Cleanup
+
+Temporary files must be automatically deleted after they are sent.
+
+No orphan files should remain on disk.
+
+---
+
+### Reusable Service
+
+Create a reusable response delivery service.
+
+Example:
+
+ResponseDeliveryService.send(response)
+
+Internally it should decide whether to:
+
+* Send a normal Discord message.
+* Split into multiple messages (optional for short overflows).
+* Generate and upload a `.txt` attachment.
+
+Every AI feature must use this service.
+
+---
+
+### Compatibility
+
+Integrate with:
+
+* AI Chat
+* Voice AI transcripts
+* Workspace exports
+* Implementation reports
+* Tool execution reports
+* Planning output
+* Diagnostics
+* Error reports
+
+---
+
+### Error Handling
+
+If file generation fails:
+
+* Log the error.
+* Fall back to splitting the response into multiple Discord messages.
+* Never lose the AI response.
+
+---
+
+### Verification
+
+Test with responses of:
+
+* 500 characters
+* 1,900 characters
+* 5,000 characters
+* 20,000+ characters
+
+Verify that the correct delivery method is chosen automatically.
+
+Return only:
+
+* Files created
+* Files modified
+* Build status
+* Runtime status
+* Confirmation that oversized responses are automatically delivered as downloadable `.txt` attachments.

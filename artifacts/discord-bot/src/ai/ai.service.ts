@@ -11,6 +11,7 @@ import {
   type Guild,
 } from 'discord.js';
 import type { ConversationMessage, ToolCall, ToolResult } from './types';
+import { ResponseDeliveryService } from '../discord/response-delivery.service';
 import { PermissionManager } from './permission-manager';
 import { ToolRegistry } from './tool-registry';
 import { PromptBuilder } from './prompt-builder';
@@ -215,7 +216,7 @@ export class AIService {
         const assistantMsg: ConversationMessage = { role: 'assistant', content: plan.content };
         this.memoryManager.addAssistantMessage(userId, guildId, assistantMsg);
         this.syncToWorkspace(userId, guildId, assistantMsg);
-        await interaction.editReply({ content: plan.content });
+        await ResponseDeliveryService.send(interaction, plan.content);
         return;
       }
 
@@ -230,7 +231,7 @@ export class AIService {
         interaction.user.id, interaction.user.tag, content, startTime,
       );
 
-      await interaction.editReply({ content: responseText });
+      await ResponseDeliveryService.send(interaction, responseText);
 
     } catch (error) {
       logger.error('AI slash command execution error', error);
@@ -510,7 +511,7 @@ export class AIService {
         const assistantMsg: ConversationMessage = { role: 'assistant', content: plan.content };
         this.memoryManager.addAssistantMessage(userId, guildId, assistantMsg);
         this.syncToWorkspace(userId, guildId, assistantMsg);
-        await message.reply({ content: plan.content });
+        await ResponseDeliveryService.send(message, plan.content);
         return;
       }
 
@@ -525,7 +526,7 @@ export class AIService {
               userId, guildId, confirmedToolCalls, message.guild!,
               client, userId, member.user.tag, content, startTime,
             );
-            await message.reply({ content: responseText }).catch(err =>
+            await ResponseDeliveryService.send(message, responseText).catch(err =>
               logger.error('Failed to send AI response', err),
             );
           },
@@ -538,7 +539,7 @@ export class AIService {
         userId, guildId, plan.toolCalls, message.guild, client,
         userId, member.user.tag, content, startTime,
       );
-      await message.reply({ content: responseText }).catch(err =>
+      await ResponseDeliveryService.send(message, responseText).catch(err =>
         logger.error('Failed to send AI response', err),
       );
 
