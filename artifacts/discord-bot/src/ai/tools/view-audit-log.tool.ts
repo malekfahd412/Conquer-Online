@@ -26,8 +26,8 @@ const ACTION_MAP: Record<string, AuditLogEvent> = {
   thread_delete: AuditLogEvent.ThreadDelete,
   nickname: AuditLogEvent.MemberUpdate,
   guild_update: AuditLogEvent.GuildUpdate,
-  event_create: AuditLogEvent.ScheduledEventCreate,
-  event_delete: AuditLogEvent.ScheduledEventDelete,
+  event_create: AuditLogEvent.GuildScheduledEventCreate,
+  event_delete: AuditLogEvent.GuildScheduledEventDelete,
   prune: AuditLogEvent.MemberPrune,
 };
 
