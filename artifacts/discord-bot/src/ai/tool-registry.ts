@@ -28,4 +28,16 @@ export class ToolRegistry {
   getToolDefinitions(): ToolDefinition[] {
     return Array.from(this.tools.values()).map(tool => tool.definition);
   }
+
+  getAll(): ITool[] {
+    return Array.from(this.tools.values());
+  }
+
+  search(query: string): ITool[] {
+    const q = query.toLowerCase();
+    return Array.from(this.tools.values()).filter(tool =>
+      tool.definition.name.includes(q) ||
+      tool.definition.description.toLowerCase().includes(q),
+    );
+  }
 }

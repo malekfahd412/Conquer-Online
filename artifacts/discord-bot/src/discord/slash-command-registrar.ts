@@ -140,7 +140,13 @@ const VOICE_COMMAND = {
   ],
 };
 
+const PANEL_COMMAND = {
+  name: 'panel',
+  description: 'Open the Discord Control Center — browse and execute all 323 tools interactively',
+};
+
 const ALL_COMMANDS = [
+  PANEL_COMMAND,
   AI_COMMAND,
   FORGET_COMMAND,
   MEMORY_COMMAND,

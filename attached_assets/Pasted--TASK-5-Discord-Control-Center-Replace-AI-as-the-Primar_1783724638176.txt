@@ -1,0 +1,223 @@
+# TASK 5 — Discord Control Center (Replace AI as the Primary Interface)
+
+## Objective
+
+Do NOT remove the existing AI system.
+
+Do NOT remove any tools.
+
+Do NOT remove the Planner, Reasoner, Memory, Voice AI, Rollback Engine, Plugin System, or Tool Registry.
+
+Instead, change the architecture so that the AI is OPTIONAL.
+
+The primary way to control the bot must become an interactive Discord Control Center built with Slash Commands, Buttons, Select Menus, Modals, and Panels.
+
+The AI should remain available only for advanced requests.
+
+---
+
+## Main Entry Point
+
+Create:
+
+/panel
+
+Opening this command should display the main dashboard.
+
+The dashboard must use embeds and interactive components.
+
+---
+
+## Main Dashboard
+
+Create categories such as:
+
+* Server
+* Channels
+* Categories
+* Roles
+* Members
+* Moderation
+* Messages
+* Voice
+* Emojis
+* Stickers
+* Invites
+* AutoMod
+* Scheduled Events
+* Webhooks
+* Permissions
+* Analytics
+* Backup
+* Templates
+* Utilities
+* Settings
+* AI
+
+Selecting a category should open a dedicated management panel.
+
+---
+
+## Automatic UI Generation
+
+Do NOT hardcode menus.
+
+Instead, generate the interface automatically from the existing Tool Registry.
+
+Each tool already contains metadata such as:
+
+* Name
+* Description
+* Category
+* Dangerous flag
+* Parameters
+
+Use this metadata to build menus dynamically.
+
+When a new tool is added in the future, it should automatically appear in the Control Center without additional UI code.
+
+---
+
+## Tool Pages
+
+Each tool page should include:
+
+* Description
+* Required parameters
+* Permission check
+* Confirmation (if dangerous)
+* Execute button
+* Rollback button (if supported)
+* Execution history
+* Audit log link
+
+---
+
+## Forms
+
+Whenever a tool requires input:
+
+Open a Discord Modal.
+
+Examples:
+
+Create Role
+
+Create Channel
+
+Rename Member
+
+Send Embed
+
+Create Event
+
+Backup Server
+
+Never ask users to type JSON manually unless they explicitly request advanced mode.
+
+---
+
+## Search
+
+Implement a global search.
+
+Users can search by:
+
+Tool name
+
+Description
+
+Category
+
+Keyword
+
+Examples:
+
+role
+
+backup
+
+channel
+
+invite
+
+voice
+
+---
+
+## Favorites
+
+Allow administrators to:
+
+Pin favorite tools.
+
+Create quick access pages.
+
+Create custom dashboards.
+
+---
+
+## Permissions
+
+Hide tools the current user cannot execute.
+
+Only display tools the user has permission to use.
+
+---
+
+## Logs
+
+Every execution should display:
+
+Success/Failure
+
+Execution time
+
+Rollback availability
+
+Audit entry
+
+---
+
+## AI Integration
+
+Keep the AI system installed.
+
+Move it to a dedicated "AI Assistant" section.
+
+AI should be used only for:
+
+Complex planning
+
+Natural language administration
+
+Automation generation
+
+Workflow generation
+
+Diagnostics
+
+Server optimization
+
+Everything else should use the Control Center.
+
+---
+
+## Final Verification
+
+Run:
+
+* TypeScript validation
+* Build verification
+* Runtime verification
+
+Return only:
+
+* Files created
+* Files modified
+* New panels
+* New slash commands
+* New interaction handlers
+* Build status
+* Runtime status
+* Confirmation that the Control Center is now the primary interface while AI remains an optional advanced feature.

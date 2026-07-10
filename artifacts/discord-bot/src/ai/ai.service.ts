@@ -12,6 +12,7 @@ import {
 } from 'discord.js';
 import type { ConversationMessage, ToolCall, ToolResult } from './types';
 import { ResponseDeliveryService } from '../discord/response-delivery.service';
+import { ControlCenterService } from '../discord/control-center';
 import { PermissionManager } from './permission-manager';
 import { ToolRegistry } from './tool-registry';
 import { PromptBuilder } from './prompt-builder';
@@ -56,6 +57,7 @@ export class AIService {
   private readonly workspaceMemory: WorkspaceMemory;
   private readonly verifier: Verifier;
   private readonly pendingButtons = new Map<string, PendingButton>();
+  private readonly controlCenter: ControlCenterService;
   private voiceManager: VoiceManager | null = null;
 
   constructor(private readonly config: AIConfig) {
@@ -68,6 +70,7 @@ export class AIService {
     this.memoryManager = new MemoryManager();
     this.workspaceMemory = new WorkspaceMemory();
     this.verifier = new Verifier();
+    this.controlCenter = new ControlCenterService(this.toolRegistry, this.permissionManager);
   }
 
   async initialize(): Promise<void> {
@@ -150,6 +153,27 @@ export class AIService {
           );
           return;
         }
+        if (name === 'panel') {
+          this.controlCenter.handlePanelCommand(interaction as ChatInputCommandInteraction).catch(err =>
+            logger.error('Control Center panel error', err),
+          );
+          return;
+        }
+      }
+
+      // ── Control Center interactions (cc:* custom IDs) ──────────────────────
+      const isCC = (id: string) => id.startsWith('cc:');
+      if (
+        (interaction.isButton() && isCC(interaction.customId)) ||
+        (interaction.isStringSelectMenu() && isCC(interaction.customId)) ||
+        (interaction.isModalSubmit() && isCC(interaction.customId))
+      ) {
+        if (interaction.guild) {
+          this.controlCenter.handleInteraction(interaction, interaction.guild).catch(err =>
+            logger.error('Control Center interaction error', err),
+          );
+        }
+        return;
       }
 
       // Handle pending button clicks — bound to the initiating user only
