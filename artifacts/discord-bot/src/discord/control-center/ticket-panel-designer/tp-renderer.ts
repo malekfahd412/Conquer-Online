@@ -239,10 +239,10 @@ export function buildButtonSection(panel: TicketPanel): CCPayload {
   const isSmMode = !!(panel.selectMenu && panel.selectMenu.options.length > 0) || !!(panel.selectMenu);
   const extras = panel.additionalButtons;
 
-  const primaryLine = `Label: **${panel.button.label}** · Style: ${panel.button.style}${panel.button.emoji ? ` · ${panel.button.emoji}` : ''} · Type: \`${panel.button.ticketType}\``;
+  const primaryLine = `Label: **${panel.button.label}** · Style: ${panel.button.style}${panel.button.emoji ? ` · ${panel.button.emoji}` : ''} · Type: \`${panel.button.ticketType}\`${panel.button.categoryId ? ` · Category: <#${panel.button.categoryId}>` : ''}`;
   const extrasText = extras.length === 0
     ? '_No extra buttons_'
-    : extras.map((b, i) => `${i + 1}. **${b.label}** (${b.style}) · Type: \`${b.ticketType}\``).join('\n');
+    : extras.map((b, i) => `${i + 1}. **${b.label}** (${b.style}) · Type: \`${b.ticketType}\`${b.categoryId ? ` · Category: <#${b.categoryId}>` : ''}`).join('\n');
 
   const smText = isSmMode && panel.selectMenu
     ? `${panel.selectMenu.options.length} option(s) configured\nPlaceholder: ${panel.selectMenu.placeholder || '_(default)_'}`
@@ -284,7 +284,7 @@ export function buildButtonSection(panel: TicketPanel): CCPayload {
           panel.selectMenu.options.slice(0, 25).map((o, i) =>
             new StringSelectMenuOptionBuilder()
               .setLabel(truncate(o.label, 100))
-              .setDescription(truncate(`Type: ${o.ticketType}${o.description ? ` — ${o.description}` : ''}`, 100))
+              .setDescription(truncate(`Type: ${o.ticketType}${o.categoryId ? ` · Cat: ${o.categoryId}` : ''}${o.description ? ` — ${o.description}` : ''}`, 100))
               .setValue(String(i)),
           ),
         );
@@ -298,7 +298,7 @@ export function buildButtonSection(panel: TicketPanel): CCPayload {
         extras.slice(0, 25).map((b, i) =>
           new StringSelectMenuOptionBuilder()
             .setLabel(truncate(b.label, 100))
-            .setDescription(truncate(`Style: ${b.style} · Type: ${b.ticketType}`, 100))
+            .setDescription(truncate(`Style: ${b.style} · Type: ${b.ticketType}${b.categoryId ? ` · Cat: ${b.categoryId}` : ''}`, 100))
             .setValue(String(i)),
         ),
       );
@@ -1060,6 +1060,7 @@ export function buildPrimaryButtonModal(panel: TicketPanel): ModalBuilder {
       row(ti('style',      'Style',        TextInputStyle.Short, b.style,              'Primary | Secondary | Success | Danger', true, 10)),
       row(ti('emoji',      'Emoji',        TextInputStyle.Short, b.emoji || '',        'e.g. 🎫 (optional)', false, 32)),
       row(ti('ticketType', 'Ticket Type',  TextInputStyle.Short, b.ticketType,         'Internal key, e.g. support', true, 50)),
+      row(ti('categoryId', 'Category ID',  TextInputStyle.Short, b.categoryId || '',   'Discord category ID for this ticket (optional)', false, 20)),
     );
 }
 
@@ -1073,6 +1074,7 @@ export function buildExtraButtonModal(_panelId: string, existingBtn: TicketButto
       row(ti('style',      'Style',        TextInputStyle.Short, existingBtn?.style      || 'Primary', 'Primary | Secondary | Success | Danger', true, 10)),
       row(ti('emoji',      'Emoji',        TextInputStyle.Short, existingBtn?.emoji      || '', 'e.g. 🎫 (optional)', false, 32)),
       row(ti('ticketType', 'Ticket Type',  TextInputStyle.Short, existingBtn?.ticketType || '', 'Internal key, e.g. billing', true, 50)),
+      row(ti('categoryId', 'Category ID',  TextInputStyle.Short, existingBtn?.categoryId || '', 'Discord category ID for this ticket (optional)', false, 20)),
     );
 }
 
@@ -1086,6 +1088,7 @@ export function buildSmOptionModal(_panelId: string, existingOpt: TicketSelectMe
       row(ti('ticketType',  'Ticket Type',   TextInputStyle.Short, existingOpt?.ticketType  || '', 'Internal key, e.g. billing', true, 50)),
       row(ti('description', 'Description',   TextInputStyle.Short, existingOpt?.description || '', 'Shown under the label (optional)', false, 100)),
       row(ti('emoji',       'Emoji',         TextInputStyle.Short, existingOpt?.emoji       || '', '🎫 (optional)', false, 32)),
+      row(ti('categoryId',  'Category ID',   TextInputStyle.Short, existingOpt?.categoryId  || '', 'Discord category ID for this ticket (optional)', false, 20)),
     );
 }
 

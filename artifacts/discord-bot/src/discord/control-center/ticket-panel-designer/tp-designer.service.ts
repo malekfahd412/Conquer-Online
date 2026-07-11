@@ -1177,12 +1177,13 @@ export class TicketPanelDesigner {
     const styleRaw   = getField(interaction, 'style',      true);
     const emoji      = getField(interaction, 'emoji',      false);
     const ticketType = getField(interaction, 'ticketType', true);
+    const categoryId = getField(interaction, 'categoryId', false);
 
     const validStyles = ['Primary', 'Secondary', 'Success', 'Danger'];
     const style = validStyles.find(s => s.toLowerCase() === styleRaw.toLowerCase()) ?? 'Primary';
 
     const updated = await panelManager.update(panelId, {
-      button: { label, style: style as TicketButtonConfig['style'], emoji: emoji || undefined, ticketType },
+      button: { ...panel.button, label, style: style as TicketButtonConfig['style'], emoji: emoji || undefined, ticketType, categoryId: categoryId || undefined },
     });
 
     if (!updated) {
@@ -1210,11 +1211,12 @@ export class TicketPanelDesigner {
     const styleRaw   = getField(interaction, 'style',      true);
     const emoji      = getField(interaction, 'emoji',      false);
     const ticketType = getField(interaction, 'ticketType', true);
+    const categoryId = getField(interaction, 'categoryId', false);
 
     const validStyles = ['Primary', 'Secondary', 'Success', 'Danger'];
     const style = validStyles.find(s => s.toLowerCase() === styleRaw.toLowerCase()) ?? 'Primary';
 
-    const newBtn: TicketButtonConfig = { label, style: style as TicketButtonConfig['style'], emoji: emoji || undefined, ticketType };
+    const newBtn: TicketButtonConfig = { label, style: style as TicketButtonConfig['style'], emoji: emoji || undefined, ticketType, categoryId: categoryId || undefined };
     const updated = await panelManager.update(panelId, { additionalButtons: [...panel.additionalButtons, newBtn] });
 
     if (!updated) {
@@ -1235,12 +1237,13 @@ export class TicketPanelDesigner {
     const styleRaw   = getField(interaction, 'style',      true);
     const emoji      = getField(interaction, 'emoji',      false);
     const ticketType = getField(interaction, 'ticketType', true);
+    const categoryId = getField(interaction, 'categoryId', false);
 
     const validStyles = ['Primary', 'Secondary', 'Success', 'Danger'];
     const style = validStyles.find(s => s.toLowerCase() === styleRaw.toLowerCase()) ?? 'Primary';
 
     const newButtons = [...panel.additionalButtons];
-    newButtons[idx] = { label, style: style as TicketButtonConfig['style'], emoji: emoji || undefined, ticketType };
+    newButtons[idx] = { ...newButtons[idx], label, style: style as TicketButtonConfig['style'], emoji: emoji || undefined, ticketType, categoryId: categoryId || undefined };
     const updated = await panelManager.update(panelId, { additionalButtons: newButtons });
 
     if (!updated) {
@@ -1279,8 +1282,9 @@ export class TicketPanelDesigner {
     const ticketType  = getField(interaction, 'ticketType',  true);
     const description = getField(interaction, 'description', false);
     const emoji       = getField(interaction, 'emoji',       false);
+    const categoryId  = getField(interaction, 'categoryId',  false);
 
-    const newOpt: TicketSelectMenuOption = { label, value: ticketType, ticketType, description: description || undefined, emoji: emoji || undefined };
+    const newOpt: TicketSelectMenuOption = { label, value: ticketType, ticketType, description: description || undefined, emoji: emoji || undefined, categoryId: categoryId || undefined };
     const newMenu = { placeholder: panel.selectMenu?.placeholder, options: [...currentOpts, newOpt] };
     const updated = await panelManager.update(panelId, { selectMenu: newMenu });
 
@@ -1302,9 +1306,10 @@ export class TicketPanelDesigner {
     const ticketType  = getField(interaction, 'ticketType',  true);
     const description = getField(interaction, 'description', false);
     const emoji       = getField(interaction, 'emoji',       false);
+    const categoryId  = getField(interaction, 'categoryId',  false);
 
     const newOpts = [...panel.selectMenu.options];
-    newOpts[idx] = { label, value: ticketType, ticketType, description: description || undefined, emoji: emoji || undefined };
+    newOpts[idx] = { ...newOpts[idx], label, value: ticketType, ticketType, description: description || undefined, emoji: emoji || undefined, categoryId: categoryId || undefined };
     const updated = await panelManager.update(panelId, { selectMenu: { ...panel.selectMenu, options: newOpts } });
 
     if (!updated) {

@@ -109,6 +109,7 @@ export class TicketEngine {
     ticketType: string,
     answers: Record<string, string>,
     extraAnswerFields: { name: string; value: string }[] = [],
+    categoryOverride?: string,
   ): Promise<{ ticket: TicketRecord; channel: TextChannel }> {
     const number = await this.nextNumber(guild.id);
     const ticketId = genId('ticket');
@@ -125,7 +126,7 @@ export class TicketEngine {
     const overwrites = permissionEngine.buildOverwrites(guild, panel, opener.id);
     const channel = (await guild.channels.create({
       name,
-      parent: panel.openCategory,
+      parent: categoryOverride || panel.openCategory,
       permissionOverwrites: overwrites,
       topic: `Ticket for ${opener.tag} • Type: ${ticketType} • Panel: ${panel.id}`,
     })) as TextChannel;

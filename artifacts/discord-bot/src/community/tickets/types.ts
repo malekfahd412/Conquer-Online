@@ -27,6 +27,8 @@ export interface TicketButtonConfig {
   ticketType: string;
   /** Form Builder (Phase 4): which TicketForm to open for this ticket type. Falls back to legacy `modal` when unset. */
   formId?: string;
+  /** Per-button category override: the Discord category the ticket channel opens under. Falls back to the panel's `openCategory` when unset. */
+  categoryId?: string;
 }
 
 export interface TicketSelectMenuOption {
@@ -37,6 +39,8 @@ export interface TicketSelectMenuOption {
   emoji?: string;
   /** Form Builder (Phase 4): which TicketForm to open for this ticket type. Falls back to legacy `modal` when unset. */
   formId?: string;
+  /** Per-option category override: the Discord category the ticket channel opens under. Falls back to the panel's `openCategory` when unset. */
+  categoryId?: string;
 }
 
 export interface TicketSelectMenuConfig {

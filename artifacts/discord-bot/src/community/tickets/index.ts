@@ -100,6 +100,15 @@ class TicketSystem {
     return opt?.formId;
   }
 
+  /** Per-button/option category override for a given ticket type. Falls back to the panel's `openCategory` when unset. */
+  private resolveEntryCategoryId(panel: TicketPanel, ticketType: string): string | undefined {
+    if (panel.button.ticketType === ticketType) return panel.button.categoryId;
+    const extra = panel.additionalButtons.find(b => b.ticketType === ticketType);
+    if (extra) return extra.categoryId;
+    const opt = panel.selectMenu?.options.find(o => o.ticketType === ticketType);
+    return opt?.categoryId;
+  }
+
   private async autoCloseIfInactive(ticketId: string): Promise<void> {
     if (!this.client) return;
     const ticket = await ticketEngine.getById(ticketId);
@@ -175,6 +184,7 @@ class TicketSystem {
 
     await interaction.deferReply({ ephemeral: true });
     const extraAnswerFields = usedForms.length > 0 ? questionEngine.formatFormAnswersForEmbed(usedForms, answers) : [];
+    const categoryOverride = this.resolveEntryCategoryId(panel, ticketType);
     const { ticket, channel } = await ticketEngine.createChannel(
       guild,
       panel,
@@ -182,6 +192,7 @@ class TicketSystem {
       ticketType,
       answers,
       extraAnswerFields,
+      categoryOverride,
     );
     await interaction.editReply({ content: `✅ Your ticket has been created: ${channel}` });
 
