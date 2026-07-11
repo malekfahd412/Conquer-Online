@@ -1,0 +1,229 @@
+The Verification System has a critical runtime bug.
+
+Current behavior:
+
+✅ User presses Verify.
+✅ Verification succeeds.
+✅ Success message is shown.
+❌ The configured verification role is NOT assigned.
+
+DO NOT apply random fixes.
+
+I want a full root-cause analysis.
+
+====================================================
+PHASE 1 — TRACE THE ENTIRE EXECUTION
+====================================================
+
+Trace the complete execution path starting from the button click.
+
+Button Interaction
+↓
+
+Interaction Handler
+
+↓
+
+Verification Handler
+
+↓
+
+Panel Lookup
+
+↓
+
+grantVerified()
+
+↓
+
+member.roles.add()
+
+↓
+
+Success Response
+
+Print every function that is executed.
+
+====================================================
+PHASE 2 — VERIFY PANEL DATA
+====================================================
+
+Before grantVerified() executes, print:
+
+Guild ID
+
+Panel ID
+
+Verification Method
+
+verifiedRoleId
+
+unverifiedRoleId
+
+welcomeRoleId
+
+Log exactly what was loaded from verification.json.
+
+Verify that the panel loaded from disk is the same one used by grantVerified().
+
+====================================================
+PHASE 3 — VERIFY ROLE
+====================================================
+
+Before calling member.roles.add()
+
+Print:
+
+Role ID
+
+Role Name
+
+Role Exists
+
+Role Position
+
+Managed
+
+Editable
+
+Bot Highest Role
+
+Bot Highest Position
+
+Target Role Position
+
+Member already has role?
+
+====================================================
+PHASE 4 — VERIFY BOT PERMISSIONS
+====================================================
+
+Print:
+
+ManageRoles
+
+Administrator
+
+Guild Owner
+
+CanInteract(role)
+
+guild.members.me.roles.highest.position
+
+role.position
+
+If Discord hierarchy blocks assignment, print exactly why.
+
+====================================================
+PHASE 5 — REMOVE SILENT ERRORS
+====================================================
+
+Find every occurrence of:
+
+.catch(() => {})
+
+inside the Verification System.
+
+Replace all silent catches with full logging.
+
+Never swallow exceptions.
+
+====================================================
+PHASE 6 — WRAP ROLE ASSIGNMENT
+====================================================
+
+Replace:
+
+await member.roles.add(...)
+
+with:
+
+try {
+    await member.roles.add(role);
+
+    console.log("[VERIFY] Role assigned successfully.");
+}
+catch (error) {
+    console.error("[VERIFY] Role assignment failed.");
+    console.error(error);
+
+    throw error;
+}
+
+====================================================
+PHASE 7 — VERIFY STORAGE
+====================================================
+
+Open data/verification.json.
+
+Verify:
+
+verifiedRoleId exists
+
+Role ID format is valid
+
+Guild ID matches
+
+Panel ID matches
+
+No duplicate panels
+
+No stale panels
+
+====================================================
+PHASE 8 — VERIFY INTERACTION FLOW
+====================================================
+
+Ensure the success message is NOT sent until after:
+
+await member.roles.add()
+
+completes successfully.
+
+If role assignment fails:
+
+Do NOT mark the user verified.
+
+Do NOT write verification success to storage.
+
+Do NOT send the success embed.
+
+====================================================
+PHASE 9 — END-TO-END TEST
+====================================================
+
+Create a temporary verification panel.
+
+Configure a real role.
+
+Click Verify.
+
+Confirm:
+
+✓ role assigned
+
+✓ verification stored
+
+✓ log written
+
+✓ success message sent
+
+====================================================
+RETURN
+====================================================
+
+Return ONLY:
+
+1. Root Cause
+
+2. Exact file
+
+3. Exact line
+
+4. Why the role was not assigned
+
+5. Code changes
+
+6. Runtime verification
+
+7. Final confirmation that the member now immediately receives the configured role after verification.

@@ -49,14 +49,99 @@ export class VerificationService {
     await updateVerificationPanelMessage(panel.id, message.id);
   }
 
-  private async grantVerified(guild: Guild, panel: VerificationPanelConfig, userId: string): Promise<void> {
-    const member = await guild.members.fetch(userId).catch(() => null);
-    if (!member) return;
-    if (panel.verifiedRoleId) await member.roles.add(panel.verifiedRoleId).catch(() => {});
-    if (panel.unverifiedRoleId) await member.roles.remove(panel.unverifiedRoleId).catch(() => {});
-    if (panel.welcomeRoleId) await member.roles.add(panel.welcomeRoleId).catch(() => {});
+  /**
+   * Assigns the configured verified role (and adjusts unverified/welcome roles) for a member.
+   * Returns true only if the verified role was actually confirmed present on the member afterwards.
+   * Never silently swallows a role-assignment failure — callers MUST check the return value
+   * before treating the user as verified.
+   */
+  private async grantVerified(guild: Guild, panel: VerificationPanelConfig, userId: string): Promise<boolean> {
+    logger.info(`[VERIFY] guild=${guild.id} panel=${panel.id} method=${panel.method} user=${userId} verifiedRoleId=${panel.verifiedRoleId} unverifiedRoleId=${panel.unverifiedRoleId ?? 'none'} welcomeRoleId=${panel.welcomeRoleId ?? 'none'}`);
+
+    const member = await guild.members.fetch(userId).catch((err) => {
+      logger.error(`[VERIFY] Failed to fetch member ${userId} in guild ${guild.id}`, err);
+      return null;
+    });
+    if (!member) {
+      logger.error(`[VERIFY] Aborting: member ${userId} could not be fetched (left guild? cache issue?)`);
+      return false;
+    }
+
+    if (!panel.verifiedRoleId) {
+      logger.error(`[VERIFY] Panel ${panel.id} has no verifiedRoleId configured — nothing to assign`);
+      return false;
+    }
+
+    const role = await guild.roles.fetch(panel.verifiedRoleId).catch((err) => {
+      logger.error(`[VERIFY] Failed to fetch role ${panel.verifiedRoleId}`, err);
+      return null;
+    });
+    const botMember = guild.members.me;
+    const botHighest = botMember?.roles.highest;
+
+    logger.info(
+      `[VERIFY] Role check — id=${panel.verifiedRoleId} exists=${!!role} name=${role?.name ?? 'n/a'} `
+      + `position=${role?.position ?? 'n/a'} managed=${role?.managed ?? 'n/a'} `
+      + `botHighestRole=${botHighest?.name ?? 'n/a'}(pos=${botHighest?.position ?? 'n/a'}) `
+      + `canManageRoles=${botMember?.permissions.has('ManageRoles') ?? false} `
+      + `isOwner=${guild.ownerId === botMember?.id} `
+      + `memberAlreadyHasRole=${role ? member.roles.cache.has(role.id) : 'n/a'}`,
+    );
+
+    if (!role) {
+      logger.error(`[VERIFY] Aborting: verifiedRoleId ${panel.verifiedRoleId} does not exist in guild ${guild.id} (deleted role?)`);
+      return false;
+    }
+    if (role.managed) {
+      logger.error(`[VERIFY] Aborting: role ${role.name} (${role.id}) is managed by an integration and cannot be manually assigned`);
+      return false;
+    }
+    if (!botMember?.permissions.has('ManageRoles')) {
+      logger.error(`[VERIFY] Aborting: bot is missing the "Manage Roles" permission in guild ${guild.id}`);
+      return false;
+    }
+    if (!botHighest || botHighest.position <= role.position) {
+      logger.error(
+        `[VERIFY] Aborting: role hierarchy blocks assignment — bot's highest role `
+        + `"${botHighest?.name}" (pos ${botHighest?.position}) is not above "${role.name}" (pos ${role.position}). `
+        + `Move the bot's role above the verified role in Server Settings → Roles.`,
+      );
+      return false;
+    }
+
+    try {
+      await member.roles.add(role);
+      logger.success(`[VERIFY] Role ${role.name} (${role.id}) assigned to ${member.user.tag}`);
+    } catch (err) {
+      logger.error(`[VERIFY] member.roles.add() threw for ${member.user.tag} / role ${role.id}`, err);
+      return false;
+    }
+
+    // Re-fetch to confirm the role actually stuck (belt-and-suspenders against cache drift).
+    const confirmed = member.roles.cache.has(role.id);
+    if (!confirmed) {
+      logger.error(`[VERIFY] Role add() resolved without throwing but role ${role.id} is not present on member ${member.id} after assignment`);
+      return false;
+    }
+
+    if (panel.unverifiedRoleId) {
+      try {
+        await member.roles.remove(panel.unverifiedRoleId);
+      } catch (err) {
+        logger.warning(`[VERIFY] Failed to remove unverifiedRoleId ${panel.unverifiedRoleId} from ${member.user.tag} (non-fatal, verification still counts)`, err);
+      }
+    }
+    if (panel.welcomeRoleId) {
+      try {
+        await member.roles.add(panel.welcomeRoleId);
+      } catch (err) {
+        logger.warning(`[VERIFY] Failed to add welcomeRoleId ${panel.welcomeRoleId} to ${member.user.tag} (non-fatal, verification still counts)`, err);
+      }
+    }
+
     await upsertAttempt({ guildId: guild.id, panelId: panel.id, userId, status: 'verified', method: panel.method });
     if (panel.logChannelId) await this.log(guild, panel.logChannelId, `✅ ${member.user.tag} verified via **${panel.method}**`);
+    return true;
   }
 
   private async reject(guild: Guild, panel: VerificationPanelConfig, userId: string, reason: string): Promise<void> {
@@ -101,11 +186,16 @@ export class VerificationService {
 
     switch (panel.method) {
       case 'button':
-      case 'rules':
+      case 'rules': {
         await interaction.deferReply({ ephemeral: true });
-        await this.grantVerified(guild, panel, interaction.user.id);
-        await interaction.editReply({ content: '✅ You have been verified! Welcome.' });
+        const granted = await this.grantVerified(guild, panel, interaction.user.id);
+        if (granted) {
+          await interaction.editReply({ content: '✅ You have been verified! Welcome.' });
+        } else {
+          await interaction.editReply({ content: '❌ Verification succeeded but the role could not be assigned. Please contact a staff member — this has been logged.' });
+        }
         return;
+      }
 
       case 'math': {
         const a = 1 + Math.floor(Math.random() * 20);
@@ -177,8 +267,12 @@ export class VerificationService {
     }
 
     if (correct) {
-      await this.grantVerified(guild, panel, interaction.user.id);
-      await interaction.editReply({ content: '✅ Verified successfully! Welcome.' });
+      const granted = await this.grantVerified(guild, panel, interaction.user.id);
+      if (granted) {
+        await interaction.editReply({ content: '✅ Verified successfully! Welcome.' });
+      } else {
+        await interaction.editReply({ content: '❌ Verification succeeded but the role could not be assigned. Please contact a staff member — this has been logged.' });
+      }
     } else {
       const attempt = await getAttempt(guild.id, panel.id, interaction.user.id);
       const fails = attempt ? await incrementFail(attempt.id) : 0;
@@ -192,8 +286,12 @@ export class VerificationService {
     if (!panel) { await interaction.reply({ content: '❌ Panel no longer exists.', ephemeral: true }); return; }
     await interaction.deferUpdate();
     if (isCorrect) {
-      await this.grantVerified(guild, panel, interaction.user.id);
-      await interaction.editReply({ content: '✅ Verified successfully! Welcome.', components: [] });
+      const granted = await this.grantVerified(guild, panel, interaction.user.id);
+      if (granted) {
+        await interaction.editReply({ content: '✅ Verified successfully! Welcome.', components: [] });
+      } else {
+        await interaction.editReply({ content: '❌ Verification succeeded but the role could not be assigned. Please contact a staff member — this has been logged.', components: [] });
+      }
     } else {
       await interaction.editReply({ content: '❌ Wrong emoji. Click the verify button to try again.', components: [] });
     }
@@ -204,8 +302,12 @@ export class VerificationService {
     if (!panel) { await interaction.reply({ content: '❌ Panel no longer exists.', ephemeral: true }); return; }
     await interaction.deferUpdate();
     if (approve) {
-      await this.grantVerified(guild, panel, userId);
-      await interaction.editReply({ content: `✅ <@${userId}> approved by ${interaction.user}.`, components: [] });
+      const granted = await this.grantVerified(guild, panel, userId);
+      if (granted) {
+        await interaction.editReply({ content: `✅ <@${userId}> approved by ${interaction.user}.`, components: [] });
+      } else {
+        await interaction.editReply({ content: `❌ <@${userId}> approved by ${interaction.user}, but the role could not be assigned. This has been logged — check bot permissions/role hierarchy.`, components: [] });
+      }
     } else {
       await this.reject(guild, panel, userId, `manually rejected by ${interaction.user.tag}`);
       await interaction.editReply({ content: `❌ <@${userId}> rejected by ${interaction.user}.`, components: [] });
