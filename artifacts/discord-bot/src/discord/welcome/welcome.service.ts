@@ -28,7 +28,7 @@ export function fillWelcomeVariables(template: string, member: GuildMember | Par
     .replace(/\{displayname\}/g, member.displayName ?? member.user.username)
     .replace(/\{userid\}/g,      member.id)
     .replace(/\{server\}/g,      member.guild.name)
-    .replace(/\{membercount\}/g, String(member.guild.memberCount))
+    .replace(/\{membercount\}/gi, String(member.guild.memberCount))
     .replace(/\{date\}/g,        now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }))
     .replace(/\{time\}/g,        now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
 }
