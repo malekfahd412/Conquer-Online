@@ -239,10 +239,10 @@ export function buildButtonSection(panel: TicketPanel): CCPayload {
   const isSmMode = !!(panel.selectMenu && panel.selectMenu.options.length > 0) || !!(panel.selectMenu);
   const extras = panel.additionalButtons;
 
-  const primaryLine = `Label: **${panel.button.label}** · Style: ${panel.button.style}${panel.button.emoji ? ` · ${panel.button.emoji}` : ''} · Type: \`${panel.button.ticketType}\`${panel.button.categoryId ? ` · Category: <#${panel.button.categoryId}>` : ''}`;
+  const primaryLine = `Label: **${panel.button.label}** · Style: ${panel.button.style}${panel.button.emoji ? ` · ${panel.button.emoji}` : ''} · Type: \`${panel.button.ticketType}\`${panel.button.overrides ? ` · 🏷️ ${Object.keys(panel.button.overrides).length} override(s)` : ''}`;
   const extrasText = extras.length === 0
     ? '_No extra buttons_'
-    : extras.map((b, i) => `${i + 1}. **${b.label}** (${b.style}) · Type: \`${b.ticketType}\`${b.categoryId ? ` · Category: <#${b.categoryId}>` : ''}`).join('\n');
+    : extras.map((b, i) => `${i + 1}. **${b.label}** (${b.style}) · Type: \`${b.ticketType}\`${b.overrides ? ` · 🏷️ ${Object.keys(b.overrides).length} override(s)` : ''}`).join('\n');
 
   const smText = isSmMode && panel.selectMenu
     ? `${panel.selectMenu.options.length} option(s) configured\nPlaceholder: ${panel.selectMenu.placeholder || '_(default)_'}`
@@ -264,12 +264,13 @@ export function buildButtonSection(panel: TicketPanel): CCPayload {
 
   const row0 = new ActionRowBuilder<ButtonBuilder>().addComponents(
     btn('✏️ Primary Button',    TP.btnPrimary(panel.id),                ButtonStyle.Primary),
+    btn('🏷️ Primary Type Settings', TP.TT.main(panel.id, 'b'),          ButtonStyle.Secondary),
     btn('➕ Add Button',        TP.btnAdd(panel.id),                    ButtonStyle.Secondary, extras.length >= 4),
     btn(isSmMode ? '🔘 Use Buttons' : '📋 Use Select Menu', TP.toggle(panel.id, 'selectmenu'), ButtonStyle.Secondary),
     dashBtn(panel.id),
-    homeBtn(),
   );
   components.push(row0);
+  components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(homeBtn()));
 
   if (isSmMode && panel.selectMenu) {
     components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -284,7 +285,7 @@ export function buildButtonSection(panel: TicketPanel): CCPayload {
           panel.selectMenu.options.slice(0, 25).map((o, i) =>
             new StringSelectMenuOptionBuilder()
               .setLabel(truncate(o.label, 100))
-              .setDescription(truncate(`Type: ${o.ticketType}${o.categoryId ? ` · Cat: ${o.categoryId}` : ''}${o.description ? ` — ${o.description}` : ''}`, 100))
+              .setDescription(truncate(`Type: ${o.ticketType}${o.overrides ? ` · 🏷️ ${Object.keys(o.overrides).length} override(s)` : ''}${o.description ? ` — ${o.description}` : ''}`, 100))
               .setValue(String(i)),
           ),
         );
@@ -298,7 +299,7 @@ export function buildButtonSection(panel: TicketPanel): CCPayload {
         extras.slice(0, 25).map((b, i) =>
           new StringSelectMenuOptionBuilder()
             .setLabel(truncate(b.label, 100))
-            .setDescription(truncate(`Style: ${b.style} · Type: ${b.ticketType}${b.categoryId ? ` · Cat: ${b.categoryId}` : ''}`, 100))
+            .setDescription(truncate(`Style: ${b.style} · Type: ${b.ticketType}${b.overrides ? ` · 🏷️ ${Object.keys(b.overrides).length} override(s)` : ''}`, 100))
             .setValue(String(i)),
         ),
       );
@@ -326,13 +327,15 @@ export function buildExtraButtonDetail(panel: TicketPanel, idx: number): CCPaylo
         { name: 'Style',      value: btn_?.style || '_(missing)_',     inline: true },
         { name: 'Emoji',      value: btn_?.emoji || '_(none)_',        inline: true },
         { name: 'Ticket Type', value: `\`${btn_?.ticketType || 'default'}\``, inline: true },
+        { name: '🏷️ Type Overrides', value: btn_?.overrides ? `${Object.keys(btn_.overrides).length} field(s) overridden` : '_None — inherits panel defaults_', inline: true },
       ),
   );
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    btn('✏️ Edit',   TP.btnEdit(panel.id, idx), ButtonStyle.Primary),
-    btn('🗑 Remove', TP.btnRm(panel.id, idx),   ButtonStyle.Danger),
-    btn('← Buttons', TP.section(panel.id, 'button'), ButtonStyle.Secondary),
+    btn('✏️ Edit',              TP.btnEdit(panel.id, idx),                 ButtonStyle.Primary),
+    btn('🏷️ Ticket Type Settings', TP.TT.main(panel.id, `x${idx}`),        ButtonStyle.Secondary),
+    btn('🗑 Remove',            TP.btnRm(panel.id, idx),                   ButtonStyle.Danger),
+    btn('← Buttons',            TP.section(panel.id, 'button'),            ButtonStyle.Secondary),
     homeBtn(),
   );
 
@@ -357,13 +360,15 @@ export function buildSmOptionDetail(panel: TicketPanel, idx: number): CCPayload 
         { name: 'Emoji',       value: opt?.emoji || '_(none)_',          inline: true },
         { name: 'Ticket Type', value: `\`${opt?.ticketType || 'default'}\``, inline: true },
         { name: 'Description', value: opt?.description || '_(none)_',   inline: false },
+        { name: '🏷️ Type Overrides', value: opt?.overrides ? `${Object.keys(opt.overrides).length} field(s) overridden` : '_None — inherits panel defaults_', inline: true },
       ),
   );
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    btn('✏️ Edit',   TP.smEdit(panel.id, idx),       ButtonStyle.Primary),
-    btn('🗑 Remove', TP.smRm(panel.id, idx),          ButtonStyle.Danger),
-    btn('← Button',  TP.section(panel.id, 'button'), ButtonStyle.Secondary),
+    btn('✏️ Edit',              TP.smEdit(panel.id, idx),                  ButtonStyle.Primary),
+    btn('🏷️ Ticket Type Settings', TP.TT.main(panel.id, `s${idx}`),        ButtonStyle.Secondary),
+    btn('🗑 Remove',            TP.smRm(panel.id, idx),                    ButtonStyle.Danger),
+    btn('← Button',             TP.section(panel.id, 'button'),            ButtonStyle.Secondary),
     homeBtn(),
   );
 
@@ -1060,7 +1065,6 @@ export function buildPrimaryButtonModal(panel: TicketPanel): ModalBuilder {
       row(ti('style',      'Style',        TextInputStyle.Short, b.style,              'Primary | Secondary | Success | Danger', true, 10)),
       row(ti('emoji',      'Emoji',        TextInputStyle.Short, b.emoji || '',        'e.g. 🎫 (optional)', false, 32)),
       row(ti('ticketType', 'Ticket Type',  TextInputStyle.Short, b.ticketType,         'Internal key, e.g. support', true, 50)),
-      row(ti('categoryId', 'Category ID',  TextInputStyle.Short, b.categoryId || '',   'Discord category ID for this ticket (optional)', false, 20)),
     );
 }
 
@@ -1074,7 +1078,6 @@ export function buildExtraButtonModal(_panelId: string, existingBtn: TicketButto
       row(ti('style',      'Style',        TextInputStyle.Short, existingBtn?.style      || 'Primary', 'Primary | Secondary | Success | Danger', true, 10)),
       row(ti('emoji',      'Emoji',        TextInputStyle.Short, existingBtn?.emoji      || '', 'e.g. 🎫 (optional)', false, 32)),
       row(ti('ticketType', 'Ticket Type',  TextInputStyle.Short, existingBtn?.ticketType || '', 'Internal key, e.g. billing', true, 50)),
-      row(ti('categoryId', 'Category ID',  TextInputStyle.Short, existingBtn?.categoryId || '', 'Discord category ID for this ticket (optional)', false, 20)),
     );
 }
 

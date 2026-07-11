@@ -15,7 +15,7 @@ import {
   type TextChannel,
 } from 'discord.js';
 import { JsonStore, genId } from './store';
-import type { TicketPanel, TicketRecord } from './types';
+import type { TicketPanel, TicketRecord, ResolvedTicketConfig } from './types';
 import { namingEngine } from './naming-engine';
 import { permissionEngine } from './permission-engine';
 import { categoryEngine } from './category-engine';
@@ -67,9 +67,15 @@ export class TicketEngine {
     return data.tickets.find(t => t.channelId === channelId);
   }
 
-  async getOpenForUser(guildId: string, userId: string, panelId?: string): Promise<TicketRecord[]> {
+  async getOpenForUser(guildId: string, userId: string, panelId?: string, ticketType?: string): Promise<TicketRecord[]> {
     const data = await store.read();
-    return data.tickets.filter(t => t.guildId === guildId && t.openerId === userId && t.status === 'open' && (!panelId || t.panelId === panelId));
+    return data.tickets.filter(t =>
+      t.guildId === guildId &&
+      t.openerId === userId &&
+      t.status === 'open' &&
+      (!panelId || t.panelId === panelId) &&
+      (!ticketType || t.ticketType === ticketType),
+    );
   }
 
   async listForGuild(guildId: string): Promise<TicketRecord[]> {
@@ -86,30 +92,34 @@ export class TicketEngine {
     });
   }
 
-  /** Preflight checks before showing a modal or creating a channel. */
-  async checkCanOpen(panel: TicketPanel, member: GuildMember | null, userId: string): Promise<string | null> {
+  /**
+   * Preflight checks before showing a modal or creating a channel.
+   * `panel` should be the ticket-type-resolved config (see `resolveTicketType`)
+   * so ticket limit / cooldown reflect that type's own settings; `ticketType`
+   * scopes the open-ticket count and cooldown clock to that specific type.
+   */
+  async checkCanOpen(panel: TicketPanel, member: GuildMember | null, userId: string, ticketType: string): Promise<string | null> {
     if (!panel.enabled) return 'This ticket panel is currently disabled.';
 
     const permissionBlock = permissionEngine.canOpen(panel, member, userId);
     if (permissionBlock) return permissionBlock;
 
-    const openCount = (await this.getOpenForUser(panel.guildId, userId)).length;
-    if (openCount >= panel.ticketLimit) return `You already have ${openCount} open ticket(s) (limit: ${panel.ticketLimit}).`;
+    const openCount = (await this.getOpenForUser(panel.guildId, userId, panel.id, ticketType)).length;
+    if (openCount >= panel.ticketLimit) return `You already have ${openCount} open ticket(s) of this type (limit: ${panel.ticketLimit}).`;
 
-    const cooldownRemaining = await automationEngine.remainingCooldownSeconds(panel, userId);
-    if (cooldownRemaining > 0) return `Please wait ${cooldownRemaining}s before opening another ticket on this panel.`;
+    const cooldownRemaining = await automationEngine.remainingCooldownSeconds(panel, userId, ticketType);
+    if (cooldownRemaining > 0) return `Please wait ${cooldownRemaining}s before opening another ticket of this type.`;
 
     return null;
   }
 
   async createChannel(
     guild: Guild,
-    panel: TicketPanel,
+    panel: TicketPanel | ResolvedTicketConfig,
     opener: { id: string; username: string; displayName: string; tag: string },
     ticketType: string,
     answers: Record<string, string>,
     extraAnswerFields: { name: string; value: string }[] = [],
-    categoryOverride?: string,
   ): Promise<{ ticket: TicketRecord; channel: TextChannel }> {
     const number = await this.nextNumber(guild.id);
     const ticketId = genId('ticket');
@@ -126,7 +136,7 @@ export class TicketEngine {
     const overwrites = permissionEngine.buildOverwrites(guild, panel, opener.id);
     const channel = (await guild.channels.create({
       name,
-      parent: categoryOverride || panel.openCategory,
+      parent: panel.openCategory,
       permissionOverwrites: overwrites,
       topic: `Ticket for ${opener.tag} • Type: ${ticketType} • Panel: ${panel.id}`,
     })) as TextChannel;
@@ -156,11 +166,16 @@ export class TicketEngine {
       await statisticsEngine.record({ type: 'opened', guildId: guild.id, panelId: panel.id, ticketId: ticket.id, userId: opener.id });
     }
 
+    const embedOverride = (panel as ResolvedTicketConfig).ticketEmbedOverride;
     const embed = new EmbedBuilder()
-      .setColor(panel.embed.color)
-      .setTitle(`🎫 ${ticketType} — Ticket #${number}`)
-      .setDescription(`Welcome <@${opener.id}>, support will be with you shortly.\n\nUse the buttons below to manage this ticket.`)
-      .setFooter({ text: `Ticket ID: ${ticket.id} • Priority: ${panel.priority}` });
+      .setColor(embedOverride?.color ?? panel.embed.color)
+      .setTitle(embedOverride?.title || `🎫 ${ticketType} — Ticket #${number}`)
+      .setDescription(embedOverride?.description || `Welcome <@${opener.id}>, support will be with you shortly.\n\nUse the buttons below to manage this ticket.`)
+      .setFooter({ text: embedOverride?.footer || `Ticket ID: ${ticket.id} • Priority: ${panel.priority}` });
+    if (embedOverride?.thumbnail) embed.setThumbnail(embedOverride.thumbnail);
+    if (embedOverride?.banner) embed.setImage(embedOverride.banner);
+    if (embedOverride?.author) embed.setAuthor({ name: embedOverride.author });
+    if (embedOverride?.showTimestamp) embed.setTimestamp();
 
     if (panel.modal.enabled && Object.keys(answers).length > 0) {
       embed.addFields(questionEngine.formatAnswersForEmbed(panel.modal, answers));
@@ -215,7 +230,7 @@ export class TicketEngine {
     }
 
     await this.update(ticket.id, { status: 'closed', closedAt: Date.now(), closedBy: closedByUserId });
-    await automationEngine.recordClose(panel, ticket.openerId);
+    await automationEngine.recordClose(panel, ticket.openerId, ticket.ticketType);
     await automationEngine.clearActivity(ticket.id);
     await statisticsEngine.record({ type: 'closed', guildId: guild.id, panelId: panel.id, ticketId: ticket.id, userId: closedByUserId });
     await this.logAction(guild, panel, `🔒 Ticket **#${ticket.number}** closed by ${closedByTag}`);

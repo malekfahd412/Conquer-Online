@@ -27,8 +27,12 @@ export interface TicketButtonConfig {
   ticketType: string;
   /** Form Builder (Phase 4): which TicketForm to open for this ticket type. Falls back to legacy `modal` when unset. */
   formId?: string;
-  /** Per-button category override: the Discord category the ticket channel opens under. Falls back to the panel's `openCategory` when unset. */
-  categoryId?: string;
+  /**
+   * Ticket Type Designer: every setting a ticket type can independently own.
+   * All fields optional — unset fields fall back to the panel's own value.
+   * Use `resolveTicketType()` to get the effective merged config.
+   */
+  overrides?: TicketTypeOverrides;
 }
 
 export interface TicketSelectMenuOption {
@@ -39,8 +43,58 @@ export interface TicketSelectMenuOption {
   emoji?: string;
   /** Form Builder (Phase 4): which TicketForm to open for this ticket type. Falls back to legacy `modal` when unset. */
   formId?: string;
-  /** Per-option category override: the Discord category the ticket channel opens under. Falls back to the panel's `openCategory` when unset. */
-  categoryId?: string;
+  /**
+   * Ticket Type Designer: every setting a ticket type can independently own.
+   * All fields optional — unset fields fall back to the panel's own value.
+   * Use `resolveTicketType()` to get the effective merged config.
+   */
+  overrides?: TicketTypeOverrides;
+}
+
+/**
+ * Every panel-level setting a single ticket type (button or select option) can
+ * independently own. All fields optional; when unset the panel's own value is
+ * used. See `resolveTicketType()` for the merge logic.
+ */
+export interface TicketTypeOverrides {
+  // Categories & logging
+  openCategory?: string;
+  closedCategory?: string;
+  archiveCategory?: string;
+  logChannelId?: string;
+
+  // Roles
+  supportRoles?: string[];
+  managerRoles?: string[];
+  adminRoles?: string[];
+  pingRoles?: string[];
+
+  // Access gating
+  allowedRoles?: string[];
+  blockedRoles?: string[];
+  allowedUsers?: string[];
+  blockedUsers?: string[];
+
+  // Permission rules
+  permissions?: TicketPermissionOverwrite[];
+  memberPerms?: TicketMemberPermConfig;
+  staffPerms?: TicketStaffPermConfig;
+  visibility?: TicketVisibilityMode;
+  claimBehaviour?: TicketClaimBehaviourConfig;
+
+  // Naming & limits
+  namingScheme?: string;
+  ticketLimit?: number;
+  cooldown?: number;
+  priority?: TicketPriority;
+
+  // Lifecycle
+  transcript?: TicketTranscriptConfig;
+  automation?: TicketAutomationConfig;
+  statistics?: TicketStatisticsConfig;
+
+  /** Welcome embed shown inside the created ticket channel — distinct from the panel's selection-message `embed`. */
+  ticketEmbed?: TicketEmbedConfig;
 }
 
 export interface TicketSelectMenuConfig {
@@ -330,13 +384,160 @@ export function normalizePanel(panel: TicketPanel): TicketPanel {
   };
   return {
     ...panel,
-    adminRoles:     p.adminRoles     ?? [],
-    memberPerms:    p.memberPerms    ?? { ...DEFAULT_MEMBER_PERMS },
-    staffPerms:     p.staffPerms     ?? { ...DEFAULT_STAFF_PERMS },
-    visibility:     p.visibility     ?? 'private',
-    claimBehaviour: p.claimBehaviour ?? { ...DEFAULT_CLAIM_BEHAVIOUR },
-    forms:          p.forms          ?? [],
+    adminRoles:        p.adminRoles     ?? [],
+    memberPerms:       p.memberPerms    ?? { ...DEFAULT_MEMBER_PERMS },
+    staffPerms:        p.staffPerms     ?? { ...DEFAULT_STAFF_PERMS },
+    visibility:        p.visibility     ?? 'private',
+    claimBehaviour:    p.claimBehaviour ?? { ...DEFAULT_CLAIM_BEHAVIOUR },
+    forms:             p.forms          ?? [],
+    button:            migrateEntryOverrides(panel.button),
+    additionalButtons: (panel.additionalButtons ?? []).map(migrateEntryOverrides),
+    selectMenu: panel.selectMenu
+      ? { ...panel.selectMenu, options: panel.selectMenu.options.map(migrateEntryOverrides) }
+      : panel.selectMenu,
   };
+}
+
+/** Migrates the old single `categoryId` field (pre Ticket Type Designer) into `overrides.openCategory`. */
+function migrateEntryOverrides<T extends { overrides?: TicketTypeOverrides }>(entry: T): T {
+  const legacy = entry as T & { categoryId?: string };
+  if (legacy.categoryId && !entry.overrides?.openCategory) {
+    const { categoryId, ...rest } = legacy;
+    return { ...rest, overrides: { ...entry.overrides, openCategory: categoryId } } as T;
+  }
+  if (legacy.categoryId !== undefined) {
+    const { categoryId, ...rest } = legacy;
+    return rest as T;
+  }
+  return entry;
+}
+
+// ── Ticket Type resolution (Ticket Type Designer) ───────────────────────────
+//
+// Each button/select-option is a fully independent "ticket type" that can own
+// every panel-level setting via its optional `overrides`. Engines never need
+// to know about ticket types directly — callers resolve a per-type effective
+// `TicketPanel`-shaped config once, then pass that into the existing engines
+// exactly as they would a raw panel.
+
+export type TicketEntryConfig = TicketButtonConfig | TicketSelectMenuOption;
+
+/** A stable reference to one entry: 'b' = primary button, 'x<idx>' = extra button, 's<idx>' = select option. */
+export type TicketEntryRef = string;
+
+export function parseEntryRef(ref: TicketEntryRef): { kind: 'b' | 'x' | 's'; idx: number } {
+  if (ref === 'b') return { kind: 'b', idx: -1 };
+  return { kind: ref[0] as 'x' | 's', idx: parseInt(ref.slice(1), 10) };
+}
+
+/** Finds the button/option that owns `ticketType` on this panel, returning its stable ref, or undefined if none matches. */
+export function entryRefForTicketType(panel: TicketPanel, ticketType: string): TicketEntryRef | undefined {
+  if (panel.button.ticketType === ticketType) return 'b';
+  const xi = panel.additionalButtons.findIndex(b => b.ticketType === ticketType);
+  if (xi >= 0) return `x${xi}`;
+  const si = panel.selectMenu?.options.findIndex(o => o.ticketType === ticketType) ?? -1;
+  if (si >= 0) return `s${si}`;
+  return undefined;
+}
+
+/** Resolves a ref to its entry config. Returns undefined if the ref is stale (e.g. entry removed). */
+export function getEntry(panel: TicketPanel, ref: TicketEntryRef): TicketEntryConfig | undefined {
+  const { kind, idx } = parseEntryRef(ref);
+  if (kind === 'b') return panel.button;
+  if (kind === 'x') return panel.additionalButtons[idx];
+  return panel.selectMenu?.options[idx];
+}
+
+/** Short admin-facing label for an entry, e.g. "🔘 Primary Button" or "📋 Option #2". */
+export function entryLabel(panel: TicketPanel, ref: TicketEntryRef): string {
+  const entry = getEntry(panel, ref);
+  const { kind, idx } = parseEntryRef(ref);
+  const name = entry?.label ?? '(missing)';
+  if (kind === 'b') return `🔘 Primary Button — ${name}`;
+  if (kind === 'x') return `🔘 Extra Button #${idx + 1} — ${name}`;
+  return `📋 Select Option #${idx + 1} — ${name}`;
+}
+
+/** A resolved, ticket-type-specific config. Structurally a `TicketPanel` — pass it anywhere a panel is expected. */
+export interface ResolvedTicketConfig extends TicketPanel {
+  /** Per-type welcome-embed override, if the ticket type set one. Undefined = use the engine's hardcoded default template. */
+  ticketEmbedOverride?: TicketEmbedConfig;
+  /** The ref this config was resolved for, for diagnostics. */
+  resolvedFor?: TicketEntryRef;
+}
+
+/**
+ * Merges `panel` with the overrides owned by the ticket type matching `ticketType`.
+ * Every engine already reads plain `TicketPanel` fields — pass the result of this
+ * function into ticket-engine/category-engine/permission-engine/transcript-engine/
+ * automation-engine instead of the raw panel whenever the action is for a specific
+ * ticket/ticketType (opening, closing, claiming, transcript delivery, etc).
+ * Falls back to the raw panel unchanged when no matching entry or overrides exist.
+ */
+export function resolveTicketType(panel: TicketPanel, ticketType: string): ResolvedTicketConfig {
+  const ref = entryRefForTicketType(panel, ticketType);
+  const entry = ref ? getEntry(panel, ref) : undefined;
+  const o = entry?.overrides;
+  if (!o) return { ...panel, resolvedFor: ref };
+
+  return {
+    ...panel,
+    openCategory:    o.openCategory    ?? panel.openCategory,
+    closedCategory:  o.closedCategory  ?? panel.closedCategory,
+    archiveCategory: o.archiveCategory ?? panel.archiveCategory,
+    logChannelId:    o.logChannelId    ?? panel.logChannelId,
+
+    supportRoles: o.supportRoles ?? panel.supportRoles,
+    managerRoles: o.managerRoles ?? panel.managerRoles,
+    adminRoles:   o.adminRoles   ?? panel.adminRoles,
+    pingRoles:    o.pingRoles    ?? panel.pingRoles,
+
+    allowedRoles: o.allowedRoles ?? panel.allowedRoles,
+    blockedRoles: o.blockedRoles ?? panel.blockedRoles,
+    allowedUsers: o.allowedUsers ?? panel.allowedUsers,
+    blockedUsers: o.blockedUsers ?? panel.blockedUsers,
+
+    permissions:    o.permissions    ?? panel.permissions,
+    memberPerms:    o.memberPerms    ?? panel.memberPerms,
+    staffPerms:     o.staffPerms     ?? panel.staffPerms,
+    visibility:     o.visibility     ?? panel.visibility,
+    claimBehaviour: o.claimBehaviour ?? panel.claimBehaviour,
+
+    namingScheme: o.namingScheme ?? panel.namingScheme,
+    ticketLimit:  o.ticketLimit  ?? panel.ticketLimit,
+    cooldown:     o.cooldown     ?? panel.cooldown,
+    priority:     o.priority     ?? panel.priority,
+
+    transcript: o.transcript ?? panel.transcript,
+    automation: o.automation ?? panel.automation,
+    statistics: o.statistics ?? panel.statistics,
+
+    ticketEmbedOverride: o.ticketEmbed,
+    resolvedFor: ref,
+  };
+}
+
+/**
+ * Returns a `TicketPanel`-shaped patch (suitable for `panelManager.update`) that
+ * writes a full replacement `overrides` object onto the entry identified by `ref`.
+ * Callers compute the new overrides object first (merging in edits or deleting
+ * cleared fields) then pass it here.
+ */
+export function setEntryOverrides(panel: TicketPanel, ref: TicketEntryRef, overrides: TicketTypeOverrides): Partial<TicketPanel> {
+  const { kind, idx } = parseEntryRef(ref);
+  if (kind === 'b') {
+    return { button: { ...panel.button, overrides } };
+  }
+  if (kind === 'x') {
+    const arr = [...panel.additionalButtons];
+    if (!arr[idx]) return {};
+    arr[idx] = { ...arr[idx], overrides };
+    return { additionalButtons: arr };
+  }
+  if (!panel.selectMenu || !panel.selectMenu.options[idx]) return {};
+  const opts = [...panel.selectMenu.options];
+  opts[idx] = { ...opts[idx], overrides };
+  return { selectMenu: { ...panel.selectMenu, options: opts } };
 }
 
 // ── TicketRecord ─────────────────────────────────────────────────────────────
@@ -430,6 +631,8 @@ export interface AutomationCooldownEntry {
   guildId: string;
   panelId: string;
   userId: string;
+  /** Ticket type this cooldown applies to — each ticket type tracks its own cooldown clock. */
+  ticketType: string;
   lastClosedAt: number;
 }
 

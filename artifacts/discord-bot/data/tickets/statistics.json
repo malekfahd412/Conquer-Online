@@ -151,6 +151,70 @@
       "ticketId": "ticket_1783751121640_tbypb",
       "userId": "727578927593291796",
       "timestamp": 1783751215178
+    },
+    {
+      "type": "opened",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783752590527_gewxv",
+      "userId": "727578927593291796",
+      "timestamp": 1783752590907
+    },
+    {
+      "type": "opened",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783752592845_c8r1x",
+      "userId": "727578927593291796",
+      "timestamp": 1783752593121
+    },
+    {
+      "type": "closed",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783752590527_gewxv",
+      "userId": "727578927593291796",
+      "timestamp": 1783752608482
+    },
+    {
+      "type": "deleted",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783752590527_gewxv",
+      "userId": "727578927593291796",
+      "timestamp": 1783752611162
+    },
+    {
+      "type": "closed",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783752592845_c8r1x",
+      "userId": "727578927593291796",
+      "timestamp": 1783752617766
+    },
+    {
+      "type": "deleted",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783752592845_c8r1x",
+      "userId": "727578927593291796",
+      "timestamp": 1783752620157
+    },
+    {
+      "type": "opened",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783753042632_3hfcd",
+      "userId": "813694950067142656",
+      "timestamp": 1783753042829
+    },
+    {
+      "type": "claimed",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783753042632_3hfcd",
+      "userId": "813694950067142656",
+      "timestamp": 1783753106703
     }
   ]
 }

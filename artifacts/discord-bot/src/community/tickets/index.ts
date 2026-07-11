@@ -33,6 +33,7 @@ import { categoryEngine, CategoryEngine } from './category-engine';
 import { transcriptEngine, TranscriptEngine } from './transcript-engine';
 import { genId } from './store';
 import type { TicketForm, TicketPanel } from './types';
+import { getEntry, entryRefForTicketType, resolveTicketType } from './types';
 import { logger } from '../../utils/logger';
 
 export * from './types';
@@ -93,20 +94,8 @@ class TicketSystem {
 
   /** Which TicketForm (if any) a given ticket-opening button/select-option starts. Falls back to the legacy `modal` when unset. */
   private resolveEntryFormId(panel: TicketPanel, ticketType: string): string | undefined {
-    if (panel.button.ticketType === ticketType) return panel.button.formId;
-    const extra = panel.additionalButtons.find(b => b.ticketType === ticketType);
-    if (extra) return extra.formId;
-    const opt = panel.selectMenu?.options.find(o => o.ticketType === ticketType);
-    return opt?.formId;
-  }
-
-  /** Per-button/option category override for a given ticket type. Falls back to the panel's `openCategory` when unset. */
-  private resolveEntryCategoryId(panel: TicketPanel, ticketType: string): string | undefined {
-    if (panel.button.ticketType === ticketType) return panel.button.categoryId;
-    const extra = panel.additionalButtons.find(b => b.ticketType === ticketType);
-    if (extra) return extra.categoryId;
-    const opt = panel.selectMenu?.options.find(o => o.ticketType === ticketType);
-    return opt?.categoryId;
+    const ref = entryRefForTicketType(panel, ticketType);
+    return ref ? getEntry(panel, ref)?.formId : undefined;
   }
 
   private async autoCloseIfInactive(ticketId: string): Promise<void> {
@@ -116,8 +105,10 @@ class TicketSystem {
       await automationEngine.clearActivity(ticketId);
       return;
     }
-    const panel = await panelManager.get(ticket.panelId);
-    if (!panel || panel.automation.autoCloseInactivityMinutes <= 0) return;
+    const rawPanel = await panelManager.get(ticket.panelId);
+    if (!rawPanel) return;
+    const panel = resolveTicketType(rawPanel, ticket.ticketType);
+    if (panel.automation.autoCloseInactivityMinutes <= 0) return;
 
     const inactiveIds = await automationEngine.getInactiveTicketIds(panel.automation.autoCloseInactivityMinutes);
     if (!inactiveIds.includes(ticketId)) return;
@@ -127,7 +118,7 @@ class TicketSystem {
 
     await ticketEngine.close(guild, panel, ticket, this.client.user?.id ?? 'automation', 'inactivity auto-close');
     await automationEngine.logAction(ticketId, 'auto-close');
-    logger.info(`[TICKETS] Auto-closed inactive ticket #${ticket.number} (panel ${panel.id})`);
+    logger.info(`[TICKETS] Auto-closed inactive ticket #${ticket.number} (panel ${panel.id}, type ${ticket.ticketType})`);
   }
 
   /** Full panel-open flow shared by button clicks and select-menu selections. */
@@ -144,7 +135,8 @@ class TicketSystem {
     }
 
     const member = interaction.member instanceof GuildMember ? interaction.member : null;
-    const block = await ticketEngine.checkCanOpen(panel, member, interaction.user.id);
+    const resolved = resolveTicketType(panel, ticketType);
+    const block = await ticketEngine.checkCanOpen(resolved, member, interaction.user.id, ticketType);
     if (block) {
       await interaction.reply({ content: `❌ ${block}`, ephemeral: true });
       return;
@@ -184,15 +176,14 @@ class TicketSystem {
 
     await interaction.deferReply({ ephemeral: true });
     const extraAnswerFields = usedForms.length > 0 ? questionEngine.formatFormAnswersForEmbed(usedForms, answers) : [];
-    const categoryOverride = this.resolveEntryCategoryId(panel, ticketType);
+    const resolved = resolveTicketType(panel, ticketType);
     const { ticket, channel } = await ticketEngine.createChannel(
       guild,
-      panel,
+      resolved,
       { id: interaction.user.id, username: interaction.user.username, displayName: interaction.user.displayName ?? interaction.user.username, tag: interaction.user.tag },
       ticketType,
       answers,
       extraAnswerFields,
-      categoryOverride,
     );
     await interaction.editReply({ content: `✅ Your ticket has been created: ${channel}` });
 
@@ -236,7 +227,7 @@ class TicketSystem {
       return;
     }
     const member = interaction.member instanceof GuildMember ? interaction.member : null;
-    const block = await ticketEngine.checkCanOpen(panel, member, interaction.user.id);
+    const block = await ticketEngine.checkCanOpen(resolveTicketType(panel, ticketType), member, interaction.user.id, ticketType);
     if (block) {
       await interaction.reply({ content: `❌ ${block}`, ephemeral: true });
       return;
@@ -311,7 +302,7 @@ class TicketSystem {
         return;
       }
       const member = interaction.member instanceof GuildMember ? interaction.member : null;
-      const block = await ticketEngine.checkCanOpen(panel, member, interaction.user.id);
+      const block = await ticketEngine.checkCanOpen(resolveTicketType(panel, ticketType), member, interaction.user.id, ticketType);
       if (block) {
         await interaction.reply({ content: `❌ ${block}`, ephemeral: true });
         return;
@@ -391,11 +382,12 @@ class TicketSystem {
       await interaction.reply({ content: '❌ Ticket not found.', ephemeral: true });
       return;
     }
-    const panel = await panelManager.get(ticket.panelId);
-    if (!panel) {
+    const rawPanel = await panelManager.get(ticket.panelId);
+    if (!rawPanel) {
       await interaction.reply({ content: '❌ This ticket panel no longer exists.', ephemeral: true });
       return;
     }
+    const panel = resolveTicketType(rawPanel, ticket.ticketType);
     await interaction.deferUpdate();
     await ticketEngine.close(guild, panel, ticket, interaction.user.id, interaction.user.tag);
 

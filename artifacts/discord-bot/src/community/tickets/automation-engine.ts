@@ -20,22 +20,27 @@ export class AutomationEngine {
     await store.ensureFile();
   }
 
-  /** Returns null when the user may open a ticket, or the number of seconds remaining. */
-  async remainingCooldownSeconds(panel: TicketPanel, userId: string): Promise<number> {
+  /**
+   * Returns null when the user may open a ticket, or the number of seconds remaining.
+   * `ticketType` scopes the cooldown clock — each ticket type on a panel tracks its
+   * own cooldown independently, using `panel.cooldown` as the (possibly per-type
+   * resolved) duration.
+   */
+  async remainingCooldownSeconds(panel: TicketPanel, userId: string, ticketType: string): Promise<number> {
     if (panel.cooldown <= 0) return 0;
     const data = await store.read();
-    const entry = data.cooldowns.find(c => c.guildId === panel.guildId && c.panelId === panel.id && c.userId === userId);
+    const entry = data.cooldowns.find(c => c.guildId === panel.guildId && c.panelId === panel.id && c.userId === userId && c.ticketType === ticketType);
     if (!entry) return 0;
     const elapsedSeconds = (Date.now() - entry.lastClosedAt) / 1000;
     const remaining = panel.cooldown - elapsedSeconds;
     return remaining > 0 ? Math.ceil(remaining) : 0;
   }
 
-  async recordClose(panel: TicketPanel, userId: string): Promise<void> {
+  async recordClose(panel: TicketPanel, userId: string, ticketType: string): Promise<void> {
     await store.mutate(data => {
-      const existing = data.cooldowns.find(c => c.guildId === panel.guildId && c.panelId === panel.id && c.userId === userId);
+      const existing = data.cooldowns.find(c => c.guildId === panel.guildId && c.panelId === panel.id && c.userId === userId && c.ticketType === ticketType);
       if (existing) existing.lastClosedAt = Date.now();
-      else data.cooldowns.push({ guildId: panel.guildId, panelId: panel.id, userId, lastClosedAt: Date.now() });
+      else data.cooldowns.push({ guildId: panel.guildId, panelId: panel.id, userId, ticketType, lastClosedAt: Date.now() });
     });
   }
 

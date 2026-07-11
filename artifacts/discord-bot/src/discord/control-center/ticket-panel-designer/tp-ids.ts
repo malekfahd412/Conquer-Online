@@ -105,6 +105,33 @@
  *   tp:frm:qc:pick:<panelId>:<formId>:<idx>  → select menu: pick source question
  *   tp:frm:qc:m:<panelId>:<formId>:<idx>:<srcQId> → modal: enter "equals" value
  *   tp:frm:qc:clear:<panelId>:<formId>:<idx> → clear condition
+ *
+ * Ticket Type Designer (tp:tt:*) sub-namespace — every button/select-option is
+ * a fully independent "ticket type" that can own its own categories, roles,
+ * permissions, naming, limits, lifecycle, transcript, statistics and embed,
+ * falling back to the panel's own value field-by-field when unset. `ref` is a
+ * stable entry reference: 'b' = primary button, 'x<idx>' = extra button,
+ * 's<idx>' = select menu option (see `TicketEntryRef` in types.ts).
+ *   tp:tt:<panelId>:<ref>                     → Ticket Type Designer hub
+ *   tp:tt:cat:<panelId>:<ref>                 → Categories & logging page
+ *   tp:tt:roles:<panelId>:<ref>                → Support/manager/admin/ping roles page
+ *   tp:tt:access:<panelId>:<ref>               → Allowed/blocked roles & users page
+ *   tp:tt:mperms:<panelId>:<ref>               → Member permission toggles
+ *   tp:tt:sperms:<panelId>:<ref>               → Staff permission toggles
+ *   tp:tt:vis:<panelId>:<ref>                  → Visibility mode selector
+ *   tp:tt:claim:<panelId>:<ref>                → Claim behaviour toggles
+ *   tp:tt:naming:<panelId>:<ref>                → Naming scheme & limits page
+ *   tp:tt:auto:<panelId>:<ref>                  → Automation page
+ *   tp:tt:tx:<panelId>:<ref>                    → Transcript page
+ *   tp:tt:stats:<panelId>:<ref>                 → Statistics page
+ *   tp:tt:embed:<panelId>:<ref>                 → Welcome embed page
+ *   tp:tt:edit:<panelId>:<ref>:<section>        → Open edit modal for a section
+ *   tp:tt:modal:<panelId>:<ref>:<section>       → Modal submit for a section
+ *   tp:tt:mperm:<panelId>:<ref>:<key>           → Toggle one member permission override
+ *   tp:tt:sperm:<panelId>:<ref>:<key>           → Toggle one staff permission override
+ *   tp:tt:setvis:<panelId>:<ref>:<mode>         → Set visibility override
+ *   tp:tt:ctog:<panelId>:<ref>:<field>          → Toggle one claim behaviour field
+ *   tp:tt:reset:<panelId>:<ref>:<section>       → Clear a section's override back to panel default
  */
 
 export type SectionKey =
@@ -231,6 +258,30 @@ export const TP = {
     qCondClear: (panelId: string, formId: string, idx: number): string       => `tp:frm:qc:clear:${panelId}:${formId}:${idx}`,
     assignSel:  (panelId: string, formId: string): string                    => `tp:frm:assignsel:${panelId}:${formId}`,
     prevModal:  (panelId: string, formId: string): string                    => `tp:frm:prevmodal:${panelId}:${formId}`,
+  },
+
+  // ── Ticket Type Designer ─────────────────────────────────────────────────
+  TT: {
+    main:     (panelId: string, ref: string): string                  => `tp:tt:${panelId}:${ref}`,
+    cat:      (panelId: string, ref: string): string                  => `tp:tt:cat:${panelId}:${ref}`,
+    roles:    (panelId: string, ref: string): string                  => `tp:tt:roles:${panelId}:${ref}`,
+    access:   (panelId: string, ref: string): string                  => `tp:tt:access:${panelId}:${ref}`,
+    mperms:   (panelId: string, ref: string): string                  => `tp:tt:mperms:${panelId}:${ref}`,
+    sperms:   (panelId: string, ref: string): string                  => `tp:tt:sperms:${panelId}:${ref}`,
+    vis:      (panelId: string, ref: string): string                  => `tp:tt:vis:${panelId}:${ref}`,
+    claim:    (panelId: string, ref: string): string                  => `tp:tt:claim:${panelId}:${ref}`,
+    naming:   (panelId: string, ref: string): string                  => `tp:tt:naming:${panelId}:${ref}`,
+    auto:     (panelId: string, ref: string): string                  => `tp:tt:auto:${panelId}:${ref}`,
+    tx:       (panelId: string, ref: string): string                  => `tp:tt:tx:${panelId}:${ref}`,
+    stats:    (panelId: string, ref: string): string                  => `tp:tt:stats:${panelId}:${ref}`,
+    embed:    (panelId: string, ref: string): string                  => `tp:tt:embed:${panelId}:${ref}`,
+    edit:     (panelId: string, ref: string, section: string): string => `tp:tt:edit:${panelId}:${ref}:${section}`,
+    ttModal:  (panelId: string, ref: string, section: string): string => `tp:tt:modal:${panelId}:${ref}:${section}`,
+    mperm:    (panelId: string, ref: string, key: string): string     => `tp:tt:mperm:${panelId}:${ref}:${key}`,
+    sperm:    (panelId: string, ref: string, key: string): string     => `tp:tt:sperm:${panelId}:${ref}:${key}`,
+    setvis:   (panelId: string, ref: string, mode: string): string    => `tp:tt:setvis:${panelId}:${ref}:${mode}`,
+    ctog:     (panelId: string, ref: string, field: string): string   => `tp:tt:ctog:${panelId}:${ref}:${field}`,
+    reset:    (panelId: string, ref: string, section: string): string => `tp:tt:reset:${panelId}:${ref}:${section}`,
   },
 } as const;
 

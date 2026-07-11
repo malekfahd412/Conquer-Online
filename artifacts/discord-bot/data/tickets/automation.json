@@ -4,9 +4,15 @@
       "guildId": "1213437502078062674",
       "panelId": "panel_1783747543306_kk73l",
       "userId": "727578927593291796",
-      "lastClosedAt": 1783751202139
+      "lastClosedAt": 1783752617765
     }
   ],
-  "activity": [],
+  "activity": [
+    {
+      "ticketId": "ticket_1783753042632_3hfcd",
+      "channelId": "1525395563137335338",
+      "lastActivityAt": 1783753106703
+    }
+  ],
   "log": []
 }

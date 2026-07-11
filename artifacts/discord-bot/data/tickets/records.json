@@ -115,9 +115,66 @@
       ],
       "closedAt": 1783751130028,
       "closedBy": "727578927593291796"
+    },
+    {
+      "id": "ticket_1783752590527_gewxv",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Store",
+      "channelId": "1525393667228172410",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 7,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783752590904,
+      "lastActivityAt": 1783752590904,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "closedAt": 1783752608479,
+      "closedBy": "727578927593291796"
+    },
+    {
+      "id": "ticket_1783752592845_c8r1x",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Support",
+      "channelId": "1525393676681875457",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 8,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783752593119,
+      "lastActivityAt": 1783752593119,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "closedAt": 1783752617764,
+      "closedBy": "727578927593291796"
+    },
+    {
+      "id": "ticket_1783753042632_3hfcd",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Support",
+      "channelId": "1525395563137335338",
+      "openerId": "813694950067142656",
+      "status": "open",
+      "number": 9,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783753042822,
+      "lastActivityAt": 1783753042822,
+      "participantIds": [
+        "813694950067142656"
+      ],
+      "claimedBy": "813694950067142656",
+      "firstStaffReplyAt": 1783753106701
     }
   ],
   "counters": {
-    "1213437502078062674": 6
+    "1213437502078062674": 9
   }
 }
