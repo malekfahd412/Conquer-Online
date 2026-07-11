@@ -1,0 +1,237 @@
+Task 10 — Ticket System Pro (Phase 3)
+
+Objective
+
+Build a complete Permission Designer for Ticket Panels.
+
+This is NOT just selecting support roles.
+
+This is a full permission management interface similar to Ticket Tool, but more powerful.
+
+Everything must be configurable from the Ticket Panel Designer.
+
+No JSON editing.
+
+No slash commands.
+
+Everything from Discord.
+
+====================================================
+
+Support Team
+
+====================================================
+
+Allow configuring:
+
+Support Roles
+
+Manager Roles
+
+Admin Roles
+
+Ping Roles
+
+Allowed Roles
+
+Blocked Roles
+
+Allowed Users
+
+Blocked Users
+
+Every section must support:
+
+Add
+
+Remove
+
+Search
+
+Multi-select
+
+Preview
+
+====================================================
+
+Ticket Permissions
+
+====================================================
+
+Configure member permissions inside the ticket.
+
+Support toggles for every Discord permission that makes sense.
+
+Examples:
+
+View Channel
+
+Send Messages
+
+Attach Files
+
+Embed Links
+
+Add Reactions
+
+Use External Emojis
+
+Use External Stickers
+
+Mention Everyone
+
+Create Public Threads
+
+Create Private Threads
+
+Send Voice Messages
+
+Read Message History
+
+Use Application Commands
+
+====================================================
+
+Staff Permissions
+
+====================================================
+
+Configure staff permissions separately.
+
+Support:
+
+Manage Messages
+
+Manage Threads
+
+Manage Channels
+
+Manage Permissions
+
+Mention Everyone
+
+Manage Webhooks
+
+Manage Events
+
+Priority Override
+
+====================================================
+
+Ticket Visibility
+
+====================================================
+
+Choose visibility mode:
+
+Private
+
+Support Only
+
+Shared Support
+
+Public Ticket
+
+====================================================
+
+Claim Behaviour
+
+====================================================
+
+Support:
+
+Hide ticket from other staff after claim
+
+Keep visible
+
+Manager override
+
+Admin override
+
+====================================================
+
+Permission Preview
+
+====================================================
+
+Before saving:
+
+Render a live preview showing:
+
+Owner
+
+Support
+
+Managers
+
+Admins
+
+Blocked users
+
+Everyone
+
+Exactly which permissions each one will have.
+
+====================================================
+
+Validation
+
+====================================================
+
+Prevent impossible configurations.
+
+Examples:
+
+No support roles
+
+Owner blocked
+
+Everyone denied ViewChannel
+
+No manager override
+
+Duplicate roles
+
+Duplicate users
+
+====================================================
+
+Integration
+
+====================================================
+
+Integrate into the Ticket Panel Designer.
+
+No new slash commands.
+
+Reuse the existing PermissionEngine.
+
+====================================================
+
+Requirements
+
+====================================================
+
+Zero duplicated logic.
+
+Zero TypeScript errors.
+
+Zero TODOs.
+
+Zero placeholders.
+
+====================================================
+
+Return only:
+
+Files created
+
+Files modified
+
+Designer pages added
+
+Validation rules added
+
+Runtime status
+
+Build status
