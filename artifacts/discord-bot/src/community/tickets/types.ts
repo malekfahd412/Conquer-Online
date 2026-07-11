@@ -581,6 +581,13 @@ export interface TicketRecord {
   firstStaffReplyAt?: number;
   lastActivityAt: number;
   participantIds: string[];
+  /** The permanent welcome/header message sent once when the channel is created. Never
+   *  overwritten afterward — close/reopen must never edit or replace this message. */
+  headerMessageId?: string;
+  /** The most recently sent close/reopen lifecycle message (e.g. the current "Ticket Closed"
+   *  notice). Tracked so a later reopen/close can disable that message's now-obsolete controls
+   *  without touching the header or any other message. */
+  lastLifecycleMessageId?: string;
 }
 
 // ── Form Answer Storage (Phase 4) ───────────────────────────────────────────

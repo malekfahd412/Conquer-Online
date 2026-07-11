@@ -503,8 +503,11 @@ class TicketSystem {
     }
     const cfg = resolveTicketType(rawPanel, ticket.ticketType);
     const isButton = interaction instanceof ButtonInteraction;
+    // For a button click, the button lives on the permanent header — deferUpdate() acknowledges
+    // the interaction WITHOUT editing that message, so the header stays untouched forever. For a
+    // slash command, deferReply() creates a separate, throwaway ephemeral acknowledgment.
     if (isButton) await interaction.deferUpdate();
-    else await interaction.deferReply();
+    else await interaction.deferReply({ ephemeral: true });
     await ticketEngine.close(guild, cfg, ticket, interaction.user.id, interaction.user.tag);
 
     const embed = new EmbedBuilder().setColor(0xed4245).setDescription(`🔒 Ticket closed by ${interaction.user}.`);
@@ -513,11 +516,15 @@ class TicketSystem {
       new ButtonBuilder().setCustomId(`tk:delete:${ticket.id}`).setLabel('Delete').setStyle(ButtonStyle.Danger).setEmoji('🗑️'),
       new ButtonBuilder().setCustomId(`tk:transcript:${ticket.id}`).setLabel('Transcript').setStyle(ButtonStyle.Secondary).setEmoji('📄'),
     );
-    // editReply here edits the header/welcome message in place (for buttons, deferUpdate()
-    // above means editReply targets the original message the button lives on; for slash
-    // commands, deferReply() means editReply targets that same reply). Either way this is the
-    // single "Ticket Closed" message — never send an additional copy into the channel.
-    await interaction.editReply({ embeds: [embed], components: [row] }).catch(() => {});
+    // Always a brand-new message — the header (welcome message) is never edited or replaced, and
+    // neither is any earlier lifecycle message. Its ID is tracked so a later reopen can disable
+    // these controls without touching anything else.
+    const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
+    if (channel?.isTextBased()) {
+      const sent = await (channel as TextChannel).send({ embeds: [embed], components: [row] }).catch(() => null);
+      if (sent) await ticketEngine.setLastLifecycleMessageId(ticket.id, sent.id);
+    }
+    if (!isButton) await interaction.editReply({ content: '🔒 Ticket closed.' }).catch(() => {});
   }
 
   private async reopenTicket(interaction: ButtonInteraction | ChatInputCommandInteraction, guild: Guild, ticketId: string): Promise<void> {
@@ -536,8 +543,49 @@ class TicketSystem {
       return;
     }
     const cfg = resolveTicketType(rawPanel, ticket.ticketType);
+    const isButton = interaction instanceof ButtonInteraction;
+    // Same reasoning as closeTicket: never edit the message the interaction came from — the
+    // Reopen button lives on the previous "Ticket Closed" message, which we handle explicitly
+    // below (disable its controls), not via deferUpdate()/editReply().
+    if (isButton) await interaction.deferUpdate();
+    else await interaction.deferReply({ ephemeral: true });
     await ticketEngine.reopen(guild, cfg, ticket, interaction.user.id);
-    await interaction.reply({ content: `🔓 Ticket reopened by ${interaction.user}.` });
+
+    // The one allowed edit to an old lifecycle message: disable its now-obsolete controls
+    // (Reopen/Delete/Transcript) so they can't be used again. The header is never touched.
+    if (ticket.lastLifecycleMessageId) {
+      await this.disableLifecycleMessageControls(guild, ticket.channelId, ticket.lastLifecycleMessageId);
+    }
+
+    const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
+    if (channel?.isTextBased()) {
+      const sent = await (channel as TextChannel).send({ content: `🔓 Ticket reopened by ${interaction.user}.` }).catch(() => null);
+      await ticketEngine.setLastLifecycleMessageId(ticket.id, sent?.id);
+    }
+    if (!isButton) await interaction.editReply({ content: '🔓 Ticket reopened.' }).catch(() => {});
+  }
+
+  /**
+   * Disables every button on a previous close/reopen lifecycle message (e.g. the Reopen/Delete/
+   * Transcript row on a now-superseded "Ticket Closed" message) without deleting it or changing
+   * anything else about it. Callers must only ever pass a tracked lifecycle message ID here —
+   * never the permanent header's ID.
+   */
+  private async disableLifecycleMessageControls(guild: Guild, channelId: string, messageId: string): Promise<void> {
+    try {
+      const channel = await guild.channels.fetch(channelId).catch(() => null);
+      if (!channel?.isTextBased()) return;
+      const message = await (channel as TextChannel).messages.fetch(messageId).catch(() => null);
+      if (!message || message.components.length === 0) return;
+      const rows = message.components
+        .filter((row): row is ActionRow<MessageActionRowComponent> => row.type === ComponentType.ActionRow)
+        .map(row => new ActionRowBuilder<ButtonBuilder>().addComponents(
+          row.components.map(c => ButtonBuilder.from(c as ButtonComponent).setDisabled(true)),
+        ));
+      await message.edit({ components: rows });
+    } catch (err) {
+      logger.warning('[TICKETS] Failed to disable previous lifecycle message controls', err);
+    }
   }
 
   private async deleteTicketChannel(interaction: ButtonInteraction | ChatInputCommandInteraction, guild: Guild, ticketId: string): Promise<void> {

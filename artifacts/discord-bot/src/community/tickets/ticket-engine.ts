@@ -94,6 +94,16 @@ export class TicketEngine {
   }
 
   /**
+   * Records the ID of the close/reopen lifecycle message most recently sent to a ticket's
+   * channel (see index.ts `closeTicket`/`reopenTicket`), so the next lifecycle transition can
+   * find and disable that message's now-obsolete controls. Never used for the permanent header
+   * — see `headerMessageId`, which is set once in `createChannel` and never touched again.
+   */
+  async setLastLifecycleMessageId(ticketId: string, messageId: string | undefined): Promise<void> {
+    await this.update(ticketId, { lastLifecycleMessageId: messageId });
+  }
+
+  /**
    * Preflight checks before showing a modal or creating a channel.
    * `cfg` must be the ticket-type-resolved config (see `resolveTicketType`)
    * so ticket limit / cooldown reflect that type's own settings; `ticketType`
@@ -195,7 +205,12 @@ export class TicketEngine {
     );
 
     const pingRoles = cfg.pingRoles.map(id => `<@&${id}>`).join(' ');
-    await channel.send({ content: pingRoles || undefined, embeds: [embed], components: [row] });
+    // This is the ticket's one permanent header/welcome message. Its ID is recorded so every
+    // other engine/handler can be certain never to edit or replace it — close/reopen post their
+    // own new lifecycle messages instead (see `close`/`reopen` below and index.ts).
+    const headerMessage = await channel.send({ content: pingRoles || undefined, embeds: [embed], components: [row] });
+    await this.update(ticket.id, { headerMessageId: headerMessage.id });
+    ticket.headerMessageId = headerMessage.id;
 
     await this.logAction(guild, cfg, `🎫 Ticket **#${number}** opened by ${opener.tag} in ${channel} (type: ${ticketType})`);
 

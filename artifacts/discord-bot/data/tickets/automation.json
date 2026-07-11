@@ -25,7 +25,14 @@
       "panelId": "panel_1783747543306_kk73l",
       "userId": "723982702625423430",
       "ticketType": "Store",
-      "lastClosedAt": 1783767988499
+      "lastClosedAt": 1783768655298
+    },
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "userId": "1231346883096612988",
+      "ticketType": "Support Manger",
+      "lastClosedAt": 1783771237605
     }
   ],
   "activity": [
@@ -63,6 +70,11 @@
       "ticketId": "ticket_1783767981139_ptxew",
       "channelId": "1525458219785256990",
       "lastActivityAt": 1783768002142
+    },
+    {
+      "ticketId": "ticket_1783768652328_rzq6s",
+      "channelId": "1525461035119808626",
+      "lastActivityAt": 1783768996880
     }
   ],
   "log": []

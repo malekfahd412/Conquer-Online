@@ -297,9 +297,47 @@
       "participantIds": [
         "723982702625423430"
       ]
+    },
+    {
+      "id": "ticket_1783768652328_rzq6s",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Store",
+      "channelId": "1525461035119808626",
+      "openerId": "723982702625423430",
+      "status": "open",
+      "number": 17,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783768652584,
+      "lastActivityAt": 1783768748904,
+      "participantIds": [
+        "723982702625423430"
+      ],
+      "claimedBy": "727578927593291796",
+      "firstStaffReplyAt": 1783768996871
+    },
+    {
+      "id": "ticket_1783769944947_3xrrt",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Support Manger",
+      "channelId": "1525466456727359528",
+      "openerId": "1231346883096612988",
+      "status": "closed",
+      "number": 18,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783769945139,
+      "lastActivityAt": 1783769945139,
+      "participantIds": [
+        "1231346883096612988"
+      ],
+      "closedAt": 1783771237604,
+      "closedBy": "727578927593291796"
     }
   ],
   "counters": {
-    "1213437502078062674": 16
+    "1213437502078062674": 18
   }
 }
