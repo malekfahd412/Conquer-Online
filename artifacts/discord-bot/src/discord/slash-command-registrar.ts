@@ -145,8 +145,14 @@ const PANEL_COMMAND = {
   description: 'Open the Discord Control Center — browse and execute all 323 tools interactively',
 };
 
+const CC_TEST_COMMAND = {
+  name: 'cc-test',
+  description: '[Admin] Run a full Control Center render audit — checks every renderer for duplicate IDs',
+};
+
 const ALL_COMMANDS = [
   PANEL_COMMAND,
+  CC_TEST_COMMAND,
   AI_COMMAND,
   FORGET_COMMAND,
   MEMORY_COMMAND,

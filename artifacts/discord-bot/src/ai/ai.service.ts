@@ -13,6 +13,7 @@ import {
 import type { ConversationMessage, ToolCall, ToolResult } from './types';
 import { ResponseDeliveryService } from '../discord/response-delivery.service';
 import { ControlCenterService } from '../discord/control-center';
+import { runStartupAudit, runCCRenderAudit } from '../discord/control-center/cc-test';
 import { ticketService } from '../discord/tickets/ticket.service';
 import { verificationService } from '../discord/verification/verification.service';
 import { applicationService } from '../discord/applications/application.service';
@@ -80,6 +81,7 @@ export class AIService {
     await this.memoryManager.initialize();
     await this.workspaceMemory.initialize();
     logger.info(`AI model: ${this.planner.modelName}`);
+    runStartupAudit();
 
     // ── Voice AI ──────────────────────────────────────────────────────────
     if (this.config.voice) {
@@ -159,6 +161,12 @@ export class AIService {
         if (name === 'panel') {
           this.controlCenter.handlePanelCommand(interaction as ChatInputCommandInteraction).catch(err =>
             logger.error('Control Center panel error', err),
+          );
+          return;
+        }
+        if (name === 'cc-test') {
+          this.onCCTestCommand(interaction as ChatInputCommandInteraction).catch(err =>
+            logger.error('CC test command error', err),
           );
           return;
         }
@@ -311,6 +319,59 @@ export class AIService {
       const errMsg = error instanceof Error ? error.message : 'Unknown error';
       await interaction.editReply({ content: `❌ An error occurred: ${errMsg}` }).catch(() => {});
     }
+  }
+
+  private async onCCTestCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command only works inside a server.', flags: 64 });
+      return;
+    }
+    const member = interaction.member instanceof GuildMember
+      ? interaction.member
+      : await interaction.guild.members.fetch(interaction.user.id);
+    if (!this.permissionManager.isAdmin(member)) {
+      await interaction.reply({ content: '❌ You do not have permission to run diagnostics.', flags: 64 });
+      return;
+    }
+
+    await interaction.deferReply({ flags: 64 });
+
+    const report = runCCRenderAudit();
+    const allPassed = report.failed === 0;
+
+    const embed = new EmbedBuilder()
+      .setColor(allPassed ? 0x57f287 : 0xed4245)
+      .setTitle(`${allPassed ? '✅' : '❌'} CC Render Audit — ${report.passed}/${report.passed + report.failed} passed`)
+      .setDescription(
+        `Ran **${report.passed + report.failed}** renderer tests in **${report.totalMs}ms**.\n` +
+        `All payloads were checked for duplicate custom IDs and Discord limit violations.\n` +
+        (allPassed ? '\n✅ No issues found.' : `\n❌ **${report.failed} test(s) failed** — see bot logs for details.`),
+      );
+
+    const lines = report.results.map(r => {
+      const icon = r.passed ? '✅' : '❌';
+      const idSummary = r.passed ? `${r.ids.length} IDs` : `ERROR`;
+      return `${icon} \`${r.renderer}\` — ${idSummary}`;
+    });
+
+    // Discord embed fields have a 1024 char limit per field; split into two if needed
+    const half = Math.ceil(lines.length / 2);
+    embed.addFields(
+      { name: 'Renderers (1)', value: lines.slice(0, half).join('\n'), inline: true },
+      { name: 'Renderers (2)', value: lines.slice(half).join('\n'), inline: true },
+    );
+
+    if (!allPassed) {
+      const failures = report.results
+        .filter(r => !r.passed)
+        .map(r => `**${r.renderer}**\n\`${r.errorMsg}\``)
+        .join('\n\n');
+      embed.addFields({ name: '❌ Failures', value: failures.slice(0, 1024), inline: false });
+    }
+
+    embed.setFooter({ text: `Full ID listings are in the bot logs — search [CC][assert]` });
+
+    await interaction.editReply({ embeds: [embed] });
   }
 
   private async onForgetCommand(interaction: ChatInputCommandInteraction): Promise<void> {
