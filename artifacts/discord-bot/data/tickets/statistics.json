@@ -215,6 +215,14 @@
       "ticketId": "ticket_1783753042632_3hfcd",
       "userId": "813694950067142656",
       "timestamp": 1783753106703
+    },
+    {
+      "type": "claimed",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783753042632_3hfcd",
+      "userId": "727578927593291796",
+      "timestamp": 1783753658221
     }
   ]
 }
