@@ -1,3 +1,9 @@
+import {
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} from 'discord.js';
 import type {
   Guild,
   GuildMember,
@@ -6,11 +12,13 @@ import type {
   ModalSubmitInteraction,
   ChatInputCommandInteraction,
   Interaction,
+  RepliableInteraction,
 } from 'discord.js';
 import type { ToolRegistry } from '../../ai/tool-registry';
 import type { PermissionManager } from '../../ai/permission-manager';
-import { inferCategory } from './cc-categories';
+import { truncate } from './cc-categories';
 import type { CategoryKey } from './cc-categories';
+import { ControlCenterCache } from './cc-cache';
 import {
   buildDashboard,
   buildCategoryPanel,
@@ -30,35 +38,88 @@ type NavInteraction = ButtonInteraction | StringSelectMenuInteraction;
 export class ControlCenterService {
   private readonly pendingExec = new Map<string, { toolName: string; params: Record<string, unknown>; category: CategoryKey }>();
 
+  /** Built once at construction time (bot startup) — never rebuilt per /panel. */
+  private readonly cache: ControlCenterCache;
+
   constructor(
     private readonly toolRegistry: ToolRegistry,
     private readonly permissionManager: PermissionManager,
-  ) {}
+  ) {
+    this.cache = new ControlCenterCache(toolRegistry);
+  }
 
   // ── Entry Points ───────────────────────────────────────────────────────────
 
   async handlePanelCommand(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!interaction.guild) {
-      await interaction.reply({ content: '❌ Control Center only works inside a server.', ephemeral: true });
-      return;
+    const t0 = Date.now();
+    const timings: Record<string, number> = {};
+
+    try {
+      // Requirement: deferReply is the very first operation on the interaction.
+      let t = Date.now();
+      await interaction.deferReply({ ephemeral: true });
+      timings.deferReply = Date.now() - t;
+
+      if (!interaction.guild) {
+        await interaction.editReply(this.errorPayload('❌ Control Center only works inside a server.'));
+        return;
+      }
+      if (!this.isAdmin(interaction)) {
+        await interaction.editReply(this.errorPayload('❌ You do not have permission to use the Control Center.'));
+        return;
+      }
+
+      // Registry load — cache was already built at startup, so this is a lookup, not a rebuild.
+      t = Date.now();
+      const toolCount = this.cache.toolCount;
+      timings.registryLoad = Date.now() - t;
+
+      // Category generation — dashboard only needs per-category counts, not full tool lists.
+      t = Date.now();
+      const counts = this.cache.categoryCounts;
+      timings.categoryGen = Date.now() - t;
+
+      // UI generation — build the dashboard payload only (lazy: no per-tool rendering here).
+      t = Date.now();
+      const payload = buildDashboard(toolCount, counts);
+      timings.uiGen = Date.now() - t;
+
+      // Favorites / search index are not needed for the dashboard screen — lazy-loaded later.
+      timings.favorites = 0;
+      timings.searchIndex = 0;
+
+      t = Date.now();
+      timings.rendering = Date.now() - t; // payload already built above; embeds/components are cheap object graphs
+
+      t = Date.now();
+      await interaction.editReply(payload);
+      timings.editReply = Date.now() - t;
+
+      const total = Date.now() - t0;
+      logger.info(
+        `[CC][timing] /panel total=${total}ms defer=${timings.deferReply}ms registry=${timings.registryLoad}ms ` +
+        `categoryGen=${timings.categoryGen}ms uiGen=${timings.uiGen}ms editReply=${timings.editReply}ms tools=${toolCount}`,
+      );
+    } catch (err) {
+      logger.error('[CC] /panel failed', err);
+      await this.safeErrorReply(interaction, err);
     }
-    if (!this.isAdmin(interaction)) {
-      await interaction.reply({ content: '❌ You do not have permission to use the Control Center.', ephemeral: true });
-      return;
-    }
-    await interaction.deferReply({ ephemeral: true });
-    await interaction.editReply(this.buildDashboardPayload());
   }
 
   async handleInteraction(interaction: Interaction, guild: Guild): Promise<void> {
     if (!this.isAdmin(interaction)) return;
 
-    if (interaction.isButton()) {
-      await this.routeButton(interaction, guild);
-    } else if (interaction.isStringSelectMenu()) {
-      await this.routeSelectMenu(interaction, guild);
-    } else if (interaction.isModalSubmit()) {
-      await this.routeModal(interaction, guild);
+    try {
+      if (interaction.isButton()) {
+        await this.routeButton(interaction, guild);
+      } else if (interaction.isStringSelectMenu()) {
+        await this.routeSelectMenu(interaction, guild);
+      } else if (interaction.isModalSubmit()) {
+        await this.routeModal(interaction, guild);
+      }
+    } catch (err) {
+      logger.error('[CC] Interaction routing failed', err);
+      await this.safeErrorReply(interaction, err);
     }
   }
 
@@ -68,7 +129,7 @@ export class ControlCenterService {
     const id = interaction.customId;
 
     if (id === 'cc:home' || id === 'cc:cancel') {
-      await this.nav(interaction, this.buildDashboardPayload());
+      await this.nav(interaction, this.buildDashboardPayload(), 'home');
       return;
     }
     if (id === 'cc:favs') {
@@ -140,43 +201,52 @@ export class ControlCenterService {
   // ── Navigation ─────────────────────────────────────────────────────────────
 
   private buildDashboardPayload() {
-    const all = this.toolRegistry.getAll();
-    const counts: Partial<Record<CategoryKey, number>> = {};
-    for (const tool of all) {
-      const cat = inferCategory(tool.definition.name);
-      counts[cat] = (counts[cat] ?? 0) + 1;
-    }
-    return buildDashboard(all.length, counts);
+    // Cached at startup — no per-tool iteration happens here anymore.
+    return buildDashboard(this.cache.toolCount, this.cache.categoryCounts);
   }
 
   private async navToCategory(interaction: NavInteraction, category: CategoryKey, page: number): Promise<void> {
-    const tools = this.toolsByCategory(category);
+    const tUi = Date.now();
+    const tools = this.cache.getToolsByCategory(category); // lazy: tools for THIS category only, from cache
     const safePage = Math.max(0, Math.min(page, Math.floor((tools.length - 1) / 20)));
-    await this.nav(interaction, buildCategoryPanel(category, tools, safePage));
+    const payload = buildCategoryPanel(category, tools, safePage);
+    const uiGenMs = Date.now() - tUi;
+    await this.nav(interaction, payload, `category:${category}`, { uiGen: uiGenMs });
   }
 
   private async navToTool(interaction: NavInteraction, _guild: Guild, toolName: string): Promise<void> {
     const tool = this.toolRegistry.getTool(toolName);
     if (!tool) {
-      await this.nav(interaction, this.buildDashboardPayload());
+      await this.nav(interaction, this.buildDashboardPayload(), 'home');
       return;
     }
-    const category = inferCategory(toolName);
+    const category = this.cache.getCategory(toolName);
+
+    const tFav = Date.now();
     const fav = await isFavorite(interaction.user.id, toolName);
-    await this.nav(interaction, buildToolDetail(tool, category, fav));
+    const favMs = Date.now() - tFav;
+
+    const tUi = Date.now();
+    const payload = buildToolDetail(tool, category, fav);
+    const uiGenMs = Date.now() - tUi;
+
+    await this.nav(interaction, payload, `tool:${toolName}`, { favorites: favMs, uiGen: uiGenMs });
   }
 
   private async navToFavorites(interaction: NavInteraction): Promise<void> {
+    const tFav = Date.now();
     const favNames = await getFavorites(interaction.user.id);
     const tools = favNames.map(n => this.toolRegistry.getTool(n)).filter(Boolean) as NonNullable<ReturnType<ToolRegistry['getTool']>>[];
-    await this.nav(interaction, buildFavoritesPanel(tools));
+    const favMs = Date.now() - tFav;
+
+    await this.nav(interaction, buildFavoritesPanel(tools), 'favorites', { favorites: favMs });
   }
 
   // ── Execution ──────────────────────────────────────────────────────────────
 
   private async handleExecute(interaction: ButtonInteraction, guild: Guild, toolName: string): Promise<void> {
     const tool = this.toolRegistry.getTool(toolName);
-    if (!tool) { await this.nav(interaction, this.buildDashboardPayload()); return; }
+    if (!tool) { await this.nav(interaction, this.buildDashboardPayload(), 'home'); return; }
 
     const hasParams = Object.keys(tool.definition.parameters.properties ?? {}).length > 0;
 
@@ -188,8 +258,8 @@ export class ControlCenterService {
     // No params — execute directly or show danger confirm
     if (tool.definition.dangerous) {
       const key = `${interaction.user.id}:${toolName}`;
-      this.pendingExec.set(key, { toolName, params: {}, category: inferCategory(toolName) });
-      await this.nav(interaction, buildConfirm(tool, '_None_', inferCategory(toolName)));
+      this.pendingExec.set(key, { toolName, params: {}, category: this.cache.getCategory(toolName) });
+      await this.nav(interaction, buildConfirm(tool, '_None_', this.cache.getCategory(toolName)), 'confirm');
     } else {
       await interaction.deferUpdate();
       await this.executeTool(interaction, guild, toolName, {});
@@ -218,16 +288,16 @@ export class ControlCenterService {
     if (tool.definition.dangerous) {
       const key = `${interaction.user.id}:${toolName}`;
       const paramSummary = Object.entries(params).map(([k, v]) => `**${k}:** ${String(v)}`).join('\n') || '_None_';
-      this.pendingExec.set(key, { toolName, params, category: inferCategory(toolName) });
+      this.pendingExec.set(key, { toolName, params, category: this.cache.getCategory(toolName) });
 
       await interaction.deferReply({ ephemeral: true });
-      await interaction.editReply(buildConfirm(tool, paramSummary, inferCategory(toolName)));
+      await interaction.editReply(buildConfirm(tool, paramSummary, this.cache.getCategory(toolName)));
       return;
     }
 
     await interaction.deferReply({ ephemeral: true });
     const result = await this.runTool(toolName, params, guild);
-    const category = inferCategory(toolName);
+    const category = this.cache.getCategory(toolName);
     await interaction.editReply(buildResult(toolName, result, category));
   }
 
@@ -238,7 +308,7 @@ export class ControlCenterService {
     params: Record<string, unknown>,
   ): Promise<void> {
     const result = await this.runTool(toolName, params, guild);
-    const category = inferCategory(toolName);
+    const category = this.cache.getCategory(toolName);
     await interaction.editReply(buildResult(toolName, result, category));
   }
 
@@ -285,9 +355,20 @@ export class ControlCenterService {
 
   private async handleSearch(interaction: ModalSubmitInteraction): Promise<void> {
     const query = interaction.fields.getTextInputValue('query').trim();
-    const tools = this.toolRegistry.search(query);
+
+    const tSearch = Date.now();
+    const tools = this.cache.search(query); // uses the precomputed search index, not a fresh scan
+    const searchMs = Date.now() - tSearch;
+
+    const tDefer = Date.now();
     await interaction.deferReply({ ephemeral: true });
+    const deferMs = Date.now() - tDefer;
+
+    const tEdit = Date.now();
     await interaction.editReply(buildSearchResults(query, tools));
+    const editMs = Date.now() - tEdit;
+
+    logger.info(`[CC][timing] search query="${query}" searchIndex=${searchMs}ms defer=${deferMs}ms editReply=${editMs}ms results=${tools.length}`);
   }
 
   // ── Favorites ──────────────────────────────────────────────────────────────
@@ -300,15 +381,51 @@ export class ControlCenterService {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  private toolsByCategory(category: CategoryKey) {
-    return this.toolRegistry.getAll()
-      .filter(t => inferCategory(t.definition.name) === category)
-      .sort((a, b) => a.definition.name.localeCompare(b.definition.name));
+  private async nav(interaction: NavInteraction, payload: object, label: string, extraTimings: Record<string, number> = {}): Promise<void> {
+    const t0 = Date.now();
+    const tDefer = Date.now();
+    await interaction.deferUpdate();
+    const deferMs = Date.now() - tDefer;
+
+    const tEdit = Date.now();
+    await interaction.editReply(payload);
+    const editMs = Date.now() - tEdit;
+
+    const total = Date.now() - t0;
+    const extra = Object.entries(extraTimings).map(([k, v]) => `${k}=${v}ms`).join(' ');
+    logger.info(`[CC][timing] nav:${label} total=${total}ms deferUpdate=${deferMs}ms editReply=${editMs}ms${extra ? ' ' + extra : ''}`);
   }
 
-  private async nav(interaction: NavInteraction, payload: object): Promise<void> {
-    await interaction.deferUpdate();
-    await interaction.editReply(payload);
+  private errorPayload(message: string) {
+    const embed = new EmbedBuilder()
+      .setColor(0xed4245)
+      .setTitle('❌ Control Center Error')
+      .setDescription(truncate(message, 2000));
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setLabel('🏠 Home').setCustomId('cc:home').setStyle(ButtonStyle.Secondary),
+    );
+    return { content: '', embeds: [embed], components: [row] };
+  }
+
+  /**
+   * Guarantees the interaction never hangs on "thinking...": always resolves
+   * with an editReply, followUp, or reply carrying a visible error embed.
+   */
+  private async safeErrorReply(interaction: Interaction, err: unknown): Promise<void> {
+    if (!interaction.isRepliable()) return;
+    const repliable = interaction as RepliableInteraction;
+    const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
+    const payload = this.errorPayload(message);
+
+    try {
+      if (repliable.deferred || repliable.replied) {
+        await repliable.editReply(payload).catch(() => repliable.followUp({ ...payload, ephemeral: true }));
+      } else {
+        await repliable.reply({ ...payload, ephemeral: true });
+      }
+    } catch (deliveryErr) {
+      logger.error('[CC] Failed to deliver error message to user', deliveryErr);
+    }
   }
 
   private isAdmin(interaction: Interaction): boolean {

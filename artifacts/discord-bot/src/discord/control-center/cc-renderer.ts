@@ -41,7 +41,7 @@ export function buildDashboard(toolCount: number, categoryToolCounts: Partial<Re
   const embed = new EmbedBuilder()
     .setColor(0x5865f2)
     .setTitle('🎛️ Discord Control Center')
-    .setDescription('Select a category to browse and execute tools interactively.\nAll 323 tools are available — no AI required for most actions.')
+    .setDescription(`Select a category to browse and execute tools interactively.\nAll ${toolCount} tools are available — no AI required for most actions.`)
     .addFields(
       { name: '🔧 Total Tools', value: String(toolCount), inline: true },
       { name: '📁 Categories', value: String(CATEGORY_ORDER.length), inline: true },
