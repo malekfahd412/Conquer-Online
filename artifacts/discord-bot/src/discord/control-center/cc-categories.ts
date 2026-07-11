@@ -3,7 +3,7 @@ export type CategoryKey =
   | 'moderation' | 'messages' | 'embeds' | 'voice' | 'emojis'
   | 'stickers' | 'invites' | 'automod' | 'events' | 'webhooks'
   | 'permissions' | 'analytics' | 'backup' | 'templates' | 'clone'
-  | 'panels' | 'utilities';
+  | 'panels' | 'utilities' | 'tickets' | 'verification' | 'welcome' | 'applications' | 'serverlogs';
 
 export interface CategoryMeta {
   label: string;
@@ -35,6 +35,11 @@ export const CATEGORY_META: Record<CategoryKey, CategoryMeta> = {
   clone:       { label: 'Clone',         emoji: '🔄', description: 'Clone server elements',             color: 0x5865f2 },
   panels:      { label: 'Panels',        emoji: '🖥️', description: 'Interactive panels and UI',         color: 0xf47fff },
   utilities:   { label: 'Utilities',     emoji: '🔧', description: 'Utilities and misc tools',          color: 0x5865f2 },
+  tickets:     { label: 'Tickets',       emoji: '🎫', description: 'Ticket panels, settings, and stats', color: 0x5865f2 },
+  verification:{ label: 'Verification',  emoji: '✅', description: 'Verification panels and gating',   color: 0x57f287 },
+  welcome:     { label: 'Welcome/Goodbye', emoji: '👋', description: 'Join and leave messages',        color: 0x57f287 },
+  applications:{ label: 'Applications',  emoji: '📨', description: 'Application panels and reviews',  color: 0x5865f2 },
+  serverlogs:  { label: 'Server Logging', emoji: '📋', description: 'Message, member, and voice logs', color: 0x99aab5 },
 };
 
 export const CATEGORY_ORDER: CategoryKey[] = [
@@ -42,12 +47,17 @@ export const CATEGORY_ORDER: CategoryKey[] = [
   'moderation', 'messages', 'embeds', 'voice', 'emojis',
   'stickers', 'invites', 'automod', 'events', 'webhooks',
   'permissions', 'analytics', 'backup', 'templates', 'clone',
-  'panels', 'utilities',
+  'panels', 'utilities', 'tickets', 'verification', 'welcome', 'applications', 'serverlogs',
 ];
 
 export function inferCategory(toolName: string): CategoryKey {
   const n = toolName.toLowerCase();
 
+  if (n.includes('ticket'))                                                    return 'tickets';
+  if (n.includes('verification') || n === 'verify_member')                     return 'verification';
+  if (n.includes('welcome') || n.includes('goodbye'))                          return 'welcome';
+  if (n.includes('application'))                                               return 'applications';
+  if (n.includes('server_logging'))                                            return 'serverlogs';
   if (n.includes('automod'))                                                   return 'automod';
   if (n.includes('emoji') && !n.endsWith('_analytics'))                        return 'emojis';
   if (n.includes('sticker') && !n.endsWith('_analytics'))                      return 'stickers';

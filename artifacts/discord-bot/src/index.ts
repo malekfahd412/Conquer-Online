@@ -10,6 +10,8 @@ import { buildSocialButtons } from './discord/button-builder';
 import { AIService } from './ai/ai.service';
 import { GuildObserver } from './ai/observer/guild-observer';
 import { registerSlashCommands } from './discord/slash-command-registrar';
+import { welcomeService } from './discord/welcome/welcome.service';
+import { serverLogService } from './discord/logging/server-log.service';
 
 const RETRY_CONNECT_INTERVAL_MS = 15_000;
 
@@ -71,6 +73,28 @@ async function main(): Promise<void> {
 
   client.on('error', error => {
     logger.error('Discord client error', error);
+  });
+
+  client.on('guildMemberAdd', member => {
+    welcomeService.handleJoin(member).catch(err => logger.error('Welcome handler error', err));
+    serverLogService.onMemberJoin(member).catch(err => logger.error('Member join log error', err));
+  });
+
+  client.on('guildMemberRemove', member => {
+    welcomeService.handleLeave(member).catch(err => logger.error('Goodbye handler error', err));
+    serverLogService.onMemberLeave(member).catch(err => logger.error('Member leave log error', err));
+  });
+
+  client.on('messageDelete', message => {
+    serverLogService.onMessageDelete(message).catch(err => logger.error('Message delete log error', err));
+  });
+
+  client.on('messageUpdate', (oldMessage, newMessage) => {
+    serverLogService.onMessageUpdate(oldMessage, newMessage).catch(err => logger.error('Message update log error', err));
+  });
+
+  client.on('voiceStateUpdate', (oldState, newState) => {
+    serverLogService.onVoiceStateUpdate(oldState, newState).catch(err => logger.error('Voice state log error', err));
   });
 
   await loginClient(client, config.discord.token);

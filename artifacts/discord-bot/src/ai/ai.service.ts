@@ -13,6 +13,9 @@ import {
 import type { ConversationMessage, ToolCall, ToolResult } from './types';
 import { ResponseDeliveryService } from '../discord/response-delivery.service';
 import { ControlCenterService } from '../discord/control-center';
+import { ticketService } from '../discord/tickets/ticket.service';
+import { verificationService } from '../discord/verification/verification.service';
+import { applicationService } from '../discord/applications/application.service';
 import { PermissionManager } from './permission-manager';
 import { ToolRegistry } from './tool-registry';
 import { PromptBuilder } from './prompt-builder';
@@ -171,6 +174,52 @@ export class AIService {
         if (interaction.guild) {
           this.controlCenter.handleInteraction(interaction, interaction.guild).catch(err =>
             logger.error('Control Center interaction error', err),
+          );
+        }
+        return;
+      }
+
+      // ── Ticket system interactions (tk:* custom IDs) ───────────────────────
+      if (interaction.isButton() && interaction.customId.startsWith('tk:')) {
+        if (interaction.guild) {
+          ticketService.handleInteraction(interaction, interaction.guild).catch(err =>
+            logger.error('Ticket interaction error', err),
+          );
+        }
+        return;
+      }
+
+      // ── Verification system interactions (vf:* custom IDs) ─────────────────
+      if (interaction.isButton() && interaction.customId.startsWith('vf:')) {
+        if (interaction.guild) {
+          verificationService.handleInteraction(interaction, interaction.guild).catch(err =>
+            logger.error('Verification interaction error', err),
+          );
+        }
+        return;
+      }
+      if (interaction.isModalSubmit() && interaction.customId.startsWith('vf:m:')) {
+        if (interaction.guild) {
+          verificationService.handleModal(interaction, interaction.guild).catch(err =>
+            logger.error('Verification modal error', err),
+          );
+        }
+        return;
+      }
+
+      // ── Application system interactions (ap:* custom IDs) ──────────────────
+      if (interaction.isButton() && interaction.customId.startsWith('ap:')) {
+        if (interaction.guild) {
+          applicationService.handleInteraction(interaction, interaction.guild).catch(err =>
+            logger.error('Application interaction error', err),
+          );
+        }
+        return;
+      }
+      if (interaction.isModalSubmit() && interaction.customId.startsWith('ap:m:')) {
+        if (interaction.guild) {
+          applicationService.handleModal(interaction, interaction.guild).catch(err =>
+            logger.error('Application modal error', err),
           );
         }
         return;

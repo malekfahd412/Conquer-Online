@@ -1,5 +1,34 @@
 import type { ITool } from './tool.interface';
 
+// ── Tickets ───────────────────────────────────────────────────────────────────
+import { CreateTicketPanelTool } from './create-ticket-panel.tool';
+import { ListTicketPanelsTool } from './list-ticket-panels.tool';
+import { DeleteTicketPanelTool } from './delete-ticket-panel.tool';
+import { ConfigureTicketSettingsTool } from './configure-ticket-settings.tool';
+import { TicketDashboardTool } from './ticket-dashboard.tool';
+
+// ── Verification ──────────────────────────────────────────────────────────────
+import { CreateVerificationPanelTool } from './create-verification-panel.tool';
+import { ListVerificationPanelsTool } from './list-verification-panels.tool';
+import { DeleteVerificationPanelTool } from './delete-verification-panel.tool';
+import { ConfigureVerificationSettingsTool } from './configure-verification-settings.tool';
+import { VerificationDashboardTool } from './verification-dashboard.tool';
+
+// ── Welcome / Goodbye ─────────────────────────────────────────────────────────
+import { ConfigureWelcomeTool } from './configure-welcome.tool';
+import { ConfigureGoodbyeTool } from './configure-goodbye.tool';
+import { ViewWelcomeConfigTool } from './view-welcome-config.tool';
+
+// ── Applications ──────────────────────────────────────────────────────────────
+import { CreateApplicationPanelTool } from './create-application-panel.tool';
+import { ListApplicationPanelsTool } from './list-application-panels.tool';
+import { DeleteApplicationPanelTool } from './delete-application-panel.tool';
+import { ApplicationsDashboardTool } from './applications-dashboard.tool';
+
+// ── Server Logging ────────────────────────────────────────────────────────────
+import { ConfigureServerLoggingTool } from './configure-server-logging.tool';
+import { ViewServerLoggingTool } from './view-server-logging.tool';
+
 // ── Category & Channel ────────────────────────────────────────────────────────
 import { CreateCategoryTool } from './create-category.tool';
 import { DeleteCategoryTool } from './delete-category.tool';
@@ -819,4 +848,33 @@ export const ALL_TOOLS: ToolConstructor[] = [
   GenerateRoleDocsTool,
   GenerateChannelDocsTool,
   GenerateConfigDocsTool,
+
+  // ── MODULE 25: Tickets (5) ────────────────────────────────────────────────
+  CreateTicketPanelTool,
+  ListTicketPanelsTool,
+  DeleteTicketPanelTool,
+  ConfigureTicketSettingsTool,
+  TicketDashboardTool,
+
+  // ── MODULE 26: Verification (5) ───────────────────────────────────────────
+  CreateVerificationPanelTool,
+  ListVerificationPanelsTool,
+  DeleteVerificationPanelTool,
+  ConfigureVerificationSettingsTool,
+  VerificationDashboardTool,
+
+  // ── MODULE 27: Welcome / Goodbye (3) ──────────────────────────────────────
+  ConfigureWelcomeTool,
+  ConfigureGoodbyeTool,
+  ViewWelcomeConfigTool,
+
+  // ── MODULE 28: Applications (4) ────────────────────────────────────────────
+  CreateApplicationPanelTool,
+  ListApplicationPanelsTool,
+  DeleteApplicationPanelTool,
+  ApplicationsDashboardTool,
+
+  // ── MODULE 29: Server Logging (2) ─────────────────────────────────────────
+  ConfigureServerLoggingTool,
+  ViewServerLoggingTool,
 ];
