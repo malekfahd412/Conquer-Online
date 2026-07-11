@@ -1,7 +1,7 @@
 # Conquer Online — AI Discord Operating System
 
 ## Status
-Running on Replit (re-imported and re-configured on July 11, 2026). Configured secrets: `DISCORD_BOT_TOKEN`, `CHANNEL_SERVER_STATUS`, `GEMINI_API_KEY` (AI provider = gemini). `DATA_SOURCE` is unset, so live server status shows "Waiting for Server Connection" (mock/mssql/api not wired). Voice STT/TTS (`OPENAI_API_KEY` or other providers) not configured — voice AI features are inactive but text/slash AI commands work. Confirmed working: bot logs in, registers 9 guild commands, finds the status channel, and the Ticket System Pro (10 engines) comes online.
+Running on Replit (re-imported and re-configured on July 11, 2026 — secrets were lost on this re-import and have been re-added). Configured secrets: `DISCORD_BOT_TOKEN`, `GEMINI_API_KEY` (AI provider = gemini). Shared env var `CHANNEL_SERVER_STATUS` (baked into `.replit`). `DATA_SOURCE` is unset, so live server status shows "Waiting for Server Connection" (mock/mssql/api not wired). Voice STT/TTS (`OPENAI_API_KEY` or other providers) not configured — voice AI features are inactive but text/slash AI commands work. Confirmed working: bot logs in, registers 9 guild commands, finds the status channel, and the Ticket System Pro (11 engines) comes online. The `artifacts/api-server` and `artifacts/mockup-sandbox` workflows also run (auto-added by the platform); they are auxiliary to the Discord bot and not required for it to function.
 
 
 A Discord bot that serves as a live server status dashboard **and** an AI-powered Discord Operating System (DOS). Admins can control the entire Discord server through natural language commands.
