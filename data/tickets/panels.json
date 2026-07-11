@@ -195,7 +195,7 @@
       },
       "button": {
         "label": "🏪 𝐒𝐓𝐎𝐑𝐄",
-        "style": "Primary",
+        "style": "Success",
         "ticketType": "store",
         "overrides": {
           "openCategory": "1521582368484491384",
@@ -215,7 +215,7 @@
       "additionalButtons": [
         {
           "label": "👨‍💼 𝐒𝐔𝐏𝐏𝐎𝐑𝐓",
-          "style": "Primary",
+          "style": "Secondary",
           "ticketType": "support",
           "overrides": {
             "openCategory": "1521582460788281395",
@@ -234,7 +234,7 @@
         },
         {
           "label": "🆘 𝐒𝐔𝐏𝐏𝐎𝐑𝐓 𝐌𝐀𝐍𝐆𝐄𝐑",
-          "style": "Success",
+          "style": "Danger",
           "ticketType": "Support Manger",
           "overrides": {
             "openCategory": "1521582519105880328",
@@ -253,7 +253,7 @@
         },
         {
           "label": "🤝 𝐈𝐍𝐓𝐄𝐑𝐕𝐈𝐄𝐖",
-          "style": "Danger",
+          "style": "Primary",
           "ticketType": "Staff",
           "overrides": {
             "ticketEmbed": {
@@ -343,7 +343,7 @@
       "id": "panel_1783810288179_l0nm0",
       "guildId": "1213437502078062674",
       "createdAt": 1783810288179,
-      "updatedAt": 1783812002504,
+      "updatedAt": 1783813027246,
       "messageId": "1525642857296433185"
     }
   ]

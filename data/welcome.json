@@ -1,0 +1,47 @@
+{
+  "welcome": [
+    {
+      "guildId": "1213437502078062674",
+      "enabled": false,
+      "messages": [
+        "Welcome {user} to {server}! We now have {membercount} members."
+      ],
+      "embedColor": 5763719,
+      "buttons": [],
+      "autoRoleIds": [
+        "1521596508162490398"
+      ],
+      "dmEnabled": false,
+      "delaySeconds": 0,
+      "card": {
+        "avatarX": 40,
+        "avatarY": 86,
+        "avatarSize": 128,
+        "avatarBorderEnabled": true,
+        "avatarBorderColor": "#FFFFFF",
+        "avatarBorderWidth": 6,
+        "usernameX": 195,
+        "usernameY": 118,
+        "serverNameX": 195,
+        "serverNameY": 160,
+        "memberCountX": 195,
+        "memberCountY": 196,
+        "textColor": "#FFFFFF",
+        "fontSize": 30,
+        "fontFamily": "Poppins"
+      },
+      "welcomeMessage": {
+        "content": "",
+        "embedEnabled": false,
+        "embedTitle": "",
+        "embedDescription": "",
+        "embedColor": 5763719,
+        "embedFooter": "",
+        "embedThumbnail": "",
+        "embedImage": "",
+        "embedTimestamp": false
+      }
+    }
+  ],
+  "goodbye": []
+}
