@@ -513,14 +513,11 @@ class TicketSystem {
       new ButtonBuilder().setCustomId(`tk:delete:${ticket.id}`).setLabel('Delete').setStyle(ButtonStyle.Danger).setEmoji('🗑️'),
       new ButtonBuilder().setCustomId(`tk:transcript:${ticket.id}`).setLabel('Transcript').setStyle(ButtonStyle.Secondary).setEmoji('📄'),
     );
+    // editReply here edits the header/welcome message in place (for buttons, deferUpdate()
+    // above means editReply targets the original message the button lives on; for slash
+    // commands, deferReply() means editReply targets that same reply). Either way this is the
+    // single "Ticket Closed" message — never send an additional copy into the channel.
     await interaction.editReply({ embeds: [embed], components: [row] }).catch(() => {});
-    // Buttons additionally broadcast a fresh copy into the channel (the edited reply above
-    // only updates the original welcome message); a slash reply is already a normal visible
-    // channel message, so no second post is needed.
-    if (isButton) {
-      const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
-      if (channel?.isTextBased()) await channel.send({ embeds: [embed], components: [row] }).catch(() => {});
-    }
   }
 
   private async reopenTicket(interaction: ButtonInteraction | ChatInputCommandInteraction, guild: Guild, ticketId: string): Promise<void> {
