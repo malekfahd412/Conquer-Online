@@ -387,26 +387,66 @@ function ttBackButtonId(panel: TicketPanel, ref: TicketEntryRef): string {
   return TP.smOpt(panel.id, idx);
 }
 
+/** Shared "this button/option no longer exists" screen for every Ticket Type Designer page. */
+function buildTTMissingEntry(panel: TicketPanel, fnName: string): CCPayload {
+  const embed = verifyBuilder(FILE, fnName, 'tt missing entry embed', () =>
+    new EmbedBuilder()
+      .setColor(0xed4245)
+      .setTitle('❌ Ticket Type Settings')
+      .setDescription('This button/option no longer exists on this panel — it may have been removed.'),
+  );
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('← Panel',  TP.dash(panel.id), ButtonStyle.Secondary),
+    homeBtn(),
+  );
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds(`${fnName}:missing`, payload);
+  return payload;
+}
+
+/** `<#id>` if set as an override, `<#id> (inherited)` if only the panel default applies, else "Not set". */
+function overrideCategoryLine(overrideVal: string | undefined, resolvedVal: string | undefined): string {
+  if (overrideVal) return `<#${overrideVal}> _(override)_`;
+  if (resolvedVal) return `<#${resolvedVal}> _(inherited from panel)_`;
+  return '_Not set_';
+}
+
+/** Renders a role-ID list for the Ticket Type roles page, distinguishing an explicit (possibly empty) override from inherited panel roles. */
+function overrideRoleLine(overrideVal: string[] | undefined, resolvedVal: string[]): string {
+  if (overrideVal !== undefined) {
+    return overrideVal.length > 0 ? `${truncate(overrideVal.map(r => `<@&${r}>`).join(', '), 900)} _(override)_` : '_(override: none)_';
+  }
+  return resolvedVal.length > 0 ? `${truncate(resolvedVal.map(r => `<@&${r}>`).join(', '), 900)} _(inherited from panel)_` : '_Not set_';
+}
+
+/** Fills in every ticket-naming placeholder with sample values for a live preview. Shared by the panel-level and ticket-type-level naming pages. */
+function renderNamingPreview(scheme: string): string {
+  return (scheme
+    .replace('{user}', 'johndoe')
+    .replace('{username}', 'johndoe')
+    .replace('{userid}', '123456789')
+    .replace('{displayname}', 'John Doe')
+    .replace('{ticket}', 'panel_abc12')
+    .replace('{counter}', '0042')
+    .replace('{number}', '0042')
+    .replace('{date}', '2026-07-11')
+    .replace('{time}', '14-30')
+    .replace('{year}', '2026')
+    .replace('{month}', '07')
+    .replace('{day}', '11')
+    .replace('{random}', 'x7k2m')
+    .replace('{type}', 'support')
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]/g, '')
+    .slice(0, 90)) || 'ticket';
+}
+
 export function buildTTMain(panel: TicketPanel, ref: TicketEntryRef): CCPayload {
   const fn = 'buildTTMain';
   const color = checkColor(FILE, fn, 'color', 0xfee75c);
   const entry = getEntry(panel, ref);
 
-  if (!entry) {
-    const embed = verifyBuilder(FILE, fn, 'tt missing entry embed', () =>
-      new EmbedBuilder()
-        .setColor(0xed4245)
-        .setTitle('❌ Ticket Type Settings')
-        .setDescription('This button/option no longer exists on this panel — it may have been removed.'),
-    );
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      btn('← Panel',  TP.dash(panel.id), ButtonStyle.Secondary),
-      homeBtn(),
-    );
-    const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
-    assertUniqueCustomIds('buildTTMain:missing', payload);
-    return payload;
-  }
+  if (!entry) return buildTTMissingEntry(panel, fn);
 
   const cfg = resolveTicketType(panel, entry.ticketType);
   const overrideCount = entry.overrides ? Object.keys(entry.overrides).length : 0;
@@ -438,17 +478,138 @@ export function buildTTMain(panel: TicketPanel, ref: TicketEntryRef): CCPayload 
         { name: '👤 Member Perms (View/Send)', value: `${memberPerms.viewChannel ? '✅' : '❌'} / ${memberPerms.sendMessages ? '✅' : '❌'}`, inline: true },
         { name: '🛠 Staff Perms (Manage Msgs)', value: staffPerms.manageMessages ? '✅' : '❌', inline: true },
       )
-      .setFooter({ text: 'Editing individual settings from this hub is coming soon — use "Clear Overrides" to reset this type to panel defaults.' }),
+      .setFooter({ text: 'Pick a category below to edit that setting for just this button/option.' }),
+  );
+
+  const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('📁 Categories', TP.TT.cat(panel.id, ref),    ButtonStyle.Secondary),
+    btn('👥 Roles',      TP.TT.roles(panel.id, ref),  ButtonStyle.Secondary),
+    btn('📝 Naming',     TP.TT.naming(panel.id, ref), ButtonStyle.Secondary),
+  );
+  const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('🗑 Clear All Overrides', TP.TT.reset(panel.id, ref, 'all'), ButtonStyle.Danger, overrideCount === 0),
+    btn('← Back',                 ttBackButtonId(panel, ref),        ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row1, row2] };
+  assertUniqueCustomIds('buildTTMain', payload);
+  return payload;
+}
+
+// ── Ticket Type Designer — Categories page ──────────────────────────────────
+
+export function buildTTCategories(panel: TicketPanel, ref: TicketEntryRef): CCPayload {
+  const fn = 'buildTTCategories';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+  const entry = getEntry(panel, ref);
+  if (!entry) return buildTTMissingEntry(panel, fn);
+
+  const o = entry.overrides ?? {};
+  const cfg = resolveTicketType(panel, entry.ticketType);
+  const hasOverride = o.openCategory !== undefined || o.closedCategory !== undefined || o.archiveCategory !== undefined;
+
+  const embed = verifyBuilder(FILE, fn, 'tt categories embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle(`📁 Category Routing — ${entryLabel(panel, ref)}`)
+      .addFields(
+        { name: '📂 Open Category',    value: overrideCategoryLine(o.openCategory,    cfg.openCategory),    inline: true },
+        { name: '🔒 Closed Category',  value: overrideCategoryLine(o.closedCategory,  cfg.closedCategory),  inline: true },
+        { name: '🗄 Archive Category', value: overrideCategoryLine(o.archiveCategory, cfg.archiveCategory), inline: true },
+      )
+      .setFooter({ text: 'Enter category channel IDs. Leave a field blank in the editor to inherit the panel default for that category.' }),
   );
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    btn('🗑 Clear Overrides', TP.TT.reset(panel.id, ref, 'all'), ButtonStyle.Danger, overrideCount === 0),
-    btn('← Back',             ttBackButtonId(panel, ref),        ButtonStyle.Secondary),
+    btn('✏️ Edit Categories',        TP.TT.edit(panel.id, ref, 'cat'),  ButtonStyle.Primary),
+    btn('↩️ Reset to Panel Default', TP.TT.reset(panel.id, ref, 'cat'), ButtonStyle.Secondary, !hasOverride),
+    btn('← Back',                    TP.TT.main(panel.id, ref),         ButtonStyle.Secondary),
     homeBtn(),
   );
 
   const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
-  assertUniqueCustomIds('buildTTMain', payload);
+  assertUniqueCustomIds('buildTTCategories', payload);
+  return payload;
+}
+
+// ── Ticket Type Designer — Roles page ───────────────────────────────────────
+
+export function buildTTRoles(panel: TicketPanel, ref: TicketEntryRef): CCPayload {
+  const fn = 'buildTTRoles';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+  const entry = getEntry(panel, ref);
+  if (!entry) return buildTTMissingEntry(panel, fn);
+
+  const o = entry.overrides ?? {};
+  const cfg = resolveTicketType(panel, entry.ticketType);
+  const hasOverride = o.supportRoles !== undefined || o.pingRoles !== undefined;
+
+  const embed = verifyBuilder(FILE, fn, 'tt roles embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle(`👥 Roles — ${entryLabel(panel, ref)}`)
+      .addFields(
+        { name: '🛟 Support Roles', value: overrideRoleLine(o.supportRoles, cfg.supportRoles), inline: false },
+        { name: '📣 Ping Roles',    value: overrideRoleLine(o.pingRoles,    cfg.pingRoles),     inline: false },
+      )
+      .setFooter({ text: 'Comma-separated role IDs. Leave a field blank in the editor to inherit the panel default.' }),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Edit Roles',             TP.TT.edit(panel.id, ref, 'roles'),  ButtonStyle.Primary),
+    btn('↩️ Reset to Panel Default', TP.TT.reset(panel.id, ref, 'roles'), ButtonStyle.Secondary, !hasOverride),
+    btn('← Back',                    TP.TT.main(panel.id, ref),           ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildTTRoles', payload);
+  return payload;
+}
+
+// ── Ticket Type Designer — Naming page ──────────────────────────────────────
+
+export function buildTTNaming(panel: TicketPanel, ref: TicketEntryRef): CCPayload {
+  const fn = 'buildTTNaming';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+  const entry = getEntry(panel, ref);
+  if (!entry) return buildTTMissingEntry(panel, fn);
+
+  const o = entry.overrides ?? {};
+  const cfg = resolveTicketType(panel, entry.ticketType);
+  const preview = renderNamingPreview(cfg.namingScheme);
+
+  const embed = verifyBuilder(FILE, fn, 'tt naming embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle(`📝 Ticket Naming — ${entryLabel(panel, ref)}`)
+      .addFields(
+        { name: 'Effective Scheme', value: `\`${cfg.namingScheme}\` ${o.namingScheme !== undefined ? '_(override)_' : '_(inherited from panel)_'}`, inline: false },
+        { name: '👁 Live Preview',  value: `\`${preview}\``, inline: false },
+        { name: '📋 Variables',     value: [
+          '`{user}` / `{username}` — opener\'s username',
+          '`{userid}` — opener\'s Discord ID',
+          '`{displayname}` — opener\'s display name',
+          '`{counter}` / `{number}` — 4-digit ticket counter',
+          '`{date}` — YYYY-MM-DD · `{time}` — HH-MM',
+          '`{year}` · `{month}` · `{day}`',
+          '`{random}` — 5-char random token',
+          '`{type}` — ticket type from the button/menu',
+        ].join('\n'),                                                     inline: false },
+      )
+      .setFooter({ text: 'Channel names are lowercase, max 90 chars, dashes only. Leave the field blank in the editor to inherit the panel default.' }),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Edit Scheme',            TP.TT.edit(panel.id, ref, 'naming'),  ButtonStyle.Primary),
+    btn('↩️ Reset to Panel Default', TP.TT.reset(panel.id, ref, 'naming'), ButtonStyle.Secondary, o.namingScheme === undefined),
+    btn('← Back',                    TP.TT.main(panel.id, ref),            ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildTTNaming', payload);
   return payload;
 }
 
@@ -1061,6 +1222,39 @@ export function buildEditNamingModal(panel: TicketPanel): ModalBuilder {
     .setTitle('Ticket Naming Scheme')
     .addComponents(
       row(ti('namingScheme', 'Naming Scheme', TextInputStyle.Short, panel.namingScheme, 'e.g. ticket-{counter} or support-{username}', true, 90)),
+    );
+}
+
+export function buildTTEditCategoriesModal(panel: TicketPanel, ref: TicketEntryRef): ModalBuilder {
+  const o = getEntry(panel, ref)?.overrides ?? {};
+  return new ModalBuilder()
+    .setCustomId(TP.TT.ttModal(panel.id, ref, 'cat'))
+    .setTitle('Category Routing (this type)')
+    .addComponents(
+      row(ti('openCategory',    'Open Category ID',    TextInputStyle.Short, o.openCategory    || '', 'Blank = inherit panel default', false, 20)),
+      row(ti('closedCategory',  'Closed Category ID',  TextInputStyle.Short, o.closedCategory  || '', 'Blank = inherit panel default', false, 20)),
+      row(ti('archiveCategory', 'Archive Category ID', TextInputStyle.Short, o.archiveCategory || '', 'Blank = inherit panel default', false, 20)),
+    );
+}
+
+export function buildTTEditRolesModal(panel: TicketPanel, ref: TicketEntryRef): ModalBuilder {
+  const o = getEntry(panel, ref)?.overrides ?? {};
+  return new ModalBuilder()
+    .setCustomId(TP.TT.ttModal(panel.id, ref, 'roles'))
+    .setTitle('Roles (this type)')
+    .addComponents(
+      row(ti('supportRoles', 'Support Role IDs', TextInputStyle.Paragraph, (o.supportRoles ?? []).join(','), 'Comma-separated — blank = inherit panel default', false, 1000)),
+      row(ti('pingRoles',    'Ping Role IDs',    TextInputStyle.Paragraph, (o.pingRoles ?? []).join(','),    'Comma-separated — blank = inherit panel default', false, 1000)),
+    );
+}
+
+export function buildTTEditNamingModal(panel: TicketPanel, ref: TicketEntryRef): ModalBuilder {
+  const o = getEntry(panel, ref)?.overrides ?? {};
+  return new ModalBuilder()
+    .setCustomId(TP.TT.ttModal(panel.id, ref, 'naming'))
+    .setTitle('Naming Scheme (this type)')
+    .addComponents(
+      row(ti('namingScheme', 'Naming Scheme', TextInputStyle.Short, o.namingScheme || '', 'Blank = inherit panel default, e.g. sales-{counter}', false, 90)),
     );
 }
 

@@ -20,7 +20,7 @@ import { buildFormFromTemplate, type FormTemplateKey } from '../../../community/
 import { questionEngine, MAX_QUESTIONS_PER_FORM } from '../../../community/tickets/question-engine';
 import { genId } from '../../../community/tickets/store';
 import type { PermissionManager } from '../../../ai/permission-manager';
-import type { TicketPanel, TicketButtonConfig, TicketSelectMenuOption, TicketPriority, TicketMemberPermConfig, TicketStaffPermConfig, TicketClaimBehaviourConfig, TicketVisibilityMode, TicketForm, FormQuestion, FormNextRule, QuestionType, TicketEntryRef } from '../../../community/tickets/types';
+import type { TicketPanel, TicketButtonConfig, TicketSelectMenuOption, TicketPriority, TicketMemberPermConfig, TicketStaffPermConfig, TicketClaimBehaviourConfig, TicketVisibilityMode, TicketForm, FormQuestion, FormNextRule, QuestionType, TicketEntryRef, TicketTypeOverrides } from '../../../community/tickets/types';
 import { normalizePanel, DEFAULT_MEMBER_PERMS, DEFAULT_STAFF_PERMS, DEFAULT_CLAIM_BEHAVIOUR, QUESTION_TYPES, getEntry, setEntryOverrides } from '../../../community/tickets/types';
 import {
   buildPDMain,
@@ -56,6 +56,9 @@ import {
   buildExtraButtonDetail,
   buildSmOptionDetail,
   buildTTMain,
+  buildTTCategories,
+  buildTTRoles,
+  buildTTNaming,
   buildFeedback,
   buildTemplateGallery,
   buildTemplateDetail,
@@ -75,6 +78,9 @@ import {
   buildEditStaffRolesModal,
   buildEditAccessRolesModal,
   buildEditLogChannelModal,
+  buildTTEditCategoriesModal,
+  buildTTEditRolesModal,
+  buildTTEditNamingModal,
   buildPrimaryButtonModal,
   buildExtraButtonModal,
   buildSmOptionModal,
@@ -348,26 +354,86 @@ export class TicketPanelDesigner {
     'auto', 'tx', 'stats', 'embed', 'edit', 'modal', 'mperm', 'sperm', 'setvis', 'ctog', 'reset',
   ]);
 
+  /** Which override keys each built Ticket Type Designer section owns — used by section-scoped "Reset to Panel Default". */
+  private static readonly TT_SECTION_KEYS: Partial<Record<string, Array<keyof TicketTypeOverrides>>> = {
+    cat:    ['openCategory', 'closedCategory', 'archiveCategory'],
+    roles:  ['supportRoles', 'pingRoles'],
+    naming: ['namingScheme'],
+  };
+
   private async routeTTButton(interaction: ButtonInteraction, guild: Guild, id: string): Promise<void> {
     const rest = id.slice('tp:tt:'.length);
     const segs = rest.split(':');
     logger.info(`[TPD][TT] received custom_id="${id}" guild=${guild.id}`);
 
     if (TicketPanelDesigner.TT_KNOWN_SECTIONS.has(segs[0])) {
-      const [section, panelId, ref] = segs;
+      const section = segs[0];
+      const panelId = segs[1];
+      const ref     = segs[2];
+      const extra   = segs[3]; // present for edit/reset (the target section)
+
       if (section === 'reset') {
-        await this.handleTTReset(interaction, guild, panelId, ref);
+        await this.handleTTReset(interaction, guild, panelId, ref, extra ?? 'all');
         return;
       }
-      // Per-field section editors are not built yet — surface a clear, ephemeral
-      // message instead of a silent no-op ("This interaction failed").
+      if (section === 'edit') {
+        await this.showTTEditModal(interaction, guild, panelId, ref, extra);
+        return;
+      }
+      if (section === 'cat')    { await this.navTTCategories(interaction, guild, panelId, ref); return; }
+      if (section === 'roles')  { await this.navTTRoles(interaction, guild, panelId, ref); return; }
+      if (section === 'naming') { await this.navTTNaming(interaction, guild, panelId, ref); return; }
+
+      // Remaining per-field section editors (access/mperms/sperms/vis/claim/auto/tx/stats/embed)
+      // are not built yet — surface a clear, ephemeral message instead of a silent no-op.
       logger.info(`[TPD][TT] section="${section}" panelId=${panelId} ref=${ref} — not yet implemented`);
-      await this.navTTMain(interaction, guild, panelId, ref, `Editing "${section}" from this hub isn't available yet — use the panel's regular sections, or "Clear Overrides" to reset this type.`);
+      await this.navTTMain(interaction, guild, panelId, ref, `Editing "${section}" from this hub isn't available yet — use Categories / Roles / Naming above, or "Clear All Overrides" to reset this type.`);
       return;
     }
 
     const [panelId, ref] = segs;
     await this.navTTMain(interaction, guild, panelId, ref);
+  }
+
+  private async navTTCategories(interaction: ButtonInteraction, guild: Guild, panelId: string, ref: TicketEntryRef): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+    if (!getEntry(panel, ref)) { await this.nav(interaction, buildTTMain(panel, ref)); return; }
+    await this.nav(interaction, buildTTCategories(panel, ref));
+  }
+
+  private async navTTRoles(interaction: ButtonInteraction, guild: Guild, panelId: string, ref: TicketEntryRef): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+    if (!getEntry(panel, ref)) { await this.nav(interaction, buildTTMain(panel, ref)); return; }
+    await this.nav(interaction, buildTTRoles(panel, ref));
+  }
+
+  private async navTTNaming(interaction: ButtonInteraction, guild: Guild, panelId: string, ref: TicketEntryRef): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+    if (!getEntry(panel, ref)) { await this.nav(interaction, buildTTMain(panel, ref)); return; }
+    await this.nav(interaction, buildTTNaming(panel, ref));
+  }
+
+  private async showTTEditModal(interaction: ButtonInteraction, guild: Guild, panelId: string, ref: TicketEntryRef, section: string | undefined): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) {
+      await interaction.reply({ content: '❌ Panel not found.', flags: MessageFlags.Ephemeral });
+      return;
+    }
+    if (!getEntry(panel, ref)) {
+      await interaction.reply({ content: '❌ This button/option no longer exists on this panel.', flags: MessageFlags.Ephemeral });
+      return;
+    }
+
+    switch (section) {
+      case 'cat':    await interaction.showModal(buildTTEditCategoriesModal(panel, ref)); break;
+      case 'roles':  await interaction.showModal(buildTTEditRolesModal(panel, ref)); break;
+      case 'naming': await interaction.showModal(buildTTEditNamingModal(panel, ref)); break;
+      default:
+        await interaction.reply({ content: `❌ Editing "${section}" isn't available yet for individual ticket types.`, flags: MessageFlags.Ephemeral });
+    }
   }
 
   private async navTTMain(interaction: ButtonInteraction, guild: Guild, panelId: string, ref: TicketEntryRef, notice?: string): Promise<void> {
@@ -392,7 +458,7 @@ export class TicketPanelDesigner {
     await this.nav(interaction, payload);
   }
 
-  private async handleTTReset(interaction: ButtonInteraction, guild: Guild, panelId: string, ref: TicketEntryRef): Promise<void> {
+  private async handleTTReset(interaction: ButtonInteraction, guild: Guild, panelId: string, ref: TicketEntryRef, section: string): Promise<void> {
     const panel = await panelManager.get(panelId);
     if (!panel || panel.guildId !== guild.id) {
       await this.navPanelList(interaction, guild, 0);
@@ -404,11 +470,90 @@ export class TicketPanelDesigner {
       await this.nav(interaction, buildTTMain(panel, ref));
       return;
     }
-    await panelManager.update(panelId, setEntryOverrides(panel, ref, {}));
+
+    let nextOverrides: TicketTypeOverrides;
+    if (section === 'all') {
+      nextOverrides = {};
+    } else {
+      const keys = TicketPanelDesigner.TT_SECTION_KEYS[section];
+      nextOverrides = { ...(entry.overrides ?? {}) };
+      if (keys) for (const k of keys) delete nextOverrides[k];
+    }
+
+    await panelManager.update(panelId, setEntryOverrides(panel, ref, nextOverrides));
     const updated = await panelManager.get(panelId);
-    const payload = buildTTMain(updated ?? panel, ref);
-    payload.content = '✅ Overrides cleared — this ticket type now inherits all panel defaults.';
+
+    let payload: CCPayload;
+    switch (section) {
+      case 'cat':    payload = buildTTCategories(updated ?? panel, ref); break;
+      case 'roles':  payload = buildTTRoles(updated ?? panel, ref); break;
+      case 'naming': payload = buildTTNaming(updated ?? panel, ref); break;
+      default:       payload = buildTTMain(updated ?? panel, ref); break;
+    }
+    payload.content = section === 'all'
+      ? '✅ Overrides cleared — this ticket type now inherits all panel defaults.'
+      : '✅ Reset — this setting now inherits the panel default.';
     await this.nav(interaction, payload);
+  }
+
+  private async handleTTModalSubmit(interaction: ModalSubmitInteraction, guild: Guild, panelId: string, ref: TicketEntryRef, section: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) {
+      await this.navReply(interaction, buildFeedback(false, 'Panel not found.'));
+      return;
+    }
+    const entry = getEntry(panel, ref);
+    if (!entry) {
+      await this.navReply(interaction, buildFeedback(false, 'This button/option no longer exists on this panel.'));
+      return;
+    }
+
+    const next: TicketTypeOverrides = { ...(entry.overrides ?? {}) };
+
+    try {
+      switch (section) {
+        case 'cat': {
+          const openCategory    = getField(interaction, 'openCategory',    false);
+          const closedCategory  = getField(interaction, 'closedCategory',  false);
+          const archiveCategory = getField(interaction, 'archiveCategory', false);
+          if (openCategory)    next.openCategory    = openCategory;    else delete next.openCategory;
+          if (closedCategory)  next.closedCategory  = closedCategory;  else delete next.closedCategory;
+          if (archiveCategory) next.archiveCategory = archiveCategory; else delete next.archiveCategory;
+          break;
+        }
+        case 'roles': {
+          const supportRaw = getField(interaction, 'supportRoles', false);
+          const pingRaw    = getField(interaction, 'pingRoles',    false);
+          if (supportRaw) next.supportRoles = parseIds(supportRaw); else delete next.supportRoles;
+          if (pingRaw)    next.pingRoles    = parseIds(pingRaw);    else delete next.pingRoles;
+          break;
+        }
+        case 'naming': {
+          const namingScheme = getField(interaction, 'namingScheme', false);
+          if (namingScheme) next.namingScheme = namingScheme; else delete next.namingScheme;
+          break;
+        }
+        default:
+          throw new Error(`Unknown ticket type section: "${section}"`);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Invalid input.';
+      await this.navReply(interaction, buildFeedback(false, message, panelId));
+      return;
+    }
+
+    await panelManager.update(panelId, setEntryOverrides(panel, ref, next));
+    const updated = await panelManager.get(panelId);
+    logger.info(`[TPD][TT] updated overrides section="${section}" panelId=${panelId} ref=${ref}`);
+
+    let payload: CCPayload;
+    switch (section) {
+      case 'cat':    payload = buildTTCategories(updated ?? panel, ref); break;
+      case 'roles':  payload = buildTTRoles(updated ?? panel, ref); break;
+      case 'naming': payload = buildTTNaming(updated ?? panel, ref); break;
+      default:       payload = buildTTMain(updated ?? panel, ref); break;
+    }
+    await this.navReply(interaction, payload);
   }
 
   private async routePDButton(interaction: ButtonInteraction, guild: Guild, id: string): Promise<void> {
@@ -852,6 +997,13 @@ export class TicketPanelDesigner {
       const panelId = rest.slice(0, colon);
       const section = rest.slice(colon + 1);
       await this.handlePDModalSubmit(interaction, guild, panelId, section);
+      return;
+    }
+
+    // Ticket Type Designer modal submits — must be checked before generic tp:modal:
+    if (id.startsWith('tp:tt:modal:')) {
+      const [panelId, ref, section] = id.slice('tp:tt:modal:'.length).split(':');
+      await this.handleTTModalSubmit(interaction, guild, panelId, ref, section);
       return;
     }
 
