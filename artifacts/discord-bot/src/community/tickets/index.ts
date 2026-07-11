@@ -23,16 +23,30 @@ import { runMigration } from './migration';
 import { panelManager, PanelManager } from './panel-manager';
 import { ticketEngine, TicketEngine } from './ticket-engine';
 import { permissionEngine } from './permission-engine';
-import { questionEngine } from './question-engine';
+import { questionEngine, TICKET_TYPE_ANSWER_KEY } from './question-engine';
+import { answerEngine, AnswerEngine } from './answer-engine';
 import { automationEngine } from './automation-engine';
 import { statisticsEngine, StatisticsEngine } from './statistics-engine';
 import { templateEngine, TemplateEngine } from './template-engine';
 import { namingEngine, NamingEngine } from './naming-engine';
 import { categoryEngine, CategoryEngine } from './category-engine';
 import { transcriptEngine, TranscriptEngine } from './transcript-engine';
+import { genId } from './store';
+import type { TicketForm, TicketPanel } from './types';
 import { logger } from '../../utils/logger';
 
 export * from './types';
+
+interface PendingFormFlow {
+  panelId: string;
+  ticketType: string;
+  answers: Record<string, string>;
+  formIds: string[];
+  startedAt: number;
+  prefill?: Record<string, string>;
+}
+
+const FLOW_TTL_MS = 30 * 60 * 1000;
 
 class TicketSystem {
   readonly panels: PanelManager = panelManager;
@@ -42,9 +56,13 @@ class TicketSystem {
   readonly naming: NamingEngine = namingEngine;
   readonly categories: CategoryEngine = categoryEngine;
   readonly transcripts: TranscriptEngine = transcriptEngine;
+  readonly answers: AnswerEngine = answerEngine;
 
   private client?: Client;
   private sweepHandle?: NodeJS.Timeout;
+  private flowSweepHandle?: NodeJS.Timeout;
+  /** In-memory state for multi-form chains (a form's `nextRules` can route to another form before a ticket is created). */
+  private readonly pendingFlows = new Map<string, PendingFormFlow>();
 
   async init(client: Client): Promise<void> {
     this.client = client;
@@ -56,13 +74,30 @@ class TicketSystem {
       statisticsEngine.ensureFile(),
       automationEngine.ensureFile(),
       transcriptEngine.ensureFile(),
+      answerEngine.ensureFile(),
     ]);
     this.sweepHandle = automationEngine.createInactivitySweeper(ticketId => this.autoCloseIfInactive(ticketId));
-    logger.success('[TICKETS] Ticket System Pro online — 10 engines wired (naming, category, permission, question, transcript, automation, statistics, template, panel, ticket).');
+    this.flowSweepHandle = setInterval(() => {
+      const cutoff = Date.now() - FLOW_TTL_MS;
+      for (const [id, flow] of this.pendingFlows) {
+        if (flow.startedAt < cutoff) this.pendingFlows.delete(id);
+      }
+    }, 5 * 60 * 1000);
+    logger.success('[TICKETS] Ticket System Pro online — 11 engines wired (naming, category, permission, question, answer, transcript, automation, statistics, template, panel, ticket).');
   }
 
   shutdown(): void {
     if (this.sweepHandle) clearInterval(this.sweepHandle);
+    if (this.flowSweepHandle) clearInterval(this.flowSweepHandle);
+  }
+
+  /** Which TicketForm (if any) a given ticket-opening button/select-option starts. Falls back to the legacy `modal` when unset. */
+  private resolveEntryFormId(panel: TicketPanel, ticketType: string): string | undefined {
+    if (panel.button.ticketType === ticketType) return panel.button.formId;
+    const extra = panel.additionalButtons.find(b => b.ticketType === ticketType);
+    if (extra) return extra.formId;
+    const opt = panel.selectMenu?.options.find(o => o.ticketType === ticketType);
+    return opt?.formId;
   }
 
   private async autoCloseIfInactive(ticketId: string): Promise<void> {
@@ -106,6 +141,16 @@ class TicketSystem {
       return;
     }
 
+    const formId = this.resolveEntryFormId(panel, ticketType);
+    const form = formId ? panel.forms.find(f => f.id === formId) : undefined;
+    if (form && form.questions.length > 0) {
+      const flowId = genId('flow');
+      this.pendingFlows.set(flowId, { panelId, ticketType, answers: {}, formIds: [], startedAt: Date.now() });
+      const knownAnswers = { [TICKET_TYPE_ANSWER_KEY]: ticketType };
+      await interaction.showModal(questionEngine.buildFormModal(`tk:form:${panelId}:${ticketType}:${form.id}:${flowId}`, form, knownAnswers));
+      return;
+    }
+
     if (questionEngine.hasQuestions(panel.modal)) {
       await interaction.showModal(questionEngine.buildModal(`tk:modal:${panelId}:${ticketType}`, panel.modal));
       return;
@@ -120,6 +165,7 @@ class TicketSystem {
     panelId: string,
     ticketType: string,
     answers: Record<string, string>,
+    usedForms: TicketForm[] = [],
   ): Promise<void> {
     const panel = await panelManager.get(panelId);
     if (!panel) {
@@ -128,19 +174,126 @@ class TicketSystem {
     }
 
     await interaction.deferReply({ ephemeral: true });
-    const { channel } = await ticketEngine.createChannel(
+    const extraAnswerFields = usedForms.length > 0 ? questionEngine.formatFormAnswersForEmbed(usedForms, answers) : [];
+    const { ticket, channel } = await ticketEngine.createChannel(
       guild,
       panel,
       { id: interaction.user.id, username: interaction.user.username, displayName: interaction.user.displayName ?? interaction.user.username, tag: interaction.user.tag },
       ticketType,
       answers,
+      extraAnswerFields,
     );
     await interaction.editReply({ content: `✅ Your ticket has been created: ${channel}` });
+
+    if (usedForms.length > 0) {
+      const lastForm = usedForms[usedForms.length - 1];
+      await answerEngine.record({
+        guildId: guild.id,
+        panelId: panel.id,
+        panelName: panel.name,
+        formId: lastForm.id,
+        formName: lastForm.name,
+        ticketType,
+        ticketId: ticket.id,
+        channelId: channel.id,
+        userId: interaction.user.id,
+        userTag: interaction.user.tag,
+        answers: usedForms.flatMap(f => f.questions.filter(q => answers[q.id]).map(q => ({ questionId: q.id, title: q.title, type: q.type, value: answers[q.id] }))),
+      }).catch(err => logger.error('[TICKETS] Failed to persist form answers', err));
+
+      const summaryEmbed = questionEngine.buildAnswerSummaryEmbed({
+        forms: usedForms,
+        answers,
+        userTag: interaction.user.tag,
+        submittedAt: Date.now(),
+        color: panel.embed.color,
+      });
+      await channel.send({ embeds: [summaryEmbed] }).catch(() => {});
+    }
+  }
+
+  private async handleFormModal(interaction: ModalSubmitInteraction, guild: Guild, parts: string[]): Promise<void> {
+    const [, , panelId, ticketType, formId, flowId] = parts;
+    const panel = await panelManager.get(panelId);
+    if (!panel) {
+      await interaction.reply({ content: '❌ This ticket panel no longer exists.', ephemeral: true });
+      return;
+    }
+    const form = panel.forms.find(f => f.id === formId);
+    if (!form) {
+      await interaction.reply({ content: '❌ This form no longer exists.', ephemeral: true });
+      return;
+    }
+    const member = interaction.member instanceof GuildMember ? interaction.member : null;
+    const block = await ticketEngine.checkCanOpen(panel, member, interaction.user.id);
+    if (block) {
+      await interaction.reply({ content: `❌ ${block}`, ephemeral: true });
+      return;
+    }
+
+    const flow = this.pendingFlows.get(flowId) ?? { panelId, ticketType, answers: {}, formIds: [], startedAt: Date.now() };
+    const knownAnswers = { [TICKET_TYPE_ANSWER_KEY]: ticketType, ...flow.answers };
+    const result = questionEngine.validateForm(interaction, form, knownAnswers);
+
+    if (!result.ok) {
+      const prefill: Record<string, string> = {};
+      for (const q of questionEngine.visibleQuestions(form, knownAnswers)) {
+        try {
+          prefill[q.id] = interaction.fields.getTextInputValue(q.id);
+        } catch {
+          // Question wasn't rendered in this particular submission — nothing to prefill.
+        }
+      }
+      this.pendingFlows.set(flowId, { ...flow, prefill });
+      const embed = new EmbedBuilder()
+        .setColor(0xed4245)
+        .setTitle('⚠️ Please fix the following')
+        .setDescription(result.errors.map(e => `• **${e.title}:** ${e.message}`).join('\n'));
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setCustomId(`tk:formretry:${panelId}:${ticketType}:${formId}:${flowId}`).setLabel('Try Again').setStyle(ButtonStyle.Primary).setEmoji('🔁'),
+      );
+      await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+      return;
+    }
+
+    const mergedAnswers = { ...flow.answers, ...result.answers };
+    const usedFormIds = [...flow.formIds, formId];
+    const nextFormId = questionEngine.pickNextFormId(form, result.answers);
+    const nextForm = nextFormId && !usedFormIds.includes(nextFormId) ? panel.forms.find(f => f.id === nextFormId) : undefined;
+
+    if (nextForm) {
+      this.pendingFlows.set(flowId, { panelId, ticketType, answers: mergedAnswers, formIds: usedFormIds, startedAt: flow.startedAt });
+      const knownAnswers2 = { [TICKET_TYPE_ANSWER_KEY]: ticketType, ...mergedAnswers };
+      await interaction.showModal(questionEngine.buildFormModal(`tk:form:${panelId}:${ticketType}:${nextForm.id}:${flowId}`, nextForm, knownAnswers2));
+      return;
+    }
+
+    this.pendingFlows.delete(flowId);
+    const usedForms = usedFormIds.map(id => panel.forms.find(f => f.id === id)).filter((f): f is TicketForm => !!f);
+    await this.createTicketChannel(interaction, guild, panelId, ticketType, mergedAnswers, usedForms);
+  }
+
+  private async retryFormModal(interaction: ButtonInteraction, _guild: Guild, panelId: string, ticketType: string, formId: string, flowId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms.find(f => f.id === formId);
+    if (!panel || !form) {
+      await interaction.reply({ content: '❌ This form no longer exists.', ephemeral: true });
+      return;
+    }
+    const flow = this.pendingFlows.get(flowId);
+    const knownAnswers = { [TICKET_TYPE_ANSWER_KEY]: ticketType, ...(flow?.answers ?? {}) };
+    await interaction.showModal(questionEngine.buildFormModal(`tk:form:${panelId}:${ticketType}:${formId}:${flowId}`, form, knownAnswers, flow?.prefill));
   }
 
   async handleModal(interaction: ModalSubmitInteraction, guild: Guild): Promise<void> {
     try {
-      const [, , panelId, ticketType] = interaction.customId.split(':');
+      const parts = interaction.customId.split(':');
+      if (parts[1] === 'form') {
+        await this.handleFormModal(interaction, guild, parts);
+        return;
+      }
+
+      const [, , panelId, ticketType] = parts;
       const panel = await panelManager.get(panelId);
       if (!panel) {
         await interaction.reply({ content: '❌ This ticket panel no longer exists.', ephemeral: true });
@@ -172,12 +325,18 @@ class TicketSystem {
   }
 
   async handleInteraction(interaction: ButtonInteraction, guild: Guild): Promise<void> {
-    const [, action, a, b] = interaction.customId.split(':');
+    const parts = interaction.customId.split(':');
+    const [, action, a, b] = parts;
     try {
       switch (action) {
         case 'open':
           await this.startOpenFlow(interaction, guild, a, b);
           break;
+        case 'formretry': {
+          const [, , panelId, ticketType, formId, flowId] = parts;
+          await this.retryFormModal(interaction, guild, panelId, ticketType, formId, flowId);
+          break;
+        }
         case 'claim':
           await this.claim(interaction, guild, a, true);
           break;

@@ -132,6 +132,7 @@ function convertPanel(legacy: LegacyPanel): TicketPanel {
     cooldown: 0,
     priority: 'normal',
     modal: { enabled: false, questions: [] },
+    forms: [],
     transcript: {
       enabled: !!legacy.transcriptChannelId,
       channelId: legacy.transcriptChannelId,

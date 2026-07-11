@@ -1,0 +1,245 @@
+Task 11 — Ticket System Pro (Phase 4)
+
+Objective
+
+Build a professional Question Builder for Ticket Panels.
+
+This replaces the current simple 5-question implementation.
+
+This should become a complete Form Builder.
+
+Everything must be configurable inside the Ticket Panel Designer.
+
+No JSON editing.
+
+No slash commands.
+
+Everything from Discord.
+
+====================================================
+
+Question Builder
+
+====================================================
+
+Every panel can contain multiple forms.
+
+Each form can contain up to 5 Discord modal fields.
+
+Admins can create unlimited forms.
+
+====================================================
+
+Supported Question Types
+
+====================================================
+
+Short Text
+
+Paragraph
+
+Email
+
+Number
+
+Discord Username
+
+Discord User ID
+
+Role Mention
+
+Channel Mention
+
+URL
+
+Date
+
+====================================================
+
+Question Settings
+
+====================================================
+
+Editable:
+
+Title
+
+Placeholder
+
+Description
+
+Required
+
+Minimum Length
+
+Maximum Length
+
+Default Value
+
+Validation Regex
+
+Error Message
+
+====================================================
+
+Validation
+
+====================================================
+
+Support validation before ticket creation.
+
+Examples:
+
+Only numbers
+
+Only URLs
+
+Only emails
+
+Minimum characters
+
+Maximum characters
+
+Regex
+
+====================================================
+
+Conditional Questions
+
+====================================================
+
+Allow showing questions based on previous answers.
+
+Example:
+
+If "Department" == Report
+
+↓
+
+Show Report Reason
+
+Otherwise hide it.
+
+====================================================
+
+Answer Summary
+
+====================================================
+
+After submission,
+
+render a professional embed containing:
+
+Question
+
+Answer
+
+Submission Time
+
+User
+
+Form Name
+
+====================================================
+
+Answer Storage
+
+====================================================
+
+Store answers separately from tickets.
+
+Support:
+
+Search
+
+Export
+
+Delete
+
+Audit
+
+====================================================
+
+Templates
+
+====================================================
+
+Include built-in templates:
+
+Support
+
+Purchase
+
+Bug Report
+
+Appeal
+
+Staff Application
+
+Partnership
+
+Custom
+
+====================================================
+
+Designer
+
+====================================================
+
+Admins can:
+
+Create
+
+Edit
+
+Duplicate
+
+Delete
+
+Reorder
+
+Preview
+
+Import
+
+Export
+
+forms.
+
+====================================================
+
+Integration
+
+====================================================
+
+Reuse QuestionEngine.
+
+No duplicated code.
+
+No breaking changes.
+
+====================================================
+
+Requirements
+
+====================================================
+
+Zero TODO
+
+Zero placeholders
+
+Zero TS errors
+
+====================================================
+
+Return only:
+
+Files created
+
+Files modified
+
+Designer pages added
+
+Runtime status
+
+Build status

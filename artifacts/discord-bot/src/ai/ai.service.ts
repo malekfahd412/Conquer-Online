@@ -215,7 +215,10 @@ export class AIService {
         }
         return;
       }
-      if (interaction.isModalSubmit() && interaction.customId.startsWith('tk:modal:')) {
+      if (
+        interaction.isModalSubmit() &&
+        (interaction.customId.startsWith('tk:modal:') || interaction.customId.startsWith('tk:form:'))
+      ) {
         if (interaction.guild) {
           ticketSystem.handleModal(interaction, interaction.guild).catch(err =>
             logger.error('Ticket modal error', err),

@@ -25,6 +25,8 @@ export interface TicketButtonConfig {
   emoji?: string;
   style: TicketButtonStyle;
   ticketType: string;
+  /** Form Builder (Phase 4): which TicketForm to open for this ticket type. Falls back to legacy `modal` when unset. */
+  formId?: string;
 }
 
 export interface TicketSelectMenuOption {
@@ -33,6 +35,8 @@ export interface TicketSelectMenuOption {
   ticketType: string;
   description?: string;
   emoji?: string;
+  /** Form Builder (Phase 4): which TicketForm to open for this ticket type. Falls back to legacy `modal` when unset. */
+  formId?: string;
 }
 
 export interface TicketSelectMenuConfig {
@@ -62,6 +66,87 @@ export interface TicketModalConfig {
   enabled: boolean;
   title?: string;
   questions: TicketModalQuestion[];
+}
+
+// ── Question / Form Builder (Phase 4) ───────────────────────────────────────
+//
+// Replaces the legacy single 5-question `modal` above with unlimited,
+// chainable forms (still capped at 5 questions per individual form, which is
+// a hard Discord modal limit). `modal` is kept for backward compatibility —
+// panels created before this feature keep working exactly as before.
+
+export type QuestionType =
+  | 'short_text'
+  | 'paragraph'
+  | 'email'
+  | 'number'
+  | 'discord_username'
+  | 'discord_user_id'
+  | 'role_mention'
+  | 'channel_mention'
+  | 'url'
+  | 'date';
+
+export const QUESTION_TYPES: QuestionType[] = [
+  'short_text', 'paragraph', 'email', 'number', 'discord_username',
+  'discord_user_id', 'role_mention', 'channel_mention', 'url', 'date',
+];
+
+export const QUESTION_TYPE_META: Record<QuestionType, { label: string; emoji: string; hint: string }> = {
+  short_text:       { label: 'Short Text',       emoji: '✏️', hint: 'A single line of free text' },
+  paragraph:        { label: 'Paragraph',        emoji: '📝', hint: 'Multi-line free text' },
+  email:            { label: 'Email',            emoji: '📧', hint: 'Must look like an email address' },
+  number:           { label: 'Number',           emoji: '🔢', hint: 'Digits only (integer or decimal)' },
+  discord_username: { label: 'Discord Username', emoji: '👤', hint: 'A Discord username, e.g. name' },
+  discord_user_id:  { label: 'Discord User ID',  emoji: '🆔', hint: 'A raw 17-20 digit Discord user ID' },
+  role_mention:     { label: 'Role Mention',     emoji: '🏷️', hint: 'A role mention or raw role ID' },
+  channel_mention:  { label: 'Channel Mention',  emoji: '📺', hint: 'A channel mention or raw channel ID' },
+  url:              { label: 'URL',              emoji: '🔗', hint: 'Must be a valid http(s) link' },
+  date:             { label: 'Date',             emoji: '📅', hint: 'YYYY-MM-DD format' },
+};
+
+/** Condition gating whether a question is shown, based on an answer from an EARLIER form in the same chain. */
+export interface FormQuestionCondition {
+  /** Question id from an earlier form (or the special key 'ticketType'). */
+  questionId: string;
+  /** Case-insensitive equality match against the previously submitted value. */
+  equals: string;
+}
+
+export interface FormQuestion {
+  id: string;
+  type: QuestionType;
+  title: string;
+  placeholder?: string;
+  description?: string;
+  required: boolean;
+  minLength?: number;
+  maxLength?: number;
+  defaultValue?: string;
+  validationRegex?: string;
+  errorMessage?: string;
+  /** Same-form self-referential conditionals are impossible in Discord modals — this only looks at earlier forms. */
+  showIf?: FormQuestionCondition;
+}
+
+/** Routing rule evaluated against this form's just-submitted answers to pick the next form in the chain. */
+export interface FormNextRule {
+  questionId: string;
+  equals: string;
+  nextFormId: string;
+}
+
+export interface TicketForm {
+  id: string;
+  name: string;
+  description?: string;
+  /** Max 5 — hard Discord modal limit. */
+  questions: FormQuestion[];
+  nextRules: FormNextRule[];
+  /** Used when no nextRules match and a chain continuation is still desired. */
+  defaultNextFormId?: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface TicketTranscriptConfig {
@@ -214,6 +299,8 @@ export interface TicketPanel {
   claimBehaviour: TicketClaimBehaviourConfig;
 
   modal: TicketModalConfig;
+  /** Question/Form Builder (Phase 4). Empty array = panel only uses the legacy `modal`, if any. */
+  forms: TicketForm[];
   transcript: TicketTranscriptConfig;
   automation: TicketAutomationConfig;
   statistics: TicketStatisticsConfig;
@@ -244,6 +331,7 @@ export function normalizePanel(panel: TicketPanel): TicketPanel {
     staffPerms:     p.staffPerms     ?? { ...DEFAULT_STAFF_PERMS },
     visibility:     p.visibility     ?? 'private',
     claimBehaviour: p.claimBehaviour ?? { ...DEFAULT_CLAIM_BEHAVIOUR },
+    forms:          p.forms          ?? [],
   };
 }
 
@@ -269,6 +357,47 @@ export interface TicketRecord {
   firstStaffReplyAt?: number;
   lastActivityAt: number;
   participantIds: string[];
+}
+
+// ── Form Answer Storage (Phase 4) ───────────────────────────────────────────
+//
+// Deliberately separate from TicketRecord.answers — a submitted form is a
+// durable record on its own, searchable/exportable/deletable independent of
+// the ticket it may have created (owned by AnswerEngine, answers.json).
+
+export interface FormAnswerItem {
+  questionId: string;
+  title: string;
+  type: QuestionType;
+  value: string;
+}
+
+export interface FormAnswerRecord {
+  id: string;
+  guildId: string;
+  panelId: string;
+  panelName: string;
+  formId: string;
+  formName: string;
+  ticketType: string;
+  ticketId?: string;
+  channelId?: string;
+  userId: string;
+  userTag: string;
+  answers: FormAnswerItem[];
+  submittedAt: number;
+}
+
+export type FormAnswerAuditAction = 'created' | 'viewed' | 'exported' | 'deleted';
+
+export interface FormAnswerAuditEntry {
+  id: string;
+  guildId: string;
+  action: FormAnswerAuditAction;
+  actorId: string;
+  answerId?: string;
+  detail?: string;
+  timestamp: number;
 }
 
 export interface TicketTemplate {

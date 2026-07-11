@@ -34,16 +34,9 @@
  *   tp:sm:edit:<panelId>:<idx>       → edit select option modal
  *   tp:sm:edit:m:<panelId>:<idx>     → edit select option modal submit
  *   tp:sm:rm:<panelId>:<idx>         → remove select option
- *   tp:q:add:<panelId>               → add question modal
- *   tp:q:add:m:<panelId>             → add question modal submit
- *   tp:q:detail:<panelId>:<idx>      → question detail view
- *   tp:q:edit:<panelId>:<idx>        → edit question modal
- *   tp:q:edit:m:<panelId>:<idx>      → edit question modal submit
- *   tp:q:rm:<panelId>                → remove question
  *   tp:ps:<offset>                   → panel list select menu
  *   tp:ebs:<panelId>                 → extra buttons select menu
  *   tp:sos:<panelId>                 → select menu options select
- *   tp:qs:<panelId>                  → questions select menu
  *   tp:gallery                       → template gallery (page 0)
  *   tp:tpl:detail:<tplId>            → template detail/preview
  *   tp:tpl:use:<tplId>               → show create-from-template modal
@@ -68,6 +61,50 @@
  *   tp:pd:sperm:<panelId>:<key>      → Toggle one staff permission
  *   tp:pd:setvis:<panelId>:<mode>    → Set visibility mode
  *   tp:pd:ctog:<panelId>:<field>     → Toggle one claim behaviour field
+ *
+ * Question/Form Builder (tp:frm:*) sub-namespace — replaces the old 5-question
+ * `tp:q:*` UI. Panels created before this feature keep working via the
+ * legacy `modal` data path (ticket-open flow only, no UI); `tp:q:*` IDs are
+ * intentionally retired.
+ *   tp:frm:<panelId>                        → Form Builder main (list of forms)
+ *   tp:frm:new:<panelId>                    → template gallery for a new form
+ *   tp:frm:new:use:<panelId>:<tplKey>        → create form from a built-in template
+ *   tp:frm:detail:<panelId>:<formId>         → form detail (questions + actions)
+ *   tp:frm:rename:<panelId>:<formId>         → rename/describe form modal
+ *   tp:frm:rename:m:<panelId>:<formId>       → rename modal submit
+ *   tp:frm:dup:<panelId>:<formId>            → duplicate form
+ *   tp:frm:del:<panelId>:<formId>            → delete confirm
+ *   tp:frm:del:yes:<panelId>:<formId>        → confirmed delete
+ *   tp:frm:preview:<panelId>:<formId>        → preview (opens the real modal, nothing is saved)
+ *   tp:frm:export:<panelId>:<formId>         → export form as a JSON file attachment
+ *   tp:frm:import:<panelId>                  → show import-JSON modal
+ *   tp:frm:import:m:<panelId>                → import modal submit
+ *   tp:frm:assign:<panelId>:<formId>         → select menu: which button/option opens this form
+ *   tp:frm:chain:<panelId>:<formId>          → chaining (next form) settings view
+ *   tp:frm:chain:set:<panelId>:<formId>      → show modal to edit chaining rule
+ *   tp:frm:chain:m:<panelId>:<formId>        → chaining modal submit
+ *   tp:frm:fs:<panelId>                      → select menu: pick a form (main page)
+ *   tp:frm:q:add:<panelId>:<formId>          → question-type picker (select menu)
+ *   tp:frm:q:addtype:<panelId>:<formId>      → question-type select menu customId
+ *   tp:frm:q:add:m:<panelId>:<formId>:<type> → add-question modal submit
+ *   tp:frm:q:detail:<panelId>:<formId>:<idx> → question detail view
+ *   tp:frm:q:basic:<panelId>:<formId>:<idx>  → edit title/placeholder/default modal
+ *   tp:frm:q:basic:m:<panelId>:<formId>:<idx>→ basic modal submit
+ *   tp:frm:q:desc:<panelId>:<formId>:<idx>   → edit description modal
+ *   tp:frm:q:desc:m:<panelId>:<formId>:<idx> → description modal submit
+ *   tp:frm:q:len:<panelId>:<formId>:<idx>    → edit min/max length modal
+ *   tp:frm:q:len:m:<panelId>:<formId>:<idx>  → length modal submit
+ *   tp:frm:q:val:<panelId>:<formId>:<idx>    → edit validation regex/error modal
+ *   tp:frm:q:val:m:<panelId>:<formId>:<idx>  → validation modal submit
+ *   tp:frm:q:req:<panelId>:<formId>:<idx>    → toggle required
+ *   tp:frm:q:up:<panelId>:<formId>:<idx>     → move question up
+ *   tp:frm:q:down:<panelId>:<formId>:<idx>   → move question down
+ *   tp:frm:q:rm:<panelId>:<formId>:<idx>     → remove question
+ *   tp:frm:qs:<panelId>:<formId>             → select menu: pick a question
+ *   tp:frm:qc:<panelId>:<formId>:<idx>       → conditional (showIf) editor view
+ *   tp:frm:qc:pick:<panelId>:<formId>:<idx>  → select menu: pick source question
+ *   tp:frm:qc:m:<panelId>:<formId>:<idx>:<srcQId> → modal: enter "equals" value
+ *   tp:frm:qc:clear:<panelId>:<formId>:<idx> → clear condition
  */
 
 export type SectionKey =
@@ -75,7 +112,7 @@ export type SectionKey =
   | 'appearance'
   | 'button'
   | 'permissions'
-  | 'questions'
+  | 'forms'
   | 'categories'
   | 'naming'
   | 'lifecycle'
@@ -117,17 +154,9 @@ export const TP = {
   smEditM:      (panelId: string, idx: number): string => `tp:sm:edit:m:${panelId}:${idx}`,
   smRm:         (panelId: string, idx: number): string => `tp:sm:rm:${panelId}:${idx}`,
 
-  qAdd:         (panelId: string): string        => `tp:q:add:${panelId}`,
-  qAddM:        (panelId: string): string        => `tp:q:add:m:${panelId}`,
-  qDetail:      (panelId: string, idx: number): string => `tp:q:detail:${panelId}:${idx}`,
-  qEdit:        (panelId: string, idx: number): string => `tp:q:edit:${panelId}:${idx}`,
-  qEditM:       (panelId: string, idx: number): string => `tp:q:edit:m:${panelId}:${idx}`,
-  qRm:          (panelId: string, idx: number): string => `tp:q:rm:${panelId}:${idx}`,
-
   panelSelect:  (offset: number): string         => `tp:ps:${offset}`,
   extraBtnSel:  (panelId: string): string        => `tp:ebs:${panelId}`,
   smOptSel:     (panelId: string): string        => `tp:sos:${panelId}`,
-  qSel:         (panelId: string): string        => `tp:qs:${panelId}`,
 
   // ── Template Gallery ─────────────────────────────────────────────────────
   GALLERY:      'tp:gallery',
@@ -156,6 +185,51 @@ export const TP = {
     setvis:   (panelId: string, mode: string): string      => `tp:pd:setvis:${panelId}:${mode}`,
     ctog:     (panelId: string, field: string): string     => `tp:pd:ctog:${panelId}:${field}`,
   },
+
+  // ── Question / Form Builder ──────────────────────────────────────────────
+  FRM: {
+    main:       (panelId: string): string                        => `tp:frm:${panelId}`,
+    newGallery: (panelId: string): string                        => `tp:frm:new:${panelId}`,
+    newUse:     (panelId: string, tplKey: string): string         => `tp:frm:new:use:${panelId}:${tplKey}`,
+    detail:     (panelId: string, formId: string): string         => `tp:frm:detail:${panelId}:${formId}`,
+    rename:     (panelId: string, formId: string): string         => `tp:frm:rename:${panelId}:${formId}`,
+    renameM:    (panelId: string, formId: string): string         => `tp:frm:rename:m:${panelId}:${formId}`,
+    dup:        (panelId: string, formId: string): string         => `tp:frm:dup:${panelId}:${formId}`,
+    del:        (panelId: string, formId: string): string         => `tp:frm:del:${panelId}:${formId}`,
+    delYes:     (panelId: string, formId: string): string         => `tp:frm:del:yes:${panelId}:${formId}`,
+    preview:    (panelId: string, formId: string): string         => `tp:frm:preview:${panelId}:${formId}`,
+    exportForm: (panelId: string, formId: string): string         => `tp:frm:export:${panelId}:${formId}`,
+    importForm: (panelId: string): string                         => `tp:frm:import:${panelId}`,
+    importM:    (panelId: string): string                         => `tp:frm:import:m:${panelId}`,
+    assign:     (panelId: string, formId: string): string         => `tp:frm:assign:${panelId}:${formId}`,
+    chain:      (panelId: string, formId: string): string         => `tp:frm:chain:${panelId}:${formId}`,
+    chainSet:   (panelId: string, formId: string): string         => `tp:frm:chain:set:${panelId}:${formId}`,
+    chainM:     (panelId: string, formId: string): string         => `tp:frm:chain:m:${panelId}:${formId}`,
+    formSel:    (panelId: string): string                         => `tp:frm:fs:${panelId}`,
+
+    qAdd:       (panelId: string, formId: string): string                     => `tp:frm:q:add:${panelId}:${formId}`,
+    qAddType:   (panelId: string, formId: string): string                     => `tp:frm:q:addtype:${panelId}:${formId}`,
+    qAddM:      (panelId: string, formId: string, type: string): string      => `tp:frm:q:add:m:${panelId}:${formId}:${type}`,
+    qDetail:    (panelId: string, formId: string, idx: number): string       => `tp:frm:q:detail:${panelId}:${formId}:${idx}`,
+    qBasic:     (panelId: string, formId: string, idx: number): string       => `tp:frm:q:basic:${panelId}:${formId}:${idx}`,
+    qBasicM:    (panelId: string, formId: string, idx: number): string       => `tp:frm:q:basic:m:${panelId}:${formId}:${idx}`,
+    qDesc:      (panelId: string, formId: string, idx: number): string       => `tp:frm:q:desc:${panelId}:${formId}:${idx}`,
+    qDescM:     (panelId: string, formId: string, idx: number): string       => `tp:frm:q:desc:m:${panelId}:${formId}:${idx}`,
+    qLen:       (panelId: string, formId: string, idx: number): string       => `tp:frm:q:len:${panelId}:${formId}:${idx}`,
+    qLenM:      (panelId: string, formId: string, idx: number): string       => `tp:frm:q:len:m:${panelId}:${formId}:${idx}`,
+    qVal:       (panelId: string, formId: string, idx: number): string       => `tp:frm:q:val:${panelId}:${formId}:${idx}`,
+    qValM:      (panelId: string, formId: string, idx: number): string       => `tp:frm:q:val:m:${panelId}:${formId}:${idx}`,
+    qReq:       (panelId: string, formId: string, idx: number): string       => `tp:frm:q:req:${panelId}:${formId}:${idx}`,
+    qUp:        (panelId: string, formId: string, idx: number): string       => `tp:frm:q:up:${panelId}:${formId}:${idx}`,
+    qDown:      (panelId: string, formId: string, idx: number): string       => `tp:frm:q:down:${panelId}:${formId}:${idx}`,
+    qRm:        (panelId: string, formId: string, idx: number): string       => `tp:frm:q:rm:${panelId}:${formId}:${idx}`,
+    qSel:       (panelId: string, formId: string): string                    => `tp:frm:qs:${panelId}:${formId}`,
+
+    qCond:      (panelId: string, formId: string, idx: number): string       => `tp:frm:qc:${panelId}:${formId}:${idx}`,
+    qCondPick:  (panelId: string, formId: string, idx: number): string       => `tp:frm:qc:pick:${panelId}:${formId}:${idx}`,
+    qCondM:     (panelId: string, formId: string, idx: number, srcQId: string): string => `tp:frm:qc:m:${panelId}:${formId}:${idx}:${srcQId}`,
+    qCondClear: (panelId: string, formId: string, idx: number): string       => `tp:frm:qc:clear:${panelId}:${formId}:${idx}`,
+  },
 } as const;
 
 export function isTPInteraction(customId: string): boolean {
@@ -167,7 +241,7 @@ export const SECTION_META: Record<SectionKey, { label: string; emoji: string }> 
   appearance:  { label: 'Appearance',  emoji: '🎨' },
   button:      { label: 'Button',      emoji: '🔘' },
   permissions: { label: 'Permissions', emoji: '🔐' },
-  questions:   { label: 'Questions',   emoji: '❓' },
+  forms:       { label: 'Forms',       emoji: '📝' },
   categories:  { label: 'Categories',  emoji: '📁' },
   naming:      { label: 'Naming',      emoji: '📝' },
   lifecycle:   { label: 'Lifecycle',   emoji: '🔄' },

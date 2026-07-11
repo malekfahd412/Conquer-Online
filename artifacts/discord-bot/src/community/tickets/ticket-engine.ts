@@ -108,6 +108,7 @@ export class TicketEngine {
     opener: { id: string; username: string; displayName: string; tag: string },
     ticketType: string,
     answers: Record<string, string>,
+    extraAnswerFields: { name: string; value: string }[] = [],
   ): Promise<{ ticket: TicketRecord; channel: TextChannel }> {
     const number = await this.nextNumber(guild.id);
     const ticketId = genId('ticket');
@@ -162,6 +163,9 @@ export class TicketEngine {
 
     if (panel.modal.enabled && Object.keys(answers).length > 0) {
       embed.addFields(questionEngine.formatAnswersForEmbed(panel.modal, answers));
+    }
+    if (extraAnswerFields.length > 0) {
+      embed.addFields(extraAnswerFields.slice(0, 25));
     }
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(

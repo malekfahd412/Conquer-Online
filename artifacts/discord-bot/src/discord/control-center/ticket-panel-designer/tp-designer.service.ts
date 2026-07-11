@@ -777,6 +777,7 @@ export class TicketPanelDesigner {
       cooldown: 0,
       priority: 'normal',
       modal: { enabled: false, questions: [] },
+      forms: [],
       transcript: { enabled: false, formats: ['html'], dmUser: false },
       automation: { autoCloseInactivityMinutes: 0, autoDeleteAfterCloseMinutes: 0, cooldownSeconds: 0, reminderMinutes: 0 },
       statistics: { trackResponseTime: true, trackClaims: true },
