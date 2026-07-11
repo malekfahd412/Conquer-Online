@@ -5,6 +5,8 @@ Running on Replit (re-imported and re-set-up again on July 11, 2026 — `node_mo
 
 Ticket Panel Designer: each ticket button and select-menu option now has its own optional "Category ID" field (editable from the same edit modal as label/style/emoji), so different ticket types can open in different Discord categories. Falls back to the panel's Open Category when left blank.
 
+Auto-Role on Join: the Control Center's **Welcome/Goodbye** category (`/panel` → Welcome/Goodbye) now has a "🎭 Set Auto-Role" button that opens a native Discord role-select menu — pick up to 10 roles (or none, to clear) and they're saved as the guild's auto-role list. Every new member who joins gets those roles immediately, independent of whether welcome messages themselves are enabled/configured. Backed by the existing `autoRoleIds` field in `data/welcome.json` (previously only settable via AI chat command); the join handler in `welcome.service.ts` now applies auto-roles before checking the welcome-enabled flag.
+
 Note: after each fresh import, `pnpm install` must be run manually before the Discord Bot workflow will start (node_modules is not preserved across imports), and secrets need to be re-added since they are not carried over either.
 
 

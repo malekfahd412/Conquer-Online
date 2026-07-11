@@ -193,6 +193,7 @@ export class AIService {
       if (
         (interaction.isButton() && isCC(interaction.customId)) ||
         (interaction.isStringSelectMenu() && isCC(interaction.customId)) ||
+        (interaction.isRoleSelectMenu() && isCC(interaction.customId)) ||
         (interaction.isModalSubmit() && isCC(interaction.customId))
       ) {
         if (interaction.guild) {

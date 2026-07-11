@@ -26,12 +26,17 @@ function pickRandom<T>(arr: T[]): T | undefined {
 export class WelcomeService {
   async handleJoin(member: GuildMember): Promise<void> {
     const cfg = await getWelcomeConfig(member.guild.id);
+
+    // Auto-role assignment runs independently of the welcome message toggle —
+    // admins may want new members to receive a role on join without a welcome
+    // message being enabled at all.
+    if (cfg.autoRoleIds.length > 0) {
+      await member.roles.add(cfg.autoRoleIds).catch(err => logger.error('Auto-role assignment failed', err));
+    }
+
     if (!cfg.enabled) return;
 
     try {
-      if (cfg.autoRoleIds.length > 0) {
-        await member.roles.add(cfg.autoRoleIds).catch(err => logger.error('Auto-role assignment failed', err));
-      }
       if (cfg.autoNickname) {
         await member.setNickname(fillVariables(cfg.autoNickname, member)).catch(() => {});
       }

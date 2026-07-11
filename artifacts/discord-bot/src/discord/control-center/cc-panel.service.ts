@@ -3,6 +3,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  RoleSelectMenuBuilder,
   MessageFlags,
 } from 'discord.js';
 import type {
@@ -10,6 +11,7 @@ import type {
   GuildMember,
   ButtonInteraction,
   StringSelectMenuInteraction,
+  RoleSelectMenuInteraction,
   ModalSubmitInteraction,
   ChatInputCommandInteraction,
   Interaction,
@@ -34,6 +36,7 @@ import {
 } from './cc-renderer';
 import { assertUniqueCustomIds } from './cc-debug';
 import { getFavorites, toggleFavorite, isFavorite } from './cc-favorites';
+import { getWelcomeConfig, setWelcomeConfig } from '../welcome/welcome-store';
 import { logger } from '../../utils/logger';
 
 type NavInteraction = ButtonInteraction | StringSelectMenuInteraction;
@@ -125,6 +128,8 @@ export class ControlCenterService {
         await this.routeButton(interaction, guild);
       } else if (interaction.isStringSelectMenu()) {
         await this.routeSelectMenu(interaction, guild);
+      } else if (interaction.isRoleSelectMenu()) {
+        await this.routeRoleSelectMenu(interaction, guild);
       } else if (interaction.isModalSubmit()) {
         await this.routeModal(interaction, guild);
       }
@@ -185,6 +190,10 @@ export class ControlCenterService {
       await this.handleFavToggle(interaction, guild, parts.slice(2).join(':'));
       return;
     }
+    if (action === 'welcome' && parts[2] === 'autorole') {
+      await this.showAutoRolePicker(interaction, guild);
+      return;
+    }
   }
 
   private async routeSelectMenu(interaction: StringSelectMenuInteraction, guild: Guild): Promise<void> {
@@ -201,6 +210,12 @@ export class ControlCenterService {
     if (id.startsWith('cc:ts:')) {
       await this.navToTool(interaction, guild, value);
       return;
+    }
+  }
+
+  private async routeRoleSelectMenu(interaction: RoleSelectMenuInteraction, guild: Guild): Promise<void> {
+    if (interaction.customId === CC.WELCOME_AUTOROLE_SELECT) {
+      await this.handleAutoRoleSelected(interaction, guild);
     }
   }
 
@@ -239,6 +254,16 @@ export class ControlCenterService {
         ),
       );
     }
+    if (category === 'welcome') {
+      payload.components.push(
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setLabel('🎭 Set Auto-Role')
+            .setCustomId(CC.WELCOME_AUTOROLE)
+            .setStyle(ButtonStyle.Primary),
+        ),
+      );
+    }
 
     const uiGenMs = Date.now() - tUi;
     await this.nav(interaction, payload, `category:${category}`, { uiGen: uiGenMs });
@@ -270,6 +295,67 @@ export class ControlCenterService {
     const favMs = Date.now() - tFav;
 
     await this.nav(interaction, buildFavoritesPanel(tools), 'favorites', { favorites: favMs });
+  }
+
+  // ── Welcome / Auto-Role ────────────────────────────────────────────────────
+
+  private async showAutoRolePicker(interaction: ButtonInteraction, guild: Guild): Promise<void> {
+    const cfg = await getWelcomeConfig(guild.id);
+
+    const select = new RoleSelectMenuBuilder()
+      .setCustomId(CC.WELCOME_AUTOROLE_SELECT)
+      .setPlaceholder('Select role(s) to auto-assign on join')
+      .setMinValues(0)
+      .setMaxValues(10);
+
+    const currentLabel = cfg.autoRoleIds.length
+      ? cfg.autoRoleIds.map(id => `<@&${id}>`).join(', ')
+      : '_none set_';
+
+    const embed = new EmbedBuilder()
+      .setColor(0xfee75c)
+      .setTitle('🎭 Auto-Role on Join')
+      .setDescription(
+        `Pick the role(s) every **new member** should automatically receive the moment they join.\n\n` +
+        `**Currently assigned:** ${currentLabel}\n\n` +
+        `Select none and confirm to clear auto-roles.`,
+      );
+
+    const row = new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(select);
+    const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setLabel('🏠 Home').setCustomId(CC.HOME).setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setLabel('⬅️ Back').setCustomId(CC.cat('welcome')).setStyle(ButtonStyle.Secondary),
+    );
+
+    const payload = { content: '', embeds: [embed], components: [row, backRow] };
+    assertUniqueCustomIds('showAutoRolePicker', payload);
+    await interaction.deferUpdate();
+    await interaction.editReply(payload);
+  }
+
+  private async handleAutoRoleSelected(interaction: RoleSelectMenuInteraction, guild: Guild): Promise<void> {
+    await interaction.deferUpdate();
+    const roleIds = interaction.roles.map(r => r.id);
+    const cfg = await setWelcomeConfig(guild.id, { autoRoleIds: roleIds });
+
+    const label = cfg.autoRoleIds.length ? cfg.autoRoleIds.map(id => `<@&${id}>`).join(', ') : '_none_';
+    const embed = new EmbedBuilder()
+      .setColor(0x57f287)
+      .setTitle('✅ Auto-Role Updated')
+      .setDescription(
+        `New members will now automatically receive: ${label}\n\n` +
+        `This applies the moment they join — independent of whether welcome messages are enabled.`,
+      );
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setLabel('🎭 Change Again').setCustomId(CC.WELCOME_AUTOROLE).setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setLabel('⬅️ Back').setCustomId(CC.cat('welcome')).setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setLabel('🏠 Home').setCustomId(CC.HOME).setStyle(ButtonStyle.Secondary),
+    );
+
+    const payload = { content: '', embeds: [embed], components: [row] };
+    assertUniqueCustomIds('handleAutoRoleSelected', payload);
+    await interaction.editReply(payload);
+    logger.info(`[CC] Auto-role updated for guild ${guild.id}: [${cfg.autoRoleIds.join(', ')}]`);
   }
 
   // ── Execution ──────────────────────────────────────────────────────────────

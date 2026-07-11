@@ -20,6 +20,8 @@
  *   cc:fav:<name>     → toggle favorite
  *   cc:modal:<name>   → modal submit (from buildToolModal)
  *   cc:search_submit  → search modal submit
+ *   cc:welcome:autorole         → open the auto-role picker (role select menu)
+ *   cc:welcome:autorole:select  → role select menu submit (saves auto-role config)
  */
 export const CC = {
   HOME:           'cc:home',
@@ -45,4 +47,7 @@ export const CC = {
   doExec:     (toolName: string): string => `cc:do:${toolName}`,
   fav:        (toolName: string): string => `cc:fav:${toolName}`,
   modal:      (toolName: string): string => `cc:modal:${toolName}`,
+
+  WELCOME_AUTOROLE:        'cc:welcome:autorole',
+  WELCOME_AUTOROLE_SELECT: 'cc:welcome:autorole:select',
 } as const;
