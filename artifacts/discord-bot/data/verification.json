@@ -1,0 +1,42 @@
+{
+  "panels": [
+    {
+      "guildId": "1213437502078062674",
+      "channelId": "1521595067348029571",
+      "title": "Test",
+      "description": "tESTTT",
+      "color": 5763719,
+      "method": "button",
+      "verifiedRoleId": "1213437502078062680",
+      "minAccountAgeDays": 0,
+      "cooldownSeconds": 30,
+      "id": "vpanel_1783733987335_9dcz1",
+      "createdAt": 1783733987335,
+      "messageId": "1525315639516860547"
+    }
+  ],
+  "attempts": [
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "vpanel_1783733987335_9dcz1",
+      "userId": "723982702625423430",
+      "status": "verified",
+      "method": "button",
+      "id": "vattempt_1783734185759_s6l9x",
+      "createdAt": 1783734185759,
+      "lastAttemptAt": 1783734185759,
+      "failCount": 0
+    },
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "vpanel_1783733987335_9dcz1",
+      "userId": "727578927593291796",
+      "status": "verified",
+      "method": "button",
+      "id": "vattempt_1783734215078_p43pl",
+      "createdAt": 1783734215078,
+      "lastAttemptAt": 1783734215078,
+      "failCount": 0
+    }
+  ]
+}

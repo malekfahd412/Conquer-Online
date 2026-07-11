@@ -1,0 +1,13 @@
+{
+  "configs": [
+    {
+      "guildId": "1213437502078062674",
+      "logMessageDelete": true,
+      "logMessageEdit": true,
+      "logMemberJoin": true,
+      "logMemberLeave": true,
+      "logVoiceJoinLeave": false,
+      "logChannelId": "1524534739845775582"
+    }
+  ]
+}

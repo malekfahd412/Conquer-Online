@@ -1,0 +1,37 @@
+{
+  "panels": [
+    {
+      "guildId": "1213437502078062674",
+      "channelId": "1524534739845775582",
+      "title": "Staff",
+      "description": "test",
+      "buttonLabel": "Apply Now",
+      "roleName": "Ai Mufasa",
+      "questions": [
+        {
+          "id": "qhj74vv",
+          "label": "test fsfaf",
+          "required": true,
+          "paragraph": false
+        }
+      ],
+      "cooldownHours": 24,
+      "id": "apanel_1783734698188_2i0cc",
+      "createdAt": 1783734698188,
+      "messageId": "1525318621021077516"
+    }
+  ],
+  "submissions": [
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "apanel_1783734698188_2i0cc",
+      "applicantId": "727578927593291796",
+      "answers": {
+        "qhj74vv": "test"
+      },
+      "id": "app_1783734712368_mqvfj",
+      "createdAt": 1783734712368,
+      "status": "pending"
+    }
+  ]
+}

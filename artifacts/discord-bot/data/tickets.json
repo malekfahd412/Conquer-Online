@@ -1,0 +1,52 @@
+{
+  "panels": [
+    {
+      "guildId": "1213437502078062674",
+      "channelId": "1524534739845775582",
+      "title": "test",
+      "description": "test",
+      "color": 5793266,
+      "buttons": [
+        {
+          "label": "open-ticket",
+          "style": "Primary",
+          "ticketType": "support"
+        }
+      ],
+      "supportRoleIds": [],
+      "allowedRoleIds": [],
+      "blockedRoleIds": [],
+      "maxTicketsPerUser": 1,
+      "namingFormat": "ticket-{number}",
+      "autoClose": false,
+      "autoDelete": false,
+      "inactiveTimeoutMinutes": 0,
+      "id": "panel_1783734386766_zq52h",
+      "createdAt": 1783734386766,
+      "messageId": "1525317316013854854"
+    }
+  ],
+  "tickets": [
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783734386766_zq52h",
+      "ticketType": "support",
+      "channelId": "1525317325333598271",
+      "openerId": "727578927593291796",
+      "number": 1,
+      "id": "ticket_1783734389468_qby9u",
+      "status": "closed",
+      "createdAt": 1783734389468,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "claimedBy": "727578927593291796",
+      "firstStaffReplyAt": 1783734440684,
+      "closedAt": 1783734466514,
+      "closedBy": "727578927593291796"
+    }
+  ],
+  "counters": {
+    "1213437502078062674": 1
+  }
+}

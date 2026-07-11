@@ -1,0 +1,20 @@
+{
+  "welcome": [
+    {
+      "guildId": "1213437502078062674",
+      "enabled": true,
+      "messages": [
+        "welcome {user} to {server}"
+      ],
+      "embedColor": 5763719,
+      "buttons": [],
+      "autoRoleIds": [],
+      "dmEnabled": false,
+      "delaySeconds": 0,
+      "channelId": "1524534739845775582",
+      "embedTitle": "Welcome",
+      "image": "https://www.google.com/imgres?q=photo&imgurl=https%3A%2F%2Fimg.magnific.com%2Ffree-photo%2Fcloseup-shot-beautiful-butterfly-with-interesting-textures-orange-petaled-flower_181624-7640.jpg%3Fsemt%3Dais_hybrid%26w%3D740%26q%3D80&imgrefurl=https%3A%2F%2Fwww.magnific.com%2Fphotos%2Fbeautiful&docid=WXEevVtffmRj9M&tbnid=SeMV_qAWkGBtaM&vet=12ahUKEwjMmJeIwsmVAxUCQEEAHfvgItMQnPAOegQIMRAA..i&w=740&h=491&hcb=2&ved=2ahUKEwjMmJeIwsmVAxUCQEEAHfvgItMQnPAOegQIMRAA"
+    }
+  ],
+  "goodbye": []
+}
