@@ -85,6 +85,83 @@ export interface TicketStatisticsConfig {
 
 export type TicketPriority = 'low' | 'normal' | 'high' | 'urgent';
 
+// ── Permission Designer types ────────────────────────────────────────────────
+
+export type TicketVisibilityMode = 'private' | 'support_only' | 'shared_support' | 'public';
+
+/** Fine-grained permissions granted to the ticket opener (member) inside the channel. */
+export interface TicketMemberPermConfig {
+  viewChannel: boolean;
+  sendMessages: boolean;
+  attachFiles: boolean;
+  embedLinks: boolean;
+  addReactions: boolean;
+  useExternalEmojis: boolean;
+  useExternalStickers: boolean;
+  mentionEveryone: boolean;
+  createPublicThreads: boolean;
+  createPrivateThreads: boolean;
+  sendVoiceMessages: boolean;
+  readMessageHistory: boolean;
+  useApplicationCommands: boolean;
+}
+
+/** Fine-grained permissions granted to staff (support/manager/admin) inside the channel. */
+export interface TicketStaffPermConfig {
+  manageMessages: boolean;
+  manageThreads: boolean;
+  manageChannels: boolean;
+  managePermissions: boolean;
+  mentionEveryone: boolean;
+  manageWebhooks: boolean;
+  manageEvents: boolean;
+  priorityOverride: boolean;
+}
+
+/** Behaviour when a staff member claims a ticket. */
+export interface TicketClaimBehaviourConfig {
+  hideFromOtherStaffOnClaim: boolean;
+  keepVisible: boolean;
+  managerOverride: boolean;
+  adminOverride: boolean;
+}
+
+export const DEFAULT_MEMBER_PERMS: TicketMemberPermConfig = {
+  viewChannel: true,
+  sendMessages: true,
+  attachFiles: true,
+  embedLinks: true,
+  addReactions: false,
+  useExternalEmojis: false,
+  useExternalStickers: false,
+  mentionEveryone: false,
+  createPublicThreads: false,
+  createPrivateThreads: false,
+  sendVoiceMessages: true,
+  readMessageHistory: true,
+  useApplicationCommands: false,
+};
+
+export const DEFAULT_STAFF_PERMS: TicketStaffPermConfig = {
+  manageMessages: true,
+  manageThreads: false,
+  manageChannels: false,
+  managePermissions: false,
+  mentionEveryone: false,
+  manageWebhooks: false,
+  manageEvents: false,
+  priorityOverride: false,
+};
+
+export const DEFAULT_CLAIM_BEHAVIOUR: TicketClaimBehaviourConfig = {
+  hideFromOtherStaffOnClaim: false,
+  keepVisible: true,
+  managerOverride: true,
+  adminOverride: true,
+};
+
+// ── TicketPanel ──────────────────────────────────────────────────────────────
+
 /**
  * The full Ticket Panel model. This is the "config" — what an admin sets up.
  * Live ticket instances (`TicketRecord`) are a separate concern owned by TicketEngine.
@@ -108,6 +185,8 @@ export interface TicketPanel {
   permissions: TicketPermissionOverwrite[];
   supportRoles: string[];
   managerRoles: string[];
+  /** Admin roles — superset of manager; gets ManagePermissions in addition to manager perms. */
+  adminRoles: string[];
   pingRoles: string[];
   allowedRoles: string[];
   blockedRoles: string[];
@@ -117,14 +196,22 @@ export interface TicketPanel {
   openCategory?: string;
   closedCategory?: string;
   archiveCategory?: string;
-  /** Channel that open/close/claim actions are logged to. Not part of the spec's named field
-   *  list, but the legacy panel model had it and dropping it would silently remove a feature. */
+  /** Channel that open/close/claim actions are logged to. */
   logChannelId?: string;
 
   namingScheme: string;
   ticketLimit: number;
   cooldown: number; // seconds between closing and opening a new ticket on this panel
   priority: TicketPriority;
+
+  /** Fine-grained member permission overrides inside the ticket channel. */
+  memberPerms: TicketMemberPermConfig;
+  /** Fine-grained staff permission overrides inside the ticket channel. */
+  staffPerms: TicketStaffPermConfig;
+  /** Controls who can see the panel embed and open tickets. */
+  visibility: TicketVisibilityMode;
+  /** Behaviour when a staff member claims a ticket. */
+  claimBehaviour: TicketClaimBehaviourConfig;
 
   modal: TicketModalConfig;
   transcript: TicketTranscriptConfig;
@@ -136,6 +223,31 @@ export interface TicketPanel {
   enabled: boolean;
   archivedAt?: number;
 }
+
+/**
+ * Normalises a panel loaded from disk, filling in any missing fields introduced
+ * after the initial release (Phase 3 Permission Designer additions).
+ * Always call this on panels read from JSON before passing into designer renderers.
+ */
+export function normalizePanel(panel: TicketPanel): TicketPanel {
+  const p = panel as TicketPanel & {
+    adminRoles?: string[];
+    memberPerms?: TicketMemberPermConfig;
+    staffPerms?: TicketStaffPermConfig;
+    visibility?: TicketVisibilityMode;
+    claimBehaviour?: TicketClaimBehaviourConfig;
+  };
+  return {
+    ...panel,
+    adminRoles:     p.adminRoles     ?? [],
+    memberPerms:    p.memberPerms    ?? { ...DEFAULT_MEMBER_PERMS },
+    staffPerms:     p.staffPerms     ?? { ...DEFAULT_STAFF_PERMS },
+    visibility:     p.visibility     ?? 'private',
+    claimBehaviour: p.claimBehaviour ?? { ...DEFAULT_CLAIM_BEHAVIOUR },
+  };
+}
+
+// ── TicketRecord ─────────────────────────────────────────────────────────────
 
 export type TicketStatus = 'open' | 'closed' | 'locked';
 

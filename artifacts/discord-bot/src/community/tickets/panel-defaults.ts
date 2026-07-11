@@ -4,6 +4,7 @@
 // paths produce panels with sane, non-placeholder defaults.
 // ─────────────────────────────────────────────────────────────────────────────
 import type { TicketEmbedConfig, TicketButtonConfig, TicketPanel } from './types';
+import { DEFAULT_MEMBER_PERMS, DEFAULT_STAFF_PERMS, DEFAULT_CLAIM_BEHAVIOUR } from './types';
 
 export type PanelDefaultFields = Omit<
   TicketPanel,
@@ -17,11 +18,16 @@ export function defaultPanelFields(): PanelDefaultFields {
     permissions: [],
     supportRoles: [],
     managerRoles: [],
+    adminRoles: [],
     pingRoles: [],
     allowedRoles: [],
     blockedRoles: [],
     allowedUsers: [],
     blockedUsers: [],
+    memberPerms: { ...DEFAULT_MEMBER_PERMS },
+    staffPerms: { ...DEFAULT_STAFF_PERMS },
+    visibility: 'private',
+    claimBehaviour: { ...DEFAULT_CLAIM_BEHAVIOUR },
     openCategory: undefined,
     closedCategory: undefined,
     archiveCategory: undefined,

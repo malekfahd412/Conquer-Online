@@ -10,6 +10,7 @@ import {
   TextInputStyle,
 } from 'discord.js';
 import type { TicketPanel, TicketTemplate, TicketButtonConfig, TicketSelectMenuOption, TicketModalQuestion } from '../../../community/tickets/types';
+import { buildPDMain } from './tp-permission-designer';
 import type { TicketDashboard } from '../../../community/tickets/statistics-engine';
 import { truncate } from '../cc-categories';
 import { CC } from '../cc-ids';
@@ -372,37 +373,7 @@ export function buildSmOptionDetail(panel: TicketPanel, idx: number): CCPayload 
 // ── Permissions Section ─────────────────────────────────────────────────────
 
 export function buildPermissionsSection(panel: TicketPanel): CCPayload {
-  const fn = 'buildPermissionsSection';
-  const color = checkColor(FILE, fn, 'color', 0xf5a623);
-
-  const fmtIds = (ids: string[]) => ids.length ? ids.map(id => `<@&${id}>`).join(' ') : '_None_';
-
-  const embed = verifyBuilder(FILE, fn, 'perms embed', () =>
-    new EmbedBuilder()
-      .setColor(color)
-      .setTitle('🔐 Permissions')
-      .addFields(
-        { name: '👷 Support Roles',   value: truncate(fmtIds(panel.supportRoles), 512),   inline: false },
-        { name: '🛠 Manager Roles',   value: truncate(fmtIds(panel.managerRoles), 512),   inline: false },
-        { name: '🔔 Ping Roles',      value: truncate(fmtIds(panel.pingRoles), 512),      inline: false },
-        { name: '✅ Allowed Roles',   value: truncate(fmtIds(panel.allowedRoles), 512),   inline: true  },
-        { name: '🚫 Blocked Roles',   value: truncate(fmtIds(panel.blockedRoles), 512),   inline: true  },
-        { name: '📋 Log Channel',     value: panel.logChannelId ? `<#${panel.logChannelId}>` : '_Not set_', inline: false },
-      )
-      .setFooter({ text: 'Enter role IDs separated by commas' }),
-  );
-
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    btn('👷 Staff Roles',   TP.edit(panel.id, 'staffroles'),  ButtonStyle.Primary),
-    btn('🔑 Access Control', TP.edit(panel.id, 'accessroles'), ButtonStyle.Secondary),
-    btn('📋 Log Channel',   TP.edit(panel.id, 'logchannel'),  ButtonStyle.Secondary),
-    dashBtn(panel.id),
-    homeBtn(),
-  );
-
-  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
-  assertUniqueCustomIds('buildPermissionsSection', payload);
-  return payload;
+  return buildPDMain(panel);
 }
 
 // ── Questions Section ───────────────────────────────────────────────────────

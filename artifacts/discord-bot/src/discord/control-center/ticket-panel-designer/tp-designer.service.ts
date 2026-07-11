@@ -16,7 +16,18 @@ import { panelManager } from '../../../community/tickets/panel-manager';
 import { statisticsEngine } from '../../../community/tickets/statistics-engine';
 import { templateEngine } from '../../../community/tickets/template-engine';
 import type { PermissionManager } from '../../../ai/permission-manager';
-import type { TicketPanel, TicketButtonConfig, TicketSelectMenuOption, TicketModalQuestion, TicketPriority } from '../../../community/tickets/types';
+import type { TicketPanel, TicketButtonConfig, TicketSelectMenuOption, TicketModalQuestion, TicketPriority, TicketMemberPermConfig, TicketStaffPermConfig, TicketClaimBehaviourConfig, TicketVisibilityMode } from '../../../community/tickets/types';
+import { normalizePanel, DEFAULT_MEMBER_PERMS, DEFAULT_STAFF_PERMS, DEFAULT_CLAIM_BEHAVIOUR } from '../../../community/tickets/types';
+import {
+  buildPDMain,
+  buildPDSupportTeam,
+  buildPDMemberPerms,
+  buildPDStaffPerms,
+  buildPDVisibility,
+  buildPDClaim,
+  buildPDPreview,
+  buildPDEditModal,
+} from './tp-permission-designer';
 import { CC } from '../cc-ids';
 import { truncate } from '../cc-categories';
 import { assertUniqueCustomIds } from '../cc-debug';
@@ -311,6 +322,123 @@ export class TicketPanelDesigner {
       await this.handleQRemove(interaction, guild, parts[3], parseInt(parts[4], 10));
       return;
     }
+
+    // ── Permission Designer (tp:pd:*) ────────────────────────────────────────
+    if (id.startsWith('tp:pd:')) {
+      await this.routePDButton(interaction, guild, id);
+      return;
+    }
+  }
+
+  private async routePDButton(interaction: ButtonInteraction, guild: Guild, id: string): Promise<void> {
+    // tp:pd:mperms:<panelId>
+    if (id.startsWith('tp:pd:mperms:')) {
+      const panelId = id.slice('tp:pd:mperms:'.length);
+      const panel = await panelManager.get(panelId);
+      if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+      await this.nav(interaction, buildPDMemberPerms(panel));
+      return;
+    }
+    // tp:pd:sperms:<panelId>
+    if (id.startsWith('tp:pd:sperms:')) {
+      const panelId = id.slice('tp:pd:sperms:'.length);
+      const panel = await panelManager.get(panelId);
+      if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+      await this.nav(interaction, buildPDStaffPerms(panel));
+      return;
+    }
+    // tp:pd:team:<panelId>
+    if (id.startsWith('tp:pd:team:')) {
+      const panelId = id.slice('tp:pd:team:'.length);
+      const panel = await panelManager.get(panelId);
+      if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+      await this.nav(interaction, buildPDSupportTeam(panel));
+      return;
+    }
+    // tp:pd:vis:<panelId>  (visibility page — not setvis)
+    if (id.startsWith('tp:pd:vis:') && !id.startsWith('tp:pd:setvis:')) {
+      const panelId = id.slice('tp:pd:vis:'.length);
+      const panel = await panelManager.get(panelId);
+      if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+      await this.nav(interaction, buildPDVisibility(panel));
+      return;
+    }
+    // tp:pd:claim:<panelId>
+    if (id.startsWith('tp:pd:claim:') && !id.startsWith('tp:pd:ctog:')) {
+      const panelId = id.slice('tp:pd:claim:'.length);
+      const panel = await panelManager.get(panelId);
+      if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+      await this.nav(interaction, buildPDClaim(panel));
+      return;
+    }
+    // tp:pd:prev:<panelId>
+    if (id.startsWith('tp:pd:prev:')) {
+      const panelId = id.slice('tp:pd:prev:'.length);
+      const panel = await panelManager.get(panelId);
+      if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+      await this.nav(interaction, buildPDPreview(panel));
+      return;
+    }
+    // tp:pd:edit:<panelId>:<section>  — opens modal
+    if (id.startsWith('tp:pd:edit:')) {
+      const rest    = id.slice('tp:pd:edit:'.length);
+      const colon   = rest.indexOf(':');
+      const panelId = rest.slice(0, colon);
+      const section = rest.slice(colon + 1);
+      const panel = await panelManager.get(panelId);
+      if (!panel || panel.guildId !== guild.id) {
+        await interaction.reply({ content: '❌ Panel not found.', flags: MessageFlags.Ephemeral });
+        return;
+      }
+      const modal = buildPDEditModal(panel, section);
+      if (!modal) {
+        await interaction.reply({ content: `❌ Unknown section: \`${section}\``, flags: MessageFlags.Ephemeral });
+        return;
+      }
+      await interaction.showModal(modal);
+      return;
+    }
+    // tp:pd:mperm:<panelId>:<key>  — toggle member permission
+    if (id.startsWith('tp:pd:mperm:')) {
+      const rest    = id.slice('tp:pd:mperm:'.length);
+      const colon   = rest.indexOf(':');
+      const panelId = rest.slice(0, colon);
+      const key     = rest.slice(colon + 1) as keyof TicketMemberPermConfig;
+      await this.handlePDMpermToggle(interaction, guild, panelId, key);
+      return;
+    }
+    // tp:pd:sperm:<panelId>:<key>  — toggle staff permission
+    if (id.startsWith('tp:pd:sperm:')) {
+      const rest    = id.slice('tp:pd:sperm:'.length);
+      const colon   = rest.indexOf(':');
+      const panelId = rest.slice(0, colon);
+      const key     = rest.slice(colon + 1) as keyof TicketStaffPermConfig;
+      await this.handlePDSpermToggle(interaction, guild, panelId, key);
+      return;
+    }
+    // tp:pd:setvis:<panelId>:<mode>  — set visibility mode
+    if (id.startsWith('tp:pd:setvis:')) {
+      const rest    = id.slice('tp:pd:setvis:'.length);
+      const colon   = rest.indexOf(':');
+      const panelId = rest.slice(0, colon);
+      const mode    = rest.slice(colon + 1) as TicketVisibilityMode;
+      await this.handlePDSetVisibility(interaction, guild, panelId, mode);
+      return;
+    }
+    // tp:pd:ctog:<panelId>:<field>  — toggle claim behaviour field
+    if (id.startsWith('tp:pd:ctog:')) {
+      const rest    = id.slice('tp:pd:ctog:'.length);
+      const colon   = rest.indexOf(':');
+      const panelId = rest.slice(0, colon);
+      const field   = rest.slice(colon + 1) as keyof TicketClaimBehaviourConfig;
+      await this.handlePDClaimToggle(interaction, guild, panelId, field);
+      return;
+    }
+    // tp:pd:<panelId>  — PD main page (must come last — least specific)
+    const panelId = id.slice('tp:pd:'.length);
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+    await this.nav(interaction, buildPDMain(panel));
   }
 
   // ── Select menu routing ─────────────────────────────────────────────────────
@@ -401,6 +529,16 @@ export class TicketPanelDesigner {
       await this.handleQEdit(interaction, guild, panelId, idx);
       return;
     }
+    // Permission Designer modal submits — must be checked before generic tp:modal:
+    if (id.startsWith('tp:pd:modal:')) {
+      const rest    = id.slice('tp:pd:modal:'.length);
+      const colon   = rest.indexOf(':');
+      const panelId = rest.slice(0, colon);
+      const section = rest.slice(colon + 1);
+      await this.handlePDModalSubmit(interaction, guild, panelId, section);
+      return;
+    }
+
     if (id.startsWith('tp:modal:')) {
       const rest    = id.slice('tp:modal:'.length);
       const colon   = rest.indexOf(':');
@@ -624,11 +762,16 @@ export class TicketPanelDesigner {
       permissions: [],
       supportRoles: [],
       managerRoles: [],
+      adminRoles: [],
       pingRoles: [],
       allowedRoles: [],
       blockedRoles: [],
       allowedUsers: [],
       blockedUsers: [],
+      memberPerms: { ...DEFAULT_MEMBER_PERMS },
+      staffPerms: { ...DEFAULT_STAFF_PERMS },
+      visibility: 'private',
+      claimBehaviour: { ...DEFAULT_CLAIM_BEHAVIOUR },
       namingScheme: 'ticket-{counter}',
       ticketLimit: 1,
       cooldown: 0,
@@ -1192,6 +1335,164 @@ export class TicketPanelDesigner {
       `✅ Saved **${name}** to the Template Gallery!\nOther admins can now use this template from **📋 Templates**.`,
       panelId,
     ));
+  }
+
+  // ── Permission Designer handlers ─────────────────────────────────────────────
+
+  private async handlePDMpermToggle(
+    interaction: ButtonInteraction, guild: Guild, panelId: string, key: keyof TicketMemberPermConfig,
+  ): Promise<void> {
+    const raw = await panelManager.get(panelId);
+    if (!raw || raw.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+    const panel = normalizePanel(raw);
+    const validKeys: (keyof TicketMemberPermConfig)[] = [
+      'viewChannel', 'sendMessages', 'attachFiles', 'embedLinks', 'addReactions',
+      'useExternalEmojis', 'useExternalStickers', 'mentionEveryone', 'createPublicThreads',
+      'createPrivateThreads', 'sendVoiceMessages', 'readMessageHistory', 'useApplicationCommands',
+    ];
+    if (!validKeys.includes(key)) {
+      await interaction.reply({ content: `❌ Unknown permission key: \`${key}\``, flags: MessageFlags.Ephemeral });
+      return;
+    }
+    const updated = await panelManager.update(panelId, {
+      memberPerms: { ...panel.memberPerms, [key]: !panel.memberPerms[key] },
+    });
+    if (!updated) { await this.nav(interaction, buildFeedback(false, 'Failed to save.')); return; }
+    await this.nav(interaction, buildPDMemberPerms(updated));
+  }
+
+  private async handlePDSpermToggle(
+    interaction: ButtonInteraction, guild: Guild, panelId: string, key: keyof TicketStaffPermConfig,
+  ): Promise<void> {
+    const raw = await panelManager.get(panelId);
+    if (!raw || raw.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+    const panel = normalizePanel(raw);
+    const validKeys: (keyof TicketStaffPermConfig)[] = [
+      'manageMessages', 'manageThreads', 'manageChannels', 'managePermissions',
+      'mentionEveryone', 'manageWebhooks', 'manageEvents', 'priorityOverride',
+    ];
+    if (!validKeys.includes(key)) {
+      await interaction.reply({ content: `❌ Unknown staff permission key: \`${key}\``, flags: MessageFlags.Ephemeral });
+      return;
+    }
+    const updated = await panelManager.update(panelId, {
+      staffPerms: { ...panel.staffPerms, [key]: !panel.staffPerms[key] },
+    });
+    if (!updated) { await this.nav(interaction, buildFeedback(false, 'Failed to save.')); return; }
+    await this.nav(interaction, buildPDStaffPerms(updated));
+  }
+
+  private async handlePDSetVisibility(
+    interaction: ButtonInteraction, guild: Guild, panelId: string, mode: TicketVisibilityMode,
+  ): Promise<void> {
+    const raw = await panelManager.get(panelId);
+    if (!raw || raw.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+    const validModes: TicketVisibilityMode[] = ['private', 'support_only', 'shared_support', 'public'];
+    if (!validModes.includes(mode)) {
+      await interaction.reply({ content: `❌ Unknown visibility mode: \`${mode}\``, flags: MessageFlags.Ephemeral });
+      return;
+    }
+    const updated = await panelManager.update(panelId, { visibility: mode });
+    if (!updated) { await this.nav(interaction, buildFeedback(false, 'Failed to save.')); return; }
+    await this.nav(interaction, buildPDVisibility(updated));
+  }
+
+  private async handlePDClaimToggle(
+    interaction: ButtonInteraction, guild: Guild, panelId: string, field: keyof TicketClaimBehaviourConfig,
+  ): Promise<void> {
+    const raw = await panelManager.get(panelId);
+    if (!raw || raw.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+    const panel = normalizePanel(raw);
+    const validFields: (keyof TicketClaimBehaviourConfig)[] = [
+      'hideFromOtherStaffOnClaim', 'keepVisible', 'managerOverride', 'adminOverride',
+    ];
+    if (!validFields.includes(field)) {
+      await interaction.reply({ content: `❌ Unknown claim field: \`${field}\``, flags: MessageFlags.Ephemeral });
+      return;
+    }
+    const updated = await panelManager.update(panelId, {
+      claimBehaviour: { ...panel.claimBehaviour, [field]: !panel.claimBehaviour[field] },
+    });
+    if (!updated) { await this.nav(interaction, buildFeedback(false, 'Failed to save.')); return; }
+    await this.nav(interaction, buildPDClaim(updated));
+  }
+
+  private async handlePDModalSubmit(
+    interaction: ModalSubmitInteraction, guild: Guild, panelId: string, section: string,
+  ): Promise<void> {
+    const raw = await panelManager.get(panelId);
+    if (!raw || raw.guildId !== guild.id) {
+      await this.navReply(interaction, buildFeedback(false, 'Panel not found.'));
+      return;
+    }
+
+    let patch: Partial<TicketPanel> = {};
+
+    try {
+      switch (section) {
+        case 'support': {
+          const supportRoles = parseIds(getField(interaction, 'supportRoles', false));
+          patch = { supportRoles };
+          break;
+        }
+        case 'manager': {
+          const managerRoles = parseIds(getField(interaction, 'managerRoles', false));
+          patch = { managerRoles };
+          break;
+        }
+        case 'admin': {
+          const adminRoles = parseIds(getField(interaction, 'adminRoles', false));
+          patch = { adminRoles };
+          break;
+        }
+        case 'ping': {
+          const pingRoles = parseIds(getField(interaction, 'pingRoles', false));
+          patch = { pingRoles };
+          break;
+        }
+        case 'allowedroles': {
+          const allowedRoles = parseIds(getField(interaction, 'allowedRoles', false));
+          patch = { allowedRoles };
+          break;
+        }
+        case 'blockedroles': {
+          const blockedRoles = parseIds(getField(interaction, 'blockedRoles', false));
+          patch = { blockedRoles };
+          break;
+        }
+        case 'allowedusers': {
+          const allowedUsers = parseIds(getField(interaction, 'allowedUsers', false));
+          patch = { allowedUsers };
+          break;
+        }
+        case 'blockedusers': {
+          const blockedUsers = parseIds(getField(interaction, 'blockedUsers', false));
+          patch = { blockedUsers };
+          break;
+        }
+        case 'logchannel': {
+          const logChannelId = getField(interaction, 'logChannelId', false);
+          patch = { logChannelId: logChannelId || undefined };
+          break;
+        }
+        default:
+          await this.navReply(interaction, buildFeedback(false, `Unknown section: \`${section}\``));
+          return;
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Invalid input.';
+      await this.navReply(interaction, buildFeedback(false, message, panelId));
+      return;
+    }
+
+    const updated = await panelManager.update(panelId, patch);
+    if (!updated) {
+      await this.navReply(interaction, buildFeedback(false, 'Failed to save changes.', panelId));
+      return;
+    }
+
+    logger.info(`[TPD] PD updated panel ${panelId} section="${section}"`);
+    await this.navReply(interaction, buildPDSupportTeam(updated));
   }
 
   // ── Error helpers ───────────────────────────────────────────────────────────

@@ -39,7 +39,7 @@
  *   tp:q:detail:<panelId>:<idx>      → question detail view
  *   tp:q:edit:<panelId>:<idx>        → edit question modal
  *   tp:q:edit:m:<panelId>:<idx>      → edit question modal submit
- *   tp:q:rm:<panelId>:<idx>          → remove question
+ *   tp:q:rm:<panelId>                → remove question
  *   tp:ps:<offset>                   → panel list select menu
  *   tp:ebs:<panelId>                 → extra buttons select menu
  *   tp:sos:<panelId>                 → select menu options select
@@ -53,6 +53,21 @@
  *   tp:tpl:del:yes:<tplId>           → confirmed template delete
  *   tp:tpl:del:<tplId>               → template delete confirm screen
  *   tp:tgs:<offset>                  → template gallery select menu
+ *
+ * Permission Designer (tp:pd:*) sub-namespace:
+ *   tp:pd:<panelId>                  → PD main page
+ *   tp:pd:team:<panelId>             → Support team editor
+ *   tp:pd:mperms:<panelId>           → Member permission toggles
+ *   tp:pd:sperms:<panelId>           → Staff permission toggles
+ *   tp:pd:vis:<panelId>              → Visibility mode selector
+ *   tp:pd:claim:<panelId>            → Claim behaviour toggles
+ *   tp:pd:prev:<panelId>             → Permission preview (read-only)
+ *   tp:pd:edit:<panelId>:<section>   → Open edit modal for section
+ *   tp:pd:modal:<panelId>:<section>  → Modal submit for section
+ *   tp:pd:mperm:<panelId>:<key>      → Toggle one member permission
+ *   tp:pd:sperm:<panelId>:<key>      → Toggle one staff permission
+ *   tp:pd:setvis:<panelId>:<mode>    → Set visibility mode
+ *   tp:pd:ctog:<panelId>:<field>     → Toggle one claim behaviour field
  */
 
 export type SectionKey =
@@ -124,6 +139,23 @@ export const TP = {
   tplDel:       (tplId: string): string          => `tp:tpl:del:${tplId}`,
   tplDelYes:    (tplId: string): string          => `tp:tpl:del:yes:${tplId}`,
   tgSel:        (offset: number): string         => `tp:tgs:${offset}`,
+
+  // ── Permission Designer ──────────────────────────────────────────────────
+  PD: {
+    main:     (panelId: string): string                    => `tp:pd:${panelId}`,
+    team:     (panelId: string): string                    => `tp:pd:team:${panelId}`,
+    mperms:   (panelId: string): string                    => `tp:pd:mperms:${panelId}`,
+    sperms:   (panelId: string): string                    => `tp:pd:sperms:${panelId}`,
+    vis:      (panelId: string): string                    => `tp:pd:vis:${panelId}`,
+    claim:    (panelId: string): string                    => `tp:pd:claim:${panelId}`,
+    prev:     (panelId: string): string                    => `tp:pd:prev:${panelId}`,
+    edit:     (panelId: string, section: string): string   => `tp:pd:edit:${panelId}:${section}`,
+    pdModal:  (panelId: string, section: string): string   => `tp:pd:modal:${panelId}:${section}`,
+    mperm:    (panelId: string, key: string): string       => `tp:pd:mperm:${panelId}:${key}`,
+    sperm:    (panelId: string, key: string): string       => `tp:pd:sperm:${panelId}:${key}`,
+    setvis:   (panelId: string, mode: string): string      => `tp:pd:setvis:${panelId}:${mode}`,
+    ctog:     (panelId: string, field: string): string     => `tp:pd:ctog:${panelId}:${field}`,
+  },
 } as const;
 
 export function isTPInteraction(customId: string): boolean {
