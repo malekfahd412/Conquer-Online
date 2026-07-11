@@ -4,3 +4,4 @@
 - [Ticket System Pro architecture](ticket-system-pro.md) — 10-engine ticket system under community/tickets/; migration pattern and tk:* custom ID stability rules.
 - [Ticket Panel Designer wiring](tp-designer-wiring.md) — tp:* prefix routed in ai.service.ts before tk:* block; entry via 🎨 button injected into CC tickets category in navToCategory.
 - [Permission Designer schema & wiring](permission-designer.md) — tp:pd:* namespace; 5 new TicketPanel fields; normalizePanel() for backward-compat; migration.ts must be kept in sync with new required fields.
+- [Discord bot re-import setup steps](discord-bot-reimport-setup.md) — fresh imports always lose node_modules and secrets; run pnpm install + re-request DISCORD_BOT_TOKEN/GEMINI_API_KEY before debugging further.
