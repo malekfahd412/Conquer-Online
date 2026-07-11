@@ -504,7 +504,7 @@ export class WelcomeCardDesigner {
 
       const cardEmbed = new EmbedBuilder().setColor(cfg.embedColor);
       const cardText = fillWelcomeVariables(cfg.messages[0] ?? '', fakeMember);
-      cardEmbed.setDescription(cardText);
+      if (cardText) cardEmbed.setDescription(cardText);
       if (cfg.embedTitle) cardEmbed.setTitle(fillWelcomeVariables(cfg.embedTitle, fakeMember));
       cardEmbed.setImage('attachment://welcome-card.png');
 
@@ -521,16 +521,19 @@ export class WelcomeCardDesigner {
 
         if (hasEmbed) {
           const msgEmbed = new EmbedBuilder().setColor(wm.embedColor || cfg.embedColor);
-          if (wm.embedTitle)       msgEmbed.setTitle(fillWelcomeVariables(wm.embedTitle, fakeMember));
-          if (wm.embedDescription) msgEmbed.setDescription(fillWelcomeVariables(wm.embedDescription, fakeMember));
-          if (wm.embedFooter)      msgEmbed.setFooter({ text: fillWelcomeVariables(wm.embedFooter, fakeMember) });
-          if (wm.embedThumbnail)   msgEmbed.setThumbnail(wm.embedThumbnail);
-          if (wm.embedImage)       msgEmbed.setImage(wm.embedImage);
-          if (wm.embedTimestamp)   msgEmbed.setTimestamp();
-          embeds.push(msgEmbed);
+          let embedHasContent = false;
+          if (wm.embedTitle)       { msgEmbed.setTitle(fillWelcomeVariables(wm.embedTitle, fakeMember));                              embedHasContent = true; }
+          if (wm.embedDescription) { msgEmbed.setDescription(fillWelcomeVariables(wm.embedDescription, fakeMember));                 embedHasContent = true; }
+          if (wm.embedFooter)      { msgEmbed.setFooter({ text: fillWelcomeVariables(wm.embedFooter, fakeMember) });                 embedHasContent = true; }
+          if (wm.embedThumbnail)   { msgEmbed.setThumbnail(wm.embedThumbnail);                                                       embedHasContent = true; }
+          if (wm.embedImage)       { msgEmbed.setImage(wm.embedImage);                                                               embedHasContent = true; }
+          if (wm.embedTimestamp)   { msgEmbed.setTimestamp();                                                                         embedHasContent = true; }
+          if (embedHasContent) embeds.push(msgEmbed);
         }
 
-        await (channel as TextChannel).send({ content: msgContent, embeds });
+        if (msgContent || embeds.length > 0) {
+          await (channel as TextChannel).send({ content: msgContent, embeds });
+        }
       }
 
       await interaction.editReply({

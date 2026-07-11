@@ -59,15 +59,17 @@ async function sendWelcomeMessage(
 
   if (hasEmbed) {
     const embed = new EmbedBuilder().setColor(wm.embedColor || cfg.embedColor);
-    if (wm.embedTitle)       embed.setTitle(fillWelcomeVariables(wm.embedTitle, member));
-    if (wm.embedDescription) embed.setDescription(fillWelcomeVariables(wm.embedDescription, member));
-    if (wm.embedFooter)      embed.setFooter({ text: fillWelcomeVariables(wm.embedFooter, member) });
-    if (wm.embedThumbnail)   embed.setThumbnail(wm.embedThumbnail);
-    if (wm.embedImage)       embed.setImage(wm.embedImage);
-    if (wm.embedTimestamp)   embed.setTimestamp();
-    embeds.push(embed);
+    let embedHasContent = false;
+    if (wm.embedTitle)       { embed.setTitle(fillWelcomeVariables(wm.embedTitle, member));                              embedHasContent = true; }
+    if (wm.embedDescription) { embed.setDescription(fillWelcomeVariables(wm.embedDescription, member));                 embedHasContent = true; }
+    if (wm.embedFooter)      { embed.setFooter({ text: fillWelcomeVariables(wm.embedFooter, member) });                 embedHasContent = true; }
+    if (wm.embedThumbnail)   { embed.setThumbnail(wm.embedThumbnail);                                                   embedHasContent = true; }
+    if (wm.embedImage)       { embed.setImage(wm.embedImage);                                                           embedHasContent = true; }
+    if (wm.embedTimestamp)   { embed.setTimestamp();                                                                     embedHasContent = true; }
+    if (embedHasContent) embeds.push(embed);
   }
 
+  if (!content && embeds.length === 0) return;
   await channel.send({ content, embeds }).catch(err => logger.error('Welcome message send failed', err));
 }
 
@@ -100,7 +102,8 @@ export class WelcomeService {
             const template = pickRandom(cfg.messages) ?? '';
             const text = fillWelcomeVariables(template, member);
 
-            const embed = new EmbedBuilder().setColor(cfg.embedColor).setDescription(text);
+            const embed = new EmbedBuilder().setColor(cfg.embedColor);
+            if (text) embed.setDescription(text);
             if (cfg.embedTitle) embed.setTitle(fillWelcomeVariables(cfg.embedTitle, member));
 
             // ProBot-style dynamic welcome card: only used once an admin has uploaded

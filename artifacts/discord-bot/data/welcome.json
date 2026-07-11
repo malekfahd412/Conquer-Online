@@ -15,7 +15,36 @@
       "delaySeconds": 0,
       "channelId": "1524534739845775582",
       "embedTitle": "Welcome",
-      "image": "https://www.google.com/imgres?q=photo&imgurl=https%3A%2F%2Fimg.magnific.com%2Ffree-photo%2Fcloseup-shot-beautiful-butterfly-with-interesting-textures-orange-petaled-flower_181624-7640.jpg%3Fsemt%3Dais_hybrid%26w%3D740%26q%3D80&imgrefurl=https%3A%2F%2Fwww.magnific.com%2Fphotos%2Fbeautiful&docid=WXEevVtffmRj9M&tbnid=SeMV_qAWkGBtaM&vet=12ahUKEwjMmJeIwsmVAxUCQEEAHfvgItMQnPAOegQIMRAA..i&w=740&h=491&hcb=2&ved=2ahUKEwjMmJeIwsmVAxUCQEEAHfvgItMQnPAOegQIMRAA"
+      "image": "https://www.google.com/imgres?q=photo&imgurl=https%3A%2F%2Fimg.magnific.com%2Ffree-photo%2Fcloseup-shot-beautiful-butterfly-with-interesting-textures-orange-petaled-flower_181624-7640.jpg%3Fsemt%3Dais_hybrid%26w%3D740%26q%3D80&imgrefurl=https%3A%2F%2Fwww.magnific.com%2Fphotos%2Fbeautiful&docid=WXEevVtffmRj9M&tbnid=SeMV_qAWkGBtaM&vet=12ahUKEwjMmJeIwsmVAxUCQEEAHfvgItMQnPAOegQIMRAA..i&w=740&h=491&hcb=2&ved=2ahUKEwjMmJeIwsmVAxUCQEEAHfvgItMQnPAOegQIMRAA",
+      "card": {
+        "backgroundImage": "data/welcome-backgrounds/1213437502078062674.png",
+        "avatarX": 198,
+        "avatarY": 177,
+        "avatarSize": 105,
+        "avatarBorderEnabled": true,
+        "avatarBorderColor": "#FFFFFF",
+        "avatarBorderWidth": 0,
+        "usernameX": 0,
+        "usernameY": 0,
+        "serverNameX": 0,
+        "serverNameY": 0,
+        "memberCountX": 0,
+        "memberCountY": 0,
+        "textColor": "#FFFFFF",
+        "fontSize": 8,
+        "fontFamily": "Poppins"
+      },
+      "welcomeMessage": {
+        "content": "𝑊𝐸𝐿𝐶𝑂𝑀𝐸 𝑇𝑂 {server}\n{memberCount} {user}\n𝐷𝑜𝑛'𝑡 𝐹𝑜𝑟𝑔𝑒𝑡 𝑇𝑜 𝐶ℎ𝑒𝑐𝑘 𝑇ℎ𝑒 𝑅𝑢𝑙𝑒𝑠 <#1216064140393578716>\n\n𝐴𝑙𝑠𝑜 𝐶ℎ𝑒𝑐𝑘 <#1521595067348029571>\n\n𝐆𝐎𝐎𝐃 𝐋𝐔𝐂𝐊 & 𝐇𝐀𝐕𝐄 𝐅𝐔𝐍 🥰",
+        "embedEnabled": true,
+        "embedTitle": "",
+        "embedDescription": "",
+        "embedColor": 5763719,
+        "embedFooter": "",
+        "embedThumbnail": "",
+        "embedImage": "",
+        "embedTimestamp": false
+      }
     }
   ],
   "goodbye": []

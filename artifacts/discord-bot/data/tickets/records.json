@@ -458,9 +458,27 @@
         "727578927593291796"
       ],
       "headerMessageId": "1525477280363577347"
+    },
+    {
+      "id": "ticket_1783806202534_fqav3",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Store",
+      "channelId": "1525618531943714929",
+      "openerId": "697186507722850306",
+      "status": "open",
+      "number": 25,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783806202848,
+      "lastActivityAt": 1783806202848,
+      "participantIds": [
+        "697186507722850306"
+      ],
+      "headerMessageId": "1525618532929241092"
     }
   ],
   "counters": {
-    "1213437502078062674": 24
+    "1213437502078062674": 25
   }
 }
