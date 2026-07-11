@@ -229,6 +229,8 @@ export const TP = {
     qCondPick:  (panelId: string, formId: string, idx: number): string       => `tp:frm:qc:pick:${panelId}:${formId}:${idx}`,
     qCondM:     (panelId: string, formId: string, idx: number, srcQId: string): string => `tp:frm:qc:m:${panelId}:${formId}:${idx}:${srcQId}`,
     qCondClear: (panelId: string, formId: string, idx: number): string       => `tp:frm:qc:clear:${panelId}:${formId}:${idx}`,
+    assignSel:  (panelId: string, formId: string): string                    => `tp:frm:assignsel:${panelId}:${formId}`,
+    prevModal:  (panelId: string, formId: string): string                    => `tp:frm:prevmodal:${panelId}:${formId}`,
   },
 } as const;
 

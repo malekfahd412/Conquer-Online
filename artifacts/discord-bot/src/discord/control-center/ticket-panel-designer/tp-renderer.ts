@@ -9,7 +9,9 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from 'discord.js';
-import type { TicketPanel, TicketTemplate, TicketButtonConfig, TicketSelectMenuOption, TicketModalQuestion } from '../../../community/tickets/types';
+import type { TicketPanel, TicketTemplate, TicketButtonConfig, TicketSelectMenuOption, TicketModalQuestion, TicketForm, FormQuestion, QuestionType } from '../../../community/tickets/types';
+import { QUESTION_TYPE_META, QUESTION_TYPES } from '../../../community/tickets/types';
+import { FORM_TEMPLATES } from '../../../community/tickets/form-templates';
 import { buildPDMain } from './tp-permission-designer';
 import type { TicketDashboard } from '../../../community/tickets/statistics-engine';
 import { truncate } from '../cc-categories';
@@ -133,7 +135,7 @@ export function buildPanelDashboard(panel: TicketPanel): CCPayload {
     btn(`${SECTION_META.appearance.emoji} Appearance`, TP.section(panel.id, 'appearance'),  ButtonStyle.Secondary),
     btn(`${SECTION_META.button.emoji} Button`,        TP.section(panel.id, 'button'),       ButtonStyle.Secondary),
     btn(`${SECTION_META.permissions.emoji} Permissions`, TP.section(panel.id, 'permissions'), ButtonStyle.Secondary),
-    btn(`${SECTION_META.questions.emoji} Questions`,  TP.section(panel.id, 'questions'),    ButtonStyle.Secondary),
+    btn(`${SECTION_META.forms.emoji} Forms`,           TP.section(panel.id, 'forms'),         ButtonStyle.Secondary),
   );
   const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
     btn(`${SECTION_META.categories.emoji} Categories`, TP.section(panel.id, 'categories'),  ButtonStyle.Secondary),
@@ -1201,5 +1203,598 @@ export function buildPublishChannelModal(panel: TicketPanel): ModalBuilder {
     .setTitle('Publish to Channel')
     .addComponents(
       row(ti('channelId', 'Channel ID', TextInputStyle.Short, panel.channelId || '', 'The text channel to post the panel in', true, 20)),
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Form Builder UI — Phase 4
+// All functions below share the local `ti`, `row`, `btn`, `homeBtn`,
+// `dashBtn`, `truncate`, `checkColor`, `verifyBuilder`, `assertUniqueCustomIds`
+// helpers defined earlier in this file.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Form Builder Main ────────────────────────────────────────────────────────
+
+export function buildFormBuilderMain(panel: TicketPanel): CCPayload {
+  const fn    = 'buildFormBuilderMain';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+  const forms = panel.forms ?? [];
+
+  const formsText = forms.length === 0
+    ? '_No forms configured yet. Use **➕ New Form** to create one from a built-in template, or **📥 Import JSON** to paste an exported form._'
+    : forms.map((f, i) => {
+        const qn    = `${f.questions.length} q`;
+        const chain = f.defaultNextFormId
+          ? `→ ${truncate(forms.find(x => x.id === f.defaultNextFormId)?.name ?? f.defaultNextFormId, 30)}`
+          : f.nextRules.length > 0 ? `${f.nextRules.length} rule(s)` : 'no chain';
+        return `${i + 1}. **${truncate(f.name, 50)}** — ${qn}, ${chain}`;
+      }).join('\n');
+
+  const embed = verifyBuilder(FILE, fn, 'frm-main embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('📝 Form Builder')
+      .setDescription(
+        'Multi-step forms with typed questions, conditional logic, and chaining.\n' +
+        'Assign a form to a button in the **🔘 Button** section.',
+      )
+      .addFields({ name: `📋 Forms (${forms.length})`, value: truncate(formsText, 1024), inline: false })
+      .setFooter({ text: 'Forms replace the legacy 5-question modal · up to 5 questions per form' }),
+  );
+
+  const components: CCPayload['components'] = [];
+
+  if (forms.length > 0) {
+    const sel = verifyBuilder(FILE, fn, 'frm-main sel', () =>
+      new StringSelectMenuBuilder()
+        .setCustomId(TP.FRM.formSel(panel.id))
+        .setPlaceholder('Select a form to view or edit…')
+        .addOptions(
+          forms.slice(0, 25).map(f =>
+            new StringSelectMenuOptionBuilder()
+              .setLabel(truncate(f.name, 100))
+              .setDescription(truncate(`${f.questions.length} question(s)${f.defaultNextFormId ? ' · chained' : ''}`, 100))
+              .setValue(f.id),
+          ),
+        ),
+    );
+    components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(sel));
+  }
+
+  components.push(
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      btn('➕ New Form',    TP.FRM.newGallery(panel.id), ButtonStyle.Primary),
+      btn('📥 Import JSON', TP.FRM.importForm(panel.id), ButtonStyle.Secondary),
+      dashBtn(panel.id),
+      homeBtn(),
+    ),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components };
+  assertUniqueCustomIds('buildFormBuilderMain', payload);
+  return payload;
+}
+
+// ── Form New Gallery ──────────────────────────────────────────────────────────
+
+export function buildFormNewGallery(panel: TicketPanel): CCPayload {
+  const fn    = 'buildFormNewGallery';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+
+  const embed = verifyBuilder(FILE, fn, 'frm-gallery embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('📝 New Form — Choose a Template')
+      .setDescription(
+        'Pick a starting point. All templates can be fully customised after creation.\n' +
+        'Choose **🧩 Custom** to start with a blank form.',
+      )
+      .addFields(
+        FORM_TEMPLATES.map(t => ({ name: `${t.emoji} ${t.name}`, value: truncate(t.description, 200), inline: true })),
+      )
+      .setFooter({ text: 'Questions can be added, removed and reordered after creation' }),
+  );
+
+  // 7 templates — row0: first 5, row1: remaining 2 + nav
+  const row0 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    ...FORM_TEMPLATES.slice(0, 5).map(t =>
+      btn(`${t.emoji} ${t.name}`, TP.FRM.newUse(panel.id, t.key), ButtonStyle.Secondary),
+    ),
+  );
+  const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    ...FORM_TEMPLATES.slice(5).map(t =>
+      btn(`${t.emoji} ${t.name}`, TP.FRM.newUse(panel.id, t.key), ButtonStyle.Secondary),
+    ),
+    btn('← Forms', TP.FRM.main(panel.id), ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row0, row1] };
+  assertUniqueCustomIds('buildFormNewGallery', payload);
+  return payload;
+}
+
+// ── Form Detail ───────────────────────────────────────────────────────────────
+
+export function buildFormDetail(panel: TicketPanel, form: TicketForm): CCPayload {
+  const fn    = 'buildFormDetail';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+  const forms = panel.forms ?? [];
+
+  const qText = form.questions.length === 0
+    ? '_No questions yet. Click **➕ Add Question** to get started._'
+    : form.questions.map((q, i) => {
+        const meta = QUESTION_TYPE_META[q.type];
+        const cond = q.showIf ? ` _(if \`${q.showIf.questionId}\`=\`"${q.showIf.equals}"\`)_` : '';
+        return `${i + 1}. ${meta.emoji} **${truncate(q.title, 50)}** (${q.required ? 'required' : 'optional'})${cond}`;
+      }).join('\n');
+
+  const chainText = form.defaultNextFormId
+    ? `Default → **${forms.find(f => f.id === form.defaultNextFormId)?.name ?? form.defaultNextFormId}**`
+    : form.nextRules.length > 0
+      ? `${form.nextRules.length} conditional rule(s) — no default`
+      : '_(none — chain ends here)_';
+
+  const embed = verifyBuilder(FILE, fn, 'frm-detail embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle(`📝 ${truncate(form.name, 100)}`)
+      .setDescription(truncate(form.description || '_(No description)_', 512))
+      .addFields(
+        { name: `❓ Questions (${form.questions.length}/5)`, value: truncate(qText, 1024), inline: false },
+        { name: '🔗 Chain',   value: truncate(chainText, 256), inline: true },
+        { name: '🆔 Form ID', value: `\`${form.id}\``,         inline: true },
+      )
+      .setFooter({ text: `Panel: ${panel.name}` }),
+  );
+
+  const components: CCPayload['components'] = [];
+
+  if (form.questions.length > 0) {
+    const sel = verifyBuilder(FILE, fn, 'frm-detail qsel', () =>
+      new StringSelectMenuBuilder()
+        .setCustomId(TP.FRM.qSel(panel.id, form.id))
+        .setPlaceholder('Select a question to edit…')
+        .addOptions(
+          form.questions.slice(0, 5).map((q, i) =>
+            new StringSelectMenuOptionBuilder()
+              .setLabel(truncate(`${i + 1}. ${q.title}`, 100))
+              .setDescription(truncate(`${QUESTION_TYPE_META[q.type].label} · ${q.required ? 'required' : 'optional'}`, 100))
+              .setValue(String(i)),
+          ),
+        ),
+    );
+    components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(sel));
+  }
+
+  const row0 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Rename',      TP.FRM.rename(panel.id, form.id),    ButtonStyle.Primary),
+    btn('➕ Add Question', TP.FRM.qAdd(panel.id, form.id),     ButtonStyle.Primary,   form.questions.length >= 5),
+    btn('🔗 Chain',       TP.FRM.chain(panel.id, form.id),     ButtonStyle.Secondary),
+    btn('📌 Assign',      TP.FRM.assign(panel.id, form.id),    ButtonStyle.Secondary),
+    btn('👁 Preview',     TP.FRM.preview(panel.id, form.id),   ButtonStyle.Secondary, form.questions.length === 0),
+  );
+  const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('📋 Duplicate',   TP.FRM.dup(panel.id, form.id),       ButtonStyle.Secondary),
+    btn('📤 Export JSON', TP.FRM.exportForm(panel.id, form.id),ButtonStyle.Secondary),
+    btn('🗑 Delete Form', TP.FRM.del(panel.id, form.id),       ButtonStyle.Danger),
+    btn('← Forms',       TP.FRM.main(panel.id),               ButtonStyle.Secondary),
+    homeBtn(),
+  );
+  components.push(row0, row1);
+
+  const payload: CCPayload = { content: '', embeds: [embed], components };
+  assertUniqueCustomIds('buildFormDetail', payload);
+  return payload;
+}
+
+// ── Form Delete Confirm ───────────────────────────────────────────────────────
+
+export function buildFormDeleteConfirm(panel: TicketPanel, form: TicketForm): CCPayload {
+  const fn    = 'buildFormDeleteConfirm';
+  const color = checkColor(FILE, fn, 'color', 0xed4245);
+
+  const embed = verifyBuilder(FILE, fn, 'frm-del embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('🗑 Delete Form?')
+      .setDescription(
+        `You are about to permanently delete **${truncate(form.name, 100)}** ` +
+        `(${form.questions.length} question(s)).\n\n` +
+        'Any button or select-menu option referencing this form will fall back to the legacy modal. ' +
+        '**This cannot be undone.**',
+      ),
+  );
+
+  const btnRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✅ Confirm Delete', TP.FRM.delYes(panel.id, form.id), ButtonStyle.Danger),
+    btn('✖ Cancel',         TP.FRM.detail(panel.id, form.id), ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [btnRow] };
+  assertUniqueCustomIds('buildFormDeleteConfirm', payload);
+  return payload;
+}
+
+// ── Form Chain View ───────────────────────────────────────────────────────────
+
+export function buildFormChainView(panel: TicketPanel, form: TicketForm): CCPayload {
+  const fn    = 'buildFormChainView';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+  const forms = panel.forms ?? [];
+
+  const defaultName = form.defaultNextFormId
+    ? (forms.find(f => f.id === form.defaultNextFormId)?.name ?? `_(unknown: ${form.defaultNextFormId})_`)
+    : '_None — chain ends here_';
+
+  const rulesText = form.nextRules.length === 0
+    ? '_No conditional rules_'
+    : form.nextRules.map((r, i) => {
+        const nextName = forms.find(f => f.id === r.nextFormId)?.name ?? r.nextFormId;
+        return `${i + 1}. if \`${r.questionId}\`=\`"${r.equals}"\` → **${nextName}**`;
+      }).join('\n');
+
+  const embed = verifyBuilder(FILE, fn, 'frm-chain embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('🔗 Form Chaining')
+      .setDescription(
+        'Chain rules are evaluated **after** this form is submitted. ' +
+        'The first matching rule wins; the default is used if no rule matches.',
+      )
+      .addFields(
+        { name: '🔀 Default Next Form',                        value: truncate(defaultName, 512),  inline: false },
+        { name: `📋 Conditional Rules (${form.nextRules.length})`, value: truncate(rulesText, 1024), inline: false },
+      )
+      .setFooter({ text: `Form: ${form.name}` }),
+  );
+
+  const btnRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Edit Chain', TP.FRM.chainSet(panel.id, form.id), ButtonStyle.Primary),
+    btn('← Form',       TP.FRM.detail(panel.id, form.id),   ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [btnRow] };
+  assertUniqueCustomIds('buildFormChainView', payload);
+  return payload;
+}
+
+// ── Form Assign View ──────────────────────────────────────────────────────────
+
+export function buildFormAssignView(panel: TicketPanel, form: TicketForm): CCPayload {
+  const fn    = 'buildFormAssignView';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+
+  const lines: string[] = [
+    `${panel.button.formId === form.id ? '✅' : '○'} **Primary button**: ${panel.button.label} (\`primary\`)`,
+    ...panel.additionalButtons.map((b, i) =>
+      `${b.formId === form.id ? '✅' : '○'} **Extra #${i + 1}**: ${b.label} (\`extra:${i}\`)`,
+    ),
+    ...(panel.selectMenu?.options ?? []).map((o, i) =>
+      `${o.formId === form.id ? '✅' : '○'} **Option #${i + 1}**: ${o.label} (\`opt:${i}\`)`,
+    ),
+  ];
+
+  const embed = verifyBuilder(FILE, fn, 'frm-assign embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('📌 Assign Form to Button / Option')
+      .setDescription(
+        'Select an entry below to attach this form to it. ' +
+        'Users will see this form when they click that button or pick that option.',
+      )
+      .addFields({ name: '🔘 Current Assignments  (✅ = this form)', value: truncate(lines.join('\n'), 1024), inline: false })
+      .setFooter({ text: `Form: ${form.name} · ID: ${form.id}` }),
+  );
+
+  const components: CCPayload['components'] = [];
+
+  const opts: StringSelectMenuOptionBuilder[] = [
+    new StringSelectMenuOptionBuilder()
+      .setLabel(truncate(`Primary: ${panel.button.label}`, 100))
+      .setDescription(truncate(`type: ${panel.button.ticketType}`, 100))
+      .setValue('primary')
+      .setDefault(panel.button.formId === form.id),
+    ...panel.additionalButtons.map((b, i) =>
+      new StringSelectMenuOptionBuilder()
+        .setLabel(truncate(`Extra #${i + 1}: ${b.label}`, 100))
+        .setDescription(truncate(`type: ${b.ticketType}`, 100))
+        .setValue(`extra:${i}`)
+        .setDefault(b.formId === form.id),
+    ),
+    ...(panel.selectMenu?.options ?? []).map((o, i) =>
+      new StringSelectMenuOptionBuilder()
+        .setLabel(truncate(`Option #${i + 1}: ${o.label}`, 100))
+        .setDescription(truncate(`type: ${o.ticketType}`, 100))
+        .setValue(`opt:${i}`)
+        .setDefault(o.formId === form.id),
+    ),
+  ];
+
+  if (opts.length > 0) {
+    const sel = verifyBuilder(FILE, fn, 'frm-assign sel', () =>
+      new StringSelectMenuBuilder()
+        .setCustomId(TP.FRM.assignSel(panel.id, form.id))
+        .setPlaceholder('Pick a button or option to assign this form…')
+        .addOptions(opts.slice(0, 25)),
+    );
+    components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(sel));
+  }
+
+  components.push(
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      btn('← Form', TP.FRM.detail(panel.id, form.id), ButtonStyle.Secondary),
+      homeBtn(),
+    ),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components };
+  assertUniqueCustomIds('buildFormAssignView', payload);
+  return payload;
+}
+
+// ── Question Type Picker ──────────────────────────────────────────────────────
+
+export function buildQAddTypePicker(panel: TicketPanel, form: TicketForm): CCPayload {
+  const fn    = 'buildQAddTypePicker';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+
+  const embed = verifyBuilder(FILE, fn, 'qadd-type embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('➕ Add Question — Choose Type')
+      .addFields(
+        QUESTION_TYPES.map(t => ({
+          name:   `${QUESTION_TYPE_META[t].emoji} ${QUESTION_TYPE_META[t].label}`,
+          value:  truncate(QUESTION_TYPE_META[t].hint, 200),
+          inline: true,
+        })),
+      )
+      .setFooter({ text: 'Each type has built-in validation applied automatically' }),
+  );
+
+  const sel = verifyBuilder(FILE, fn, 'qadd-type sel', () =>
+    new StringSelectMenuBuilder()
+      .setCustomId(TP.FRM.qAddType(panel.id, form.id))
+      .setPlaceholder('Select a question type…')
+      .addOptions(
+        QUESTION_TYPES.map(t =>
+          new StringSelectMenuOptionBuilder()
+            .setLabel(truncate(`${QUESTION_TYPE_META[t].emoji} ${QUESTION_TYPE_META[t].label}`, 100))
+            .setDescription(truncate(QUESTION_TYPE_META[t].hint, 100))
+            .setValue(t),
+        ),
+      ),
+  );
+
+  const btnRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('← Form', TP.FRM.detail(panel.id, form.id), ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = {
+    content: '',
+    embeds:  [embed],
+    components: [
+      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(sel),
+      btnRow,
+    ],
+  };
+  assertUniqueCustomIds('buildQAddTypePicker', payload);
+  return payload;
+}
+
+// ── Question Detail ───────────────────────────────────────────────────────────
+
+export function buildQFrmDetail(panel: TicketPanel, form: TicketForm, idx: number): CCPayload {
+  const fn    = 'buildQFrmDetail';
+  const q     = form.questions[idx];
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+  const meta  = QUESTION_TYPE_META[q?.type ?? 'short_text'];
+
+  const condText = q?.showIf
+    ? `When \`${q.showIf.questionId}\` equals \`"${q.showIf.equals}"\``
+    : '_No condition — always shown_';
+
+  const embed = verifyBuilder(FILE, fn, 'qfrm-detail embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle(`${meta.emoji} Question #${idx + 1}: ${truncate(q?.title ?? '(missing)', 80)}`)
+      .addFields(
+        { name: '🏷 Type',        value: meta.label,                                                                  inline: true  },
+        { name: '✔ Required',     value: q?.required ? '✅ Yes' : '❌ No',                                           inline: true  },
+        { name: '💬 Placeholder', value: truncate(q?.placeholder || '_(none)_', 256),                                inline: false },
+        { name: '📝 Description', value: truncate(q?.description || '_(none)_', 256),                                inline: false },
+        { name: '📏 Length',      value: `Min: ${q?.minLength ?? 0} · Max: ${q?.maxLength ?? '∞'}`,                  inline: true  },
+        { name: '🔍 Validation',  value: q?.validationRegex ? `\`${truncate(q.validationRegex, 50)}\`` : '_(none)_', inline: true  },
+        { name: '🔀 Condition',   value: truncate(condText, 512),                                                     inline: false },
+      )
+      .setFooter({ text: `Q ID: ${q?.id ?? '?'} · Form: ${form.name}` }),
+  );
+
+  const row0 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Basic',      TP.FRM.qBasic(panel.id, form.id, idx), ButtonStyle.Primary),
+    btn('📏 Length',     TP.FRM.qLen(panel.id, form.id, idx),   ButtonStyle.Secondary),
+    btn('🔍 Validation', TP.FRM.qVal(panel.id, form.id, idx),   ButtonStyle.Secondary),
+    btn('🔀 Condition',  TP.FRM.qCond(panel.id, form.id, idx),  ButtonStyle.Secondary),
+    btn(
+      q?.required ? '❌ Make Optional' : '✅ Make Required',
+      TP.FRM.qReq(panel.id, form.id, idx),
+      ButtonStyle.Secondary,
+    ),
+  );
+  const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('⬆ Up',     TP.FRM.qUp(panel.id, form.id, idx),   ButtonStyle.Secondary, idx === 0),
+    btn('⬇ Down',   TP.FRM.qDown(panel.id, form.id, idx), ButtonStyle.Secondary, idx >= form.questions.length - 1),
+    btn('🗑 Remove', TP.FRM.qRm(panel.id, form.id, idx),   ButtonStyle.Danger),
+    btn('← Form',   TP.FRM.detail(panel.id, form.id),     ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row0, row1] };
+  assertUniqueCustomIds('buildQFrmDetail', payload);
+  return payload;
+}
+
+// ── Question Conditional View ─────────────────────────────────────────────────
+
+export function buildQCondView(panel: TicketPanel, form: TicketForm, idx: number): CCPayload {
+  const fn    = 'buildQCondView';
+  const q     = form.questions[idx];
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+  const forms = panel.forms ?? [];
+
+  const condText = q?.showIf
+    ? `This question is shown **only when** \`${q.showIf.questionId}\` equals \`"${q.showIf.equals}"\`.`
+    : '_No condition set — this question is always shown._';
+
+  const embed = verifyBuilder(FILE, fn, 'qcond embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle(`🔀 Condition — ${truncate(q?.title ?? '(missing)', 60)}`)
+      .setDescription(condText)
+      .addFields({
+        name:   '💡 How it works',
+        value:  'A condition makes this question appear only when a previous answer matches. ' +
+                'The source must be from an **earlier form** in the chain, or `__ticketType` (the button clicked).',
+        inline: false,
+      })
+      .setFooter({ text: 'Select a source question below, then enter the matching value' }),
+  );
+
+  // Collect source questions from all forms (excluding self) + __ticketType
+  const allQOpts: StringSelectMenuOptionBuilder[] = [
+    new StringSelectMenuOptionBuilder()
+      .setLabel('__ticketType — button/option that started the flow')
+      .setValue('__ticketType')
+      .setDefault(q?.showIf?.questionId === '__ticketType'),
+  ];
+  for (const f of forms) {
+    for (const fq of f.questions) {
+      if (f.id === form.id && fq.id === q?.id) continue;
+      allQOpts.push(
+        new StringSelectMenuOptionBuilder()
+          .setLabel(truncate(`${fq.title} (from "${f.name}")`, 100))
+          .setDescription(truncate(`ID: ${fq.id}`, 100))
+          .setValue(fq.id)
+          .setDefault(q?.showIf?.questionId === fq.id),
+      );
+    }
+  }
+
+  const components: CCPayload['components'] = [];
+
+  if (allQOpts.length > 0) {
+    const sel = verifyBuilder(FILE, fn, 'qcond pick sel', () =>
+      new StringSelectMenuBuilder()
+        .setCustomId(TP.FRM.qCondPick(panel.id, form.id, idx))
+        .setPlaceholder('Pick source question for condition…')
+        .addOptions(allQOpts.slice(0, 25)),
+    );
+    components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(sel));
+  }
+
+  const btnRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    ...(q?.showIf ? [btn('🗑 Clear Condition', TP.FRM.qCondClear(panel.id, form.id, idx), ButtonStyle.Danger)] : []),
+    btn('← Question', TP.FRM.qDetail(panel.id, form.id, idx), ButtonStyle.Secondary),
+    homeBtn(),
+  );
+  components.push(btnRow);
+
+  const payload: CCPayload = { content: '', embeds: [embed], components };
+  assertUniqueCustomIds('buildQCondView', payload);
+  return payload;
+}
+
+// ── Form Builder Modals ───────────────────────────────────────────────────────
+
+export function buildFormRenameModal(panel: TicketPanel, form: TicketForm): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.FRM.renameM(panel.id, form.id))
+    .setTitle('Rename Form')
+    .addComponents(
+      row(ti('name',        'Form Name',   TextInputStyle.Short, form.name,             'e.g. Support Details', true,  100)),
+      row(ti('description', 'Description', TextInputStyle.Short, form.description ?? '', 'Brief note (optional)', false, 256)),
+    );
+}
+
+export function buildFormChainModal(panel: TicketPanel, form: TicketForm): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.FRM.chainM(panel.id, form.id))
+    .setTitle('Edit Form Chaining')
+    .addComponents(
+      row(ti('defaultNextFormId', 'Default Next Form ID',    TextInputStyle.Short,
+        form.defaultNextFormId ?? '', 'Leave empty to end the chain here', false, 100)),
+      row(ti('nextRulesJson',     'Conditional Rules (JSON)', TextInputStyle.Paragraph,
+        form.nextRules.length ? JSON.stringify(form.nextRules, null, 0) : '',
+        '[{"questionId":"x","equals":"y","nextFormId":"z"}] or leave empty', false, 2000)),
+    );
+}
+
+export function buildFormImportModal(panel: TicketPanel): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.FRM.importM(panel.id))
+    .setTitle('Import Form from JSON')
+    .addComponents(
+      row(ti('json', 'Form JSON', TextInputStyle.Paragraph, '', 'Paste exported form JSON here', true, 4000)),
+    );
+}
+
+export function buildQAddModal(panelId: string, formId: string, type: string): ModalBuilder {
+  const meta = QUESTION_TYPE_META[type as QuestionType] ?? QUESTION_TYPE_META['short_text'];
+  return new ModalBuilder()
+    .setCustomId(TP.FRM.qAddM(panelId, formId, type))
+    .setTitle(truncate(`Add ${meta.label} Question`, 45))
+    .addComponents(
+      row(ti('title',       'Question Title',            TextInputStyle.Short, '',        'e.g. Describe your issue',    true,  100)),
+      row(ti('placeholder', 'Placeholder / Hint',        TextInputStyle.Short, meta.hint, 'Shown inside the text box',   false, 100)),
+      row(ti('defaultValue','Default Value',             TextInputStyle.Short, '',        'Pre-filled answer (optional)', false, 100)),
+      row(ti('description', 'Description (below label)', TextInputStyle.Short, '',        'Extra help text (optional)',   false, 256)),
+    );
+}
+
+export function buildQBasicModal(panelId: string, formId: string, idx: number, q: FormQuestion): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.FRM.qBasicM(panelId, formId, idx))
+    .setTitle('Edit Question')
+    .addComponents(
+      row(ti('title',       'Question Title',            TextInputStyle.Short, q.title,            'e.g. Describe your issue', true,  100)),
+      row(ti('placeholder', 'Placeholder / Hint',        TextInputStyle.Short, q.placeholder  ?? '', 'Shown in the text box',  false, 100)),
+      row(ti('defaultValue','Default Value',             TextInputStyle.Short, q.defaultValue ?? '', 'Pre-filled answer',       false, 100)),
+      row(ti('description', 'Description (below label)', TextInputStyle.Short, q.description  ?? '', 'Extra help text',         false, 256)),
+    );
+}
+
+export function buildQLenModal(panelId: string, formId: string, idx: number, q: FormQuestion): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.FRM.qLenM(panelId, formId, idx))
+    .setTitle('Edit Length Constraints')
+    .addComponents(
+      row(ti('minLength', 'Minimum Length (chars)', TextInputStyle.Short, String(q.minLength ?? 0),    '0 = no minimum', true, 4)),
+      row(ti('maxLength', 'Maximum Length (chars)', TextInputStyle.Short, String(q.maxLength ?? 1000), 'Max 4000',        true, 4)),
+    );
+}
+
+export function buildQValModal(panelId: string, formId: string, idx: number, q: FormQuestion): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.FRM.qValM(panelId, formId, idx))
+    .setTitle('Edit Validation')
+    .addComponents(
+      row(ti('validationRegex', 'Validation Regex (optional)', TextInputStyle.Short,
+        q.validationRegex ?? '', 'e.g. ^[A-Z]{3}-\\d+$  (empty = disabled)', false, 500)),
+      row(ti('errorMessage',    'Error Message (optional)',    TextInputStyle.Short,
+        q.errorMessage ?? '', 'Shown when validation fails', false, 256)),
+    );
+}
+
+export function buildQCondValueModal(panelId: string, formId: string, idx: number, srcQId: string): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.FRM.qCondM(panelId, formId, idx, srcQId))
+    .setTitle('Set Condition Value')
+    .addComponents(
+      row(ti('equals', truncate(`Show if "${srcQId}" equals…`, 45), TextInputStyle.Short,
+        '', 'Value to match (case-insensitive)', true, 200)),
     );
 }

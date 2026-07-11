@@ -3,6 +3,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  AttachmentBuilder,
   MessageFlags,
   type Guild,
   type GuildMember,
@@ -15,9 +16,12 @@ import {
 import { panelManager } from '../../../community/tickets/panel-manager';
 import { statisticsEngine } from '../../../community/tickets/statistics-engine';
 import { templateEngine } from '../../../community/tickets/template-engine';
+import { buildFormFromTemplate, type FormTemplateKey } from '../../../community/tickets/form-templates';
+import { questionEngine, MAX_QUESTIONS_PER_FORM } from '../../../community/tickets/question-engine';
+import { genId } from '../../../community/tickets/store';
 import type { PermissionManager } from '../../../ai/permission-manager';
-import type { TicketPanel, TicketButtonConfig, TicketSelectMenuOption, TicketModalQuestion, TicketPriority, TicketMemberPermConfig, TicketStaffPermConfig, TicketClaimBehaviourConfig, TicketVisibilityMode } from '../../../community/tickets/types';
-import { normalizePanel, DEFAULT_MEMBER_PERMS, DEFAULT_STAFF_PERMS, DEFAULT_CLAIM_BEHAVIOUR } from '../../../community/tickets/types';
+import type { TicketPanel, TicketButtonConfig, TicketSelectMenuOption, TicketModalQuestion, TicketPriority, TicketMemberPermConfig, TicketStaffPermConfig, TicketClaimBehaviourConfig, TicketVisibilityMode, TicketForm, FormQuestion, FormNextRule, QuestionType } from '../../../community/tickets/types';
+import { normalizePanel, DEFAULT_MEMBER_PERMS, DEFAULT_STAFF_PERMS, DEFAULT_CLAIM_BEHAVIOUR, QUESTION_TYPES } from '../../../community/tickets/types';
 import {
   buildPDMain,
   buildPDSupportTeam,
@@ -78,6 +82,23 @@ import {
   buildSmPlaceholderModal,
   buildQuestionModal,
   buildPublishChannelModal,
+  buildFormBuilderMain,
+  buildFormNewGallery,
+  buildFormDetail,
+  buildFormDeleteConfirm,
+  buildFormChainView,
+  buildFormAssignView,
+  buildQAddTypePicker,
+  buildQFrmDetail,
+  buildQCondView,
+  buildFormRenameModal,
+  buildFormChainModal,
+  buildFormImportModal,
+  buildQAddModal,
+  buildQBasicModal,
+  buildQLenModal,
+  buildQValModal,
+  buildQCondValueModal,
   PANELS_PER_PAGE,
 } from './tp-renderer';
 import type { CCPayload } from '../cc-renderer';
@@ -323,6 +344,12 @@ export class TicketPanelDesigner {
       return;
     }
 
+    // ── Form Builder (tp:frm:*) ──────────────────────────────────────────────
+    if (id.startsWith('tp:frm:')) {
+      await this.routeFRMButton(interaction, guild, id);
+      return;
+    }
+
     // ── Permission Designer (tp:pd:*) ────────────────────────────────────────
     if (id.startsWith('tp:pd:')) {
       await this.routePDButton(interaction, guild, id);
@@ -475,6 +502,11 @@ export class TicketPanelDesigner {
       await this.navTemplateDetail(interaction, guild, value);
       return;
     }
+    // ── Form Builder select menus ──────────────────────────────────────────────
+    if (id.startsWith('tp:frm:')) {
+      await this.routeFRMSelectMenu(interaction, guild, id);
+      return;
+    }
   }
 
   // ── Modal routing ───────────────────────────────────────────────────────────
@@ -599,7 +631,7 @@ export class TicketPanelDesigner {
       case 'appearance':  payload = buildAppearanceSection(panel); break;
       case 'button':      payload = buildButtonSection(panel); break;
       case 'permissions': payload = buildPermissionsSection(panel); break;
-      case 'questions':   payload = buildQuestionsSection(panel); break;
+      case 'forms':       payload = buildFormBuilderMain(panel); break;
       case 'categories':  payload = buildCategoriesSection(panel); break;
       case 'naming':      payload = buildNamingSection(panel); break;
       case 'lifecycle':   payload = buildLifecycleSection(panel); break;
