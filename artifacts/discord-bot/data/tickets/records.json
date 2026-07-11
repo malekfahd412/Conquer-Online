@@ -66,7 +66,7 @@
       "ticketType": "Support",
       "channelId": "1525384865313329224",
       "openerId": "727578927593291796",
-      "status": "open",
+      "status": "closed",
       "number": 4,
       "priority": "normal",
       "answers": {},
@@ -74,7 +74,9 @@
       "lastActivityAt": 1783750492254,
       "participantIds": [
         "727578927593291796"
-      ]
+      ],
+      "closedAt": 1783751202135,
+      "closedBy": "727578927593291796"
     },
     {
       "id": "ticket_1783751121640_tbypb",
@@ -83,7 +85,7 @@
       "ticketType": "Store",
       "channelId": "1525387506059841616",
       "openerId": "727578927593291796",
-      "status": "open",
+      "status": "closed",
       "number": 5,
       "priority": "normal",
       "answers": {},
@@ -91,7 +93,9 @@
       "lastActivityAt": 1783751121845,
       "participantIds": [
         "727578927593291796"
-      ]
+      ],
+      "closedAt": 1783751198575,
+      "closedBy": "727578927593291796"
     },
     {
       "id": "ticket_1783751125457_te875",
