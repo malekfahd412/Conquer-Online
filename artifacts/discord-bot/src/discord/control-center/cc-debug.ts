@@ -96,37 +96,52 @@ export function verifyBuilder<T>(file: string, fn: string, label: string, build:
 }
 
 /**
- * Validates a CCPayload before it is sent to Discord.
- * Throws with a detailed error if any component row contains duplicate custom IDs.
+ * Serializes a CCPayload to JSON (calling .toJSON() on every Builder),
+ * prints every component custom_id row-by-row, then throws if any
+ * duplicate is found. Call this at every send point before touching Discord.
  *
- * Discord.js stores custom IDs as `data.custom_id` inside the Builder objects — they
- * are NOT accessible as a `.customId` TS property. We serialize to JSON (which calls
- * each Builder's `.toJSON()` method) and scan the resulting raw `custom_id` fields.
- * This avoids TS type-mismatch errors and catches the exact ID string Discord will see.
+ * Discord.js stores custom IDs as `data.custom_id` — NOT accessible as a
+ * `.customId` TS property. JSON.stringify triggers each Builder's .toJSON().
  */
-export function validatePayload(label: string, payload: { components?: unknown[] }): void {
-  interface RawRow  { components?: { custom_id?: string }[] }
+export function assertUniqueCustomIds(label: string, payload: { components?: unknown[] }): void {
+  interface RawComp { custom_id?: string }
+  interface RawRow  { components?: RawComp[] }
   interface RawRoot { components?: RawRow[] }
 
   const raw = JSON.parse(JSON.stringify(payload)) as RawRoot;
-  const seen = new Set<string>();
-  const duplicates: string[] = [];
+  const rows = raw.components ?? [];
 
-  for (const row of raw.components ?? []) {
-    for (const comp of row.components ?? []) {
-      const id = comp.custom_id;
-      if (!id) continue;
-      if (seen.has(id)) {
-        duplicates.push(id);
-      } else {
-        seen.add(id);
-      }
+  // ── Row-by-row print ──────────────────────────────────────────────────────
+  logger.info(`[CC][assert] ── ${label} (${rows.length} row${rows.length !== 1 ? 's' : ''}) ──`);
+  const all: Array<{ id: string; row: number; col: number }> = [];
+  for (const [ri, row] of rows.entries()) {
+    const comps = row.components ?? [];
+    const ids = comps.map(c => c.custom_id ?? '(none)');
+    logger.info(`[CC][assert]   Row ${ri}: ${ids.map(id => `"${id}"`).join(', ')}`);
+    for (const [ci, comp] of comps.entries()) {
+      if (comp.custom_id) all.push({ id: comp.custom_id, row: ri, col: ci });
     }
   }
 
-  if (duplicates.length > 0) {
-    const msg = `[CC][DUPLICATE_CUSTOM_ID] ${label} — duplicate IDs: ${duplicates.join(', ')}`;
-    logger.error(msg);
-    throw new Error(msg);
+  // ── Duplicate check ───────────────────────────────────────────────────────
+  const seen = new Map<string, { row: number; col: number }>();
+  for (const { id, row, col } of all) {
+    if (seen.has(id)) {
+      const first = seen.get(id)!;
+      const msg =
+        `[CC][DUPLICATE_CUSTOM_ID] ${label}\n` +
+        `  Duplicate ID:  "${id}"\n` +
+        `  First at:      Row ${first.row}, Component ${first.col}\n` +
+        `  Duplicate at:  Row ${row}, Component ${col}`;
+      logger.error(msg);
+      throw new Error(`Duplicate custom_id "${id}" in ${label} — Row ${row}, Component ${col}`);
+    }
+    seen.set(id, { row, col });
   }
+  logger.info(`[CC][assert]   ✅ All ${all.length} IDs unique`);
+}
+
+/** @deprecated Use assertUniqueCustomIds — kept for any legacy call sites */
+export function validatePayload(label: string, payload: { components?: unknown[] }): void {
+  assertUniqueCustomIds(label, payload);
 }

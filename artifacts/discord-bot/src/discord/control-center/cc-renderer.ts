@@ -12,7 +12,8 @@ import {
 import type { ITool, ToolDefinition, ToolExecuteResult } from '../../ai/tools/tool.interface';
 import { CATEGORY_META, CATEGORY_ORDER, toolDisplayName, truncate } from './cc-categories';
 import type { CategoryKey } from './cc-categories';
-import { checkColor, checkButtonStyle, checkCount, checkPageIndex, checkTextInputLength, verifyBuilder, validatePayload } from './cc-debug';
+import { CC } from './cc-ids';
+import { checkColor, checkButtonStyle, checkCount, checkPageIndex, checkTextInputLength, verifyBuilder, assertUniqueCustomIds } from './cc-debug';
 import { logger } from '../../utils/logger';
 
 const FILE = 'cc-renderer.ts';
@@ -39,11 +40,16 @@ function btn(label: string, customId: string, style: ButtonStyle, disabled = fal
   );
 }
 
-function homeBtn(): ButtonBuilder { return btn('🏠 Home', 'cc:home', ButtonStyle.Secondary); }
-function favBtn(): ButtonBuilder  { return btn('⭐ Favorites', 'cc:favs', ButtonStyle.Secondary); }
-function searchBtn(): ButtonBuilder { return btn('🔍 Search', 'cc:srch', ButtonStyle.Secondary); }
+function homeBtn(): ButtonBuilder   { return btn('🏠 Home',      CC.HOME,  ButtonStyle.Secondary); }
+function favBtn(): ButtonBuilder    { return btn('⭐ Favorites', CC.FAVS,  ButtonStyle.Secondary); }
+function searchBtn(): ButtonBuilder { return btn('🔍 Search',    CC.SRCH,  ButtonStyle.Secondary); }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
+//
+// Discord hard-limits a StringSelectMenu to 25 options. We have 27 categories.
+// Solution: two select menus (cc:cs + cc:cs2), each ≤ 25, total 3 rows.
+
+const HALF = Math.ceil(CATEGORY_ORDER.length / 2);
 
 export function buildDashboard(toolCount: number, categoryToolCounts: Partial<Record<CategoryKey, number>>): CCPayload {
   const fn = 'buildDashboard';
@@ -54,55 +60,52 @@ export function buildDashboard(toolCount: number, categoryToolCounts: Partial<Re
     new EmbedBuilder()
       .setColor(color)
       .setTitle('🎛️ Discord Control Center')
-      .setDescription(`Select a category to browse and execute tools interactively.\nAll ${toolCount} tools are available — no AI required for most actions.`)
+      .setDescription(
+        `Select a category to browse and execute tools interactively.\n` +
+        `All **${toolCount}** tools are available — no AI required for most actions.`,
+      )
       .addFields(
-        { name: '🔧 Total Tools', value: String(toolCount), inline: true },
-        { name: '📁 Categories', value: String(CATEGORY_ORDER.length), inline: true },
-        { name: '💡 Tip', value: 'Use **🔍 Search** to find any tool instantly', inline: false },
+        { name: '🔧 Total Tools',   value: String(toolCount),          inline: true },
+        { name: '📁 Categories',    value: String(CATEGORY_ORDER.length), inline: true },
+        { name: '💡 Tip',           value: 'Use **🔍 Search** to find any tool instantly', inline: false },
       )
       .setFooter({ text: 'AI is still available via /ai for complex multi-step tasks' }),
   );
 
-  // Discord hard-limits a StringSelectMenu to 25 options. CATEGORY_ORDER can exceed that
-  // as new categories are added, so we defensively cap it rather than let discord.js throw.
-  const categoryOptionCount = checkCount(FILE, fn, 'CATEGORY_ORDER.length', CATEGORY_ORDER.length, MAX_SELECT_OPTIONS, MAX_SELECT_OPTIONS);
-  const categoriesForSelect = CATEGORY_ORDER.slice(0, categoryOptionCount);
-  if (categoriesForSelect.length < CATEGORY_ORDER.length) {
-    logger_warnOverflow(fn, CATEGORY_ORDER.length, categoriesForSelect.length);
+  function makeSelect(id: string, slice: CategoryKey[]): ActionRowBuilder<StringSelectMenuBuilder> {
+    const count = checkCount(FILE, fn, `${id}.options`, slice.length, MAX_SELECT_OPTIONS, MAX_SELECT_OPTIONS);
+    const select = verifyBuilder(FILE, fn, `select:${id}`, () =>
+      new StringSelectMenuBuilder()
+        .setCustomId(id)
+        .setPlaceholder('📁 Choose a category...')
+        .addOptions(
+          slice.slice(0, count).map(key => {
+            const meta = CATEGORY_META[key];
+            const n = categoryToolCounts[key] ?? 0;
+            return new StringSelectMenuOptionBuilder()
+              .setLabel(`${meta.emoji} ${meta.label}`)
+              .setDescription(truncate(`${n} tools — ${meta.description}`, 100))
+              .setValue(key);
+          }),
+        ),
+    );
+    return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
   }
 
-  const select = verifyBuilder(FILE, fn, 'category select menu', () =>
-    new StringSelectMenuBuilder()
-      .setCustomId('cc:cs')
-      .setPlaceholder('📁 Choose a category...')
-      .addOptions(
-        categoriesForSelect.map(key => {
-          const meta = CATEGORY_META[key];
-          const count = categoryToolCounts[key] ?? 0;
-          return new StringSelectMenuOptionBuilder()
-            .setLabel(`${meta.emoji} ${meta.label}`)
-            .setDescription(truncate(`${count} tools — ${meta.description}`, 100))
-            .setValue(key);
-        }),
-      ),
-  );
+  const part1 = CATEGORY_ORDER.slice(0, HALF);
+  const part2 = CATEGORY_ORDER.slice(HALF);
 
-  const payload = {
+  const payload: CCPayload = {
     content: '',
     embeds: [embed],
     components: [
-      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select),
+      makeSelect(CC.CAT_SELECT, part1),
+      makeSelect(CC.CAT_SELECT2, part2),
       new ActionRowBuilder<ButtonBuilder>().addComponents(favBtn(), searchBtn()),
     ],
   };
-  validatePayload('buildDashboard', payload);
+  assertUniqueCustomIds('buildDashboard', payload);
   return payload;
-}
-
-function logger_warnOverflow(fn: string, total: number, capped: number): void {
-  logger.error(
-    `[CC][SELECT OVERFLOW] ${FILE}::${fn} — CATEGORY_ORDER has ${total} entries but Discord allows max ${MAX_SELECT_OPTIONS} select options. Truncated to ${capped}.`,
-  );
 }
 
 // ── Category Panel ─────────────────────────────────────────────────────────
@@ -130,7 +133,7 @@ export function buildCategoryPanel(category: CategoryKey, tools: ITool[], page: 
 
   const select = verifyBuilder(FILE, fn, `category select:${category}`, () =>
     new StringSelectMenuBuilder()
-      .setCustomId(`cc:ts:${category}:${safePage}`)
+      .setCustomId(CC.toolSelect(category, safePage))
       .setPlaceholder('⚡ Choose a tool...')
       .addOptions(
         slicedOptions.map(tool => {
@@ -142,19 +145,18 @@ export function buildCategoryPanel(category: CategoryKey, tools: ITool[], page: 
       ),
   );
 
-  // Use RAW unclamped page numbers as custom IDs so Prev and Next are ALWAYS unique.
-  // When totalPages===1: safePage=0, raw prev=-1, raw next=1 → "cc:pg:cat:-1" vs "cc:pg:cat:1" — never equal.
-  // The router's navToCategory already clamps incoming page values after parsing.
-  // DO NOT pass these through checkPageIndex — clamping both toward 0 is the exact bug.
+  // Use RAW unclamped page numbers as button custom IDs — never clamp before
+  // passing here. When totalPages===1: prev=-1, next=+1 → always unique.
+  // The router's navToCategory clamps after parsing.
   const navRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
     homeBtn(),
-    btn('◀ Prev', `cc:pg:${category}:${safePage - 1}`, ButtonStyle.Secondary, safePage === 0),
-    btn('Next ▶', `cc:pg:${category}:${safePage + 1}`, ButtonStyle.Secondary, safePage >= totalPages - 1),
+    btn('◀ Prev', CC.page(category, safePage - 1), ButtonStyle.Secondary, safePage === 0),
+    btn('Next ▶', CC.page(category, safePage + 1), ButtonStyle.Secondary, safePage >= totalPages - 1),
     favBtn(),
     searchBtn(),
   );
 
-  const payload = {
+  const payload: CCPayload = {
     content: '',
     embeds: [embed],
     components: [
@@ -162,7 +164,7 @@ export function buildCategoryPanel(category: CategoryKey, tools: ITool[], page: 
       navRow,
     ],
   };
-  validatePayload(`buildCategoryPanel(${category},p${safePage})`, payload);
+  assertUniqueCustomIds(`buildCategoryPanel(${category},p${safePage})`, payload);
   return payload;
 }
 
@@ -200,7 +202,6 @@ export function buildToolDetail(tool: ITool, category: CategoryKey, isFav: boole
     if (hasRollback) {
       e.addFields({ name: '↩️ Rollback', value: 'This action can be rolled back after execution.', inline: false });
     }
-
     e.setFooter({ text: `Category: ${meta.emoji} ${meta.label}` });
     return e;
   });
@@ -210,14 +211,14 @@ export function buildToolDetail(tool: ITool, category: CategoryKey, isFav: boole
   const favLabel = isFav ? '★ Unfavorite' : '☆ Favorite';
 
   const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    btn(execLabel, `cc:exec:${d.name}`, execStyle),
-    btn(favLabel, `cc:fav:${d.name}`, ButtonStyle.Secondary),
-    btn(`← ${meta.label}`, `cc:cat:${category}`, ButtonStyle.Secondary),
+    btn(execLabel,        CC.exec(d.name),    execStyle),
+    btn(favLabel,         CC.fav(d.name),     ButtonStyle.Secondary),
+    btn(`← ${meta.label}`, CC.cat(category), ButtonStyle.Secondary),
     homeBtn(),
   );
 
-  const payload = { content: '', embeds: [embed], components: [row1] };
-  validatePayload(`buildToolDetail(${d.name})`, payload);
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row1] };
+  assertUniqueCustomIds(`buildToolDetail(${d.name})`, payload);
   return payload;
 }
 
@@ -235,18 +236,18 @@ export function buildResult(toolName: string, result: ToolExecuteResult, categor
   );
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    btn('🔁 Run Again', `cc:exec:${toolName}`, ButtonStyle.Primary),
-    btn('← Back to Tool', `cc:tool:${toolName}`, ButtonStyle.Secondary),
-    btn('← Category', `cc:cat:${category}`, ButtonStyle.Secondary),
+    btn('🔁 Run Again',    CC.exec(toolName), ButtonStyle.Primary),
+    btn('← Back to Tool', CC.tool(toolName), ButtonStyle.Secondary),
+    btn('← Category',     CC.cat(category),  ButtonStyle.Secondary),
     homeBtn(),
   );
 
-  const resultPayload = { content: '', embeds: [embed], components: [row] };
-  validatePayload(`buildResult(${toolName})`, resultPayload);
-  return resultPayload;
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds(`buildResult(${toolName})`, payload);
+  return payload;
 }
 
-// ── Confirm (dangerous, no-param tools) ───────────────────────────────────
+// ── Confirm (dangerous action) ─────────────────────────────────────────────
 
 export function buildConfirm(tool: ITool, paramSummary: string, category: CategoryKey): CCPayload {
   const fn = 'buildConfirm';
@@ -265,14 +266,14 @@ export function buildConfirm(tool: ITool, paramSummary: string, category: Catego
   );
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    btn('✅ Confirm & Execute', `cc:do:${d.name}`, ButtonStyle.Danger),
-    btn('✖ Cancel', `cc:cat:${category}`, ButtonStyle.Secondary),
+    btn('✅ Confirm & Execute', CC.doExec(d.name), ButtonStyle.Danger),
+    btn('✖ Cancel',            CC.cat(category),   ButtonStyle.Secondary),
     homeBtn(),
   );
 
-  const confirmPayload = { content: '', embeds: [embed], components: [row] };
-  validatePayload(`buildConfirm(${d.name})`, confirmPayload);
-  return confirmPayload;
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds(`buildConfirm(${d.name})`, payload);
+  return payload;
 }
 
 // ── Search Results ─────────────────────────────────────────────────────────
@@ -287,7 +288,9 @@ export function buildSearchResults(query: string, tools: ITool[]): CCPayload {
       .setTitle('🔍 No Results')
       .setDescription(`No tools matched **"${query}"**.\n\nTry a shorter term like \`role\`, \`ban\`, \`channel\`, \`backup\`.`);
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(homeBtn(), searchBtn());
-    return { content: '', embeds: [embed], components: [row] };
+    const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+    assertUniqueCustomIds(`buildSearchResults:empty`, payload);
+    return payload;
   }
 
   const color = checkColor(FILE, fn, 'resultsColor', 0x5865f2);
@@ -303,7 +306,7 @@ export function buildSearchResults(query: string, tools: ITool[]): CCPayload {
 
   const select = verifyBuilder(FILE, fn, 'search results select', () =>
     new StringSelectMenuBuilder()
-      .setCustomId('cc:ts:search:0')
+      .setCustomId(CC.SEARCH_SELECT)
       .setPlaceholder('Select a result to view...')
       .addOptions(
         shown.map(tool => {
@@ -318,7 +321,7 @@ export function buildSearchResults(query: string, tools: ITool[]): CCPayload {
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(homeBtn(), searchBtn());
 
-  const payload = {
+  const payload: CCPayload = {
     content: '',
     embeds: [embed],
     components: [
@@ -326,7 +329,7 @@ export function buildSearchResults(query: string, tools: ITool[]): CCPayload {
       row,
     ],
   };
-  validatePayload(`buildSearchResults("${query}")`, payload);
+  assertUniqueCustomIds(`buildSearchResults("${query}")`, payload);
   return payload;
 }
 
@@ -342,7 +345,9 @@ export function buildFavoritesPanel(tools: ITool[]): CCPayload {
       .setTitle('⭐ Favorites')
       .setDescription('You have no favorites yet.\nBrowse a tool and click **☆ Favorite** to pin it here.');
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(homeBtn(), searchBtn());
-    return { content: '', embeds: [embed], components: [row] };
+    const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+    assertUniqueCustomIds('buildFavoritesPanel:empty', payload);
+    return payload;
   }
 
   const optionCount = checkCount(FILE, fn, 'favoritesShownCount', Math.min(tools.length, TOOLS_PER_PAGE), MAX_SELECT_OPTIONS, MAX_SELECT_OPTIONS);
@@ -356,7 +361,7 @@ export function buildFavoritesPanel(tools: ITool[]): CCPayload {
 
   const select = verifyBuilder(FILE, fn, 'favorites select', () =>
     new StringSelectMenuBuilder()
-      .setCustomId('cc:ts:favs:0')
+      .setCustomId(CC.FAVS_SELECT)
       .setPlaceholder('Open a favorite tool...')
       .addOptions(
         tools.slice(0, optionCount).map(tool => {
@@ -371,7 +376,7 @@ export function buildFavoritesPanel(tools: ITool[]): CCPayload {
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(homeBtn(), searchBtn());
 
-  const favPayload = {
+  const payload: CCPayload = {
     content: '',
     embeds: [embed],
     components: [
@@ -379,8 +384,8 @@ export function buildFavoritesPanel(tools: ITool[]): CCPayload {
       row,
     ],
   };
-  validatePayload('buildFavoritesPanel', favPayload);
-  return favPayload;
+  assertUniqueCustomIds('buildFavoritesPanel', payload);
+  return payload;
 }
 
 // ── Modals ─────────────────────────────────────────────────────────────────
@@ -398,7 +403,7 @@ export function buildToolModal(tool: ITool): ModalBuilder {
 
   const modal = verifyBuilder(FILE, fn, `modal shell:${d.name}`, () =>
     new ModalBuilder()
-      .setCustomId(`cc:modal:${d.name}`)
+      .setCustomId(CC.modal(d.name))
       .setTitle(truncate(`Execute: ${toolDisplayName(d.name)}`, 45)),
   );
 
@@ -417,13 +422,8 @@ export function buildToolModal(tool: ITool): ModalBuilder {
         .setRequired(isRequired),
     );
 
-    // ROOT CAUSE (fixed here): `schema.minimum`/`schema.maximum` are JSON-schema
-    // VALUE bounds for the parameter itself (e.g. slowmode seconds 0-21600), NOT
-    // Discord TextInput CHARACTER-LENGTH bounds (hard-capped 0-4000 by Discord).
-    // Passing a value bound like maximum=21600 straight into setMaxLength() made
-    // discord.js reject it with "Invalid number value". Only apply these as
-    // length constraints for string-typed fields, and always clamp/validate
-    // before calling setMinLength/setMaxLength.
+    // Only apply min/maxLength for string-typed fields. For number/integer fields,
+    // schema.minimum/maximum are VALUE bounds (e.g. slowmode 0-21600), not char counts.
     if (schema.type === 'string') {
       if (schema.minimum !== undefined) {
         const safeMin = checkTextInputLength(FILE, fn, `minLength(${d.name}.${key})`, schema.minimum, 0);
@@ -436,8 +436,7 @@ export function buildToolModal(tool: ITool): ModalBuilder {
     } else if (schema.minimum !== undefined || schema.maximum !== undefined) {
       logger.info(
         `[CC][debug] ${FILE}::${fn} skipping length constraint for non-string field "${key}" ` +
-        `(type=${schema.type}, minimum=${schema.minimum}, maximum=${schema.maximum}) — these are value bounds, ` +
-        `already surfaced to the user via the placeholder text.`,
+        `(type=${schema.type}) — these are value bounds, not char limits.`,
       );
     }
 
@@ -464,7 +463,7 @@ export function buildSearchModal(): ModalBuilder {
   );
 
   return new ModalBuilder()
-    .setCustomId('cc:search_submit')
+    .setCustomId(CC.SEARCH_SUBMIT)
     .setTitle('🔍 Search Tools')
     .addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(input));
 }

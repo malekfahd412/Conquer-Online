@@ -3,6 +3,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  MessageFlags,
 } from 'discord.js';
 import type {
   Guild,
@@ -18,6 +19,7 @@ import type { ToolRegistry } from '../../ai/tool-registry';
 import type { PermissionManager } from '../../ai/permission-manager';
 import { truncate } from './cc-categories';
 import type { CategoryKey } from './cc-categories';
+import { CC } from './cc-ids';
 import { ControlCenterCache } from './cc-cache';
 import {
   buildDashboard,
@@ -30,10 +32,24 @@ import {
   buildToolModal,
   buildSearchModal,
 } from './cc-renderer';
+import { assertUniqueCustomIds } from './cc-debug';
 import { getFavorites, toggleFavorite, isFavorite } from './cc-favorites';
 import { logger } from '../../utils/logger';
 
 type NavInteraction = ButtonInteraction | StringSelectMenuInteraction;
+
+// Discord error codes we handle explicitly
+const UNKNOWN_INTERACTION  = 10062; // Interaction token expired / new gateway session
+const ALREADY_ACKNOWLEDGED = 40060; // Already deferred or replied
+
+/** True when a Discord API error is an unrecoverable stale-interaction error. */
+function isStaleInteraction(err: unknown): boolean {
+  if (err && typeof err === 'object' && 'code' in err) {
+    const code = (err as { code: unknown }).code;
+    return code === UNKNOWN_INTERACTION || code === ALREADY_ACKNOWLEDGED;
+  }
+  return false;
+}
 
 export class ControlCenterService {
   private readonly pendingExec = new Map<string, { toolName: string; params: Record<string, unknown>; category: CategoryKey }>();
@@ -55,9 +71,8 @@ export class ControlCenterService {
     const timings: Record<string, number> = {};
 
     try {
-      // Requirement: deferReply is the very first operation on the interaction.
       let t = Date.now();
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       timings.deferReply = Date.now() - t;
 
       if (!interaction.guild) {
@@ -69,29 +84,20 @@ export class ControlCenterService {
         return;
       }
 
-      // Registry load — cache was already built at startup, so this is a lookup, not a rebuild.
       t = Date.now();
       const toolCount = this.cache.toolCount;
       timings.registryLoad = Date.now() - t;
 
-      // Category generation — dashboard only needs per-category counts, not full tool lists.
       t = Date.now();
       const counts = this.cache.categoryCounts;
       timings.categoryGen = Date.now() - t;
 
-      // UI generation — build the dashboard payload only (lazy: no per-tool rendering here).
       t = Date.now();
       const payload = buildDashboard(toolCount, counts);
       timings.uiGen = Date.now() - t;
 
-      // Favorites / search index are not needed for the dashboard screen — lazy-loaded later.
-      timings.favorites = 0;
-      timings.searchIndex = 0;
-
       t = Date.now();
-      timings.rendering = Date.now() - t; // payload already built above; embeds/components are cheap object graphs
-
-      t = Date.now();
+      assertUniqueCustomIds('/panel dashboard', payload);
       await interaction.editReply(payload);
       timings.editReply = Date.now() - t;
 
@@ -101,6 +107,11 @@ export class ControlCenterService {
         `categoryGen=${timings.categoryGen}ms uiGen=${timings.uiGen}ms editReply=${timings.editReply}ms tools=${toolCount}`,
       );
     } catch (err) {
+      if (isStaleInteraction(err)) {
+        // Interaction token expired (e.g. bot restarted while /panel was in-flight). Silently drop.
+        logger.info('[CC] /panel: stale interaction dropped (10062/40060)');
+        return;
+      }
       logger.error('[CC] /panel failed', err);
       await this.safeErrorReply(interaction, err);
     }
@@ -118,6 +129,12 @@ export class ControlCenterService {
         await this.routeModal(interaction, guild);
       }
     } catch (err) {
+      if (isStaleInteraction(err)) {
+        // User clicked a button on an ephemeral panel from before the bot restarted.
+        // The interaction token is irrecoverable — silently drop.
+        logger.info(`[CC] Stale interaction dropped (10062/40060): ${interaction.isButton() ? interaction.customId : 'select/modal'}`);
+        return;
+      }
       logger.error('[CC] Interaction routing failed', err);
       await this.safeErrorReply(interaction, err);
     }
@@ -128,15 +145,15 @@ export class ControlCenterService {
   private async routeButton(interaction: ButtonInteraction, guild: Guild): Promise<void> {
     const id = interaction.customId;
 
-    if (id === 'cc:home' || id === 'cc:cancel') {
+    if (id === CC.HOME || id === CC.CANCEL) {
       await this.nav(interaction, this.buildDashboardPayload(), 'home');
       return;
     }
-    if (id === 'cc:favs') {
+    if (id === CC.FAVS) {
       await this.navToFavorites(interaction);
       return;
     }
-    if (id === 'cc:srch') {
+    if (id === CC.SRCH) {
       await interaction.showModal(buildSearchModal());
       return;
     }
@@ -153,19 +170,19 @@ export class ControlCenterService {
       return;
     }
     if (action === 'tool') {
-      await this.navToTool(interaction, guild, parts[2]);
+      await this.navToTool(interaction, guild, parts.slice(2).join(':'));
       return;
     }
     if (action === 'exec') {
-      await this.handleExecute(interaction, guild, parts[2]);
+      await this.handleExecute(interaction, guild, parts.slice(2).join(':'));
       return;
     }
     if (action === 'do') {
-      await this.handleConfirmedExec(interaction, guild, parts[2]);
+      await this.handleConfirmedExec(interaction, guild, parts.slice(2).join(':'));
       return;
     }
     if (action === 'fav') {
-      await this.handleFavToggle(interaction, guild, parts[2]);
+      await this.handleFavToggle(interaction, guild, parts.slice(2).join(':'));
       return;
     }
   }
@@ -174,11 +191,13 @@ export class ControlCenterService {
     const id = interaction.customId;
     const value = interaction.values[0];
 
-    if (id === 'cc:cs') {
+    // Both cc:cs (part 1) and cc:cs2 (part 2) navigate to the selected category
+    if (id === CC.CAT_SELECT || id === CC.CAT_SELECT2) {
       await this.navToCategory(interaction, value as CategoryKey, 0);
       return;
     }
 
+    // Tool selects: cc:ts:<cat>:<page>, cc:ts:search:0, cc:ts:favs:0
     if (id.startsWith('cc:ts:')) {
       await this.navToTool(interaction, guild, value);
       return;
@@ -188,7 +207,7 @@ export class ControlCenterService {
   private async routeModal(interaction: ModalSubmitInteraction, guild: Guild): Promise<void> {
     const id = interaction.customId;
 
-    if (id === 'cc:search_submit') {
+    if (id === CC.SEARCH_SUBMIT) {
       await this.handleSearch(interaction);
       return;
     }
@@ -201,13 +220,12 @@ export class ControlCenterService {
   // ── Navigation ─────────────────────────────────────────────────────────────
 
   private buildDashboardPayload() {
-    // Cached at startup — no per-tool iteration happens here anymore.
     return buildDashboard(this.cache.toolCount, this.cache.categoryCounts);
   }
 
   private async navToCategory(interaction: NavInteraction, category: CategoryKey, page: number): Promise<void> {
     const tUi = Date.now();
-    const tools = this.cache.getToolsByCategory(category); // lazy: tools for THIS category only, from cache
+    const tools = this.cache.getToolsByCategory(category);
     const safePage = Math.max(0, Math.min(page, Math.floor((tools.length - 1) / 20)));
     const payload = buildCategoryPanel(category, tools, safePage);
     const uiGenMs = Date.now() - tUi;
@@ -255,7 +273,6 @@ export class ControlCenterService {
       return;
     }
 
-    // No params — execute directly or show danger confirm
     if (tool.definition.dangerous) {
       const key = `${interaction.user.id}:${toolName}`;
       this.pendingExec.set(key, { toolName, params: {}, category: this.cache.getCategory(toolName) });
@@ -279,7 +296,7 @@ export class ControlCenterService {
   private async handleModalExec(interaction: ModalSubmitInteraction, guild: Guild, toolName: string): Promise<void> {
     const tool = this.toolRegistry.getTool(toolName);
     if (!tool) {
-      await interaction.reply({ content: '❌ Tool not found.', ephemeral: true });
+      await interaction.reply({ content: '❌ Tool not found.', flags: MessageFlags.Ephemeral });
       return;
     }
 
@@ -290,15 +307,19 @@ export class ControlCenterService {
       const paramSummary = Object.entries(params).map(([k, v]) => `**${k}:** ${String(v)}`).join('\n') || '_None_';
       this.pendingExec.set(key, { toolName, params, category: this.cache.getCategory(toolName) });
 
-      await interaction.deferReply({ ephemeral: true });
-      await interaction.editReply(buildConfirm(tool, paramSummary, this.cache.getCategory(toolName)));
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const confirmPayload = buildConfirm(tool, paramSummary, this.cache.getCategory(toolName));
+      assertUniqueCustomIds(`handleModalExec:confirm(${toolName})`, confirmPayload);
+      await interaction.editReply(confirmPayload);
       return;
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const result = await this.runTool(toolName, params, guild);
     const category = this.cache.getCategory(toolName);
-    await interaction.editReply(buildResult(toolName, result, category));
+    const resultPayload = buildResult(toolName, result, category);
+    assertUniqueCustomIds(`handleModalExec:result(${toolName})`, resultPayload);
+    await interaction.editReply(resultPayload);
   }
 
   private async executeTool(
@@ -309,7 +330,9 @@ export class ControlCenterService {
   ): Promise<void> {
     const result = await this.runTool(toolName, params, guild);
     const category = this.cache.getCategory(toolName);
-    await interaction.editReply(buildResult(toolName, result, category));
+    const payload = buildResult(toolName, result, category);
+    assertUniqueCustomIds(`executeTool(${toolName})`, payload);
+    await interaction.editReply(payload);
   }
 
   private async runTool(toolName: string, params: Record<string, unknown>, guild: Guild) {
@@ -357,18 +380,16 @@ export class ControlCenterService {
     const query = interaction.fields.getTextInputValue('query').trim();
 
     const tSearch = Date.now();
-    const tools = this.cache.search(query); // uses the precomputed search index, not a fresh scan
+    const tools = this.cache.search(query);
     const searchMs = Date.now() - tSearch;
 
-    const tDefer = Date.now();
-    await interaction.deferReply({ ephemeral: true });
-    const deferMs = Date.now() - tDefer;
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const tEdit = Date.now();
-    await interaction.editReply(buildSearchResults(query, tools));
-    const editMs = Date.now() - tEdit;
+    const payload = buildSearchResults(query, tools);
+    assertUniqueCustomIds(`handleSearch("${query}")`, payload);
+    await interaction.editReply(payload);
 
-    logger.info(`[CC][timing] search query="${query}" searchIndex=${searchMs}ms defer=${deferMs}ms editReply=${editMs}ms results=${tools.length}`);
+    logger.info(`[CC][timing] search query="${query}" searchIndex=${searchMs}ms results=${tools.length}`);
   }
 
   // ── Favorites ──────────────────────────────────────────────────────────────
@@ -379,10 +400,14 @@ export class ControlCenterService {
     await this.navToTool(interaction, guild, toolName);
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  // ── Core nav helper ────────────────────────────────────────────────────────
 
   private async nav(interaction: NavInteraction, payload: object, label: string, extraTimings: Record<string, number> = {}): Promise<void> {
     const t0 = Date.now();
+
+    // Pre-send assertion — catches any duplicate ID before Discord sees it
+    assertUniqueCustomIds(`nav:${label}`, payload as { components?: unknown[] });
+
     const tDefer = Date.now();
     await interaction.deferUpdate();
     const deferMs = Date.now() - tDefer;
@@ -396,13 +421,15 @@ export class ControlCenterService {
     logger.info(`[CC][timing] nav:${label} total=${total}ms deferUpdate=${deferMs}ms editReply=${editMs}ms${extra ? ' ' + extra : ''}`);
   }
 
+  // ── Error helpers ──────────────────────────────────────────────────────────
+
   private errorPayload(message: string) {
     const embed = new EmbedBuilder()
       .setColor(0xed4245)
       .setTitle('❌ Control Center Error')
       .setDescription(truncate(message, 2000));
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder().setLabel('🏠 Home').setCustomId('cc:home').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setLabel('🏠 Home').setCustomId(CC.HOME).setStyle(ButtonStyle.Secondary),
     );
     return { content: '', embeds: [embed], components: [row] };
   }
@@ -410,6 +437,7 @@ export class ControlCenterService {
   /**
    * Guarantees the interaction never hangs on "thinking...": always resolves
    * with an editReply, followUp, or reply carrying a visible error embed.
+   * Silently drops stale-interaction errors (10062/40060).
    */
   private async safeErrorReply(interaction: Interaction, err: unknown): Promise<void> {
     if (!interaction.isRepliable()) return;
@@ -419,11 +447,12 @@ export class ControlCenterService {
 
     try {
       if (repliable.deferred || repliable.replied) {
-        await repliable.editReply(payload).catch(() => repliable.followUp({ ...payload, ephemeral: true }));
+        await repliable.editReply(payload).catch(() => repliable.followUp({ ...payload, flags: MessageFlags.Ephemeral }));
       } else {
-        await repliable.reply({ ...payload, ephemeral: true });
+        await repliable.reply({ ...payload, flags: MessageFlags.Ephemeral });
       }
     } catch (deliveryErr) {
+      if (isStaleInteraction(deliveryErr)) return; // already expired — silently ignore
       logger.error('[CC] Failed to deliver error message to user', deliveryErr);
     }
   }
