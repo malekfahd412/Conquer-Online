@@ -215,19 +215,15 @@
       "id": "panel_1783747543306_kk73l",
       "guildId": "1213437502078062674",
       "createdAt": 1783747543306,
-      "updatedAt": 1783753834507,
+      "updatedAt": 1783755510769,
       "messageId": "1525387466247372911",
-      "openCategory": "1521582460788281395",
-      "closedCategory": "1521582996581257508",
+      "openCategory": "1521582368484491384",
+      "closedCategory": "1521582953283719349",
       "archiveCategory": "1525381631437705316",
       "adminRoles": [
         "1216032049794777160"
       ],
-      "logChannelId": "1524534739845775582",
-      "selectMenu": {
-        "placeholder": "Select a ticket type…",
-        "options": []
-      }
+      "logChannelId": "1524534739845775582"
     },
     {
       "additionalButtons": [],

@@ -20,8 +20,8 @@ import { buildFormFromTemplate, type FormTemplateKey } from '../../../community/
 import { questionEngine, MAX_QUESTIONS_PER_FORM } from '../../../community/tickets/question-engine';
 import { genId } from '../../../community/tickets/store';
 import type { PermissionManager } from '../../../ai/permission-manager';
-import type { TicketPanel, TicketButtonConfig, TicketSelectMenuOption, TicketPriority, TicketMemberPermConfig, TicketStaffPermConfig, TicketClaimBehaviourConfig, TicketVisibilityMode, TicketForm, FormQuestion, FormNextRule, QuestionType } from '../../../community/tickets/types';
-import { normalizePanel, DEFAULT_MEMBER_PERMS, DEFAULT_STAFF_PERMS, DEFAULT_CLAIM_BEHAVIOUR, QUESTION_TYPES } from '../../../community/tickets/types';
+import type { TicketPanel, TicketButtonConfig, TicketSelectMenuOption, TicketPriority, TicketMemberPermConfig, TicketStaffPermConfig, TicketClaimBehaviourConfig, TicketVisibilityMode, TicketForm, FormQuestion, FormNextRule, QuestionType, TicketEntryRef } from '../../../community/tickets/types';
+import { normalizePanel, DEFAULT_MEMBER_PERMS, DEFAULT_STAFF_PERMS, DEFAULT_CLAIM_BEHAVIOUR, QUESTION_TYPES, getEntry, setEntryOverrides } from '../../../community/tickets/types';
 import {
   buildPDMain,
   buildPDSupportTeam,
@@ -55,6 +55,7 @@ import {
   buildDeleteConfirm,
   buildExtraButtonDetail,
   buildSmOptionDetail,
+  buildTTMain,
   buildFeedback,
   buildTemplateGallery,
   buildTemplateDetail,
@@ -326,6 +327,88 @@ export class TicketPanelDesigner {
       await this.routePDButton(interaction, guild, id);
       return;
     }
+
+    // ── Ticket Type Designer (tp:tt:*) ───────────────────────────────────────
+    if (id.startsWith('tp:tt:')) {
+      await this.routeTTButton(interaction, guild, id);
+      return;
+    }
+
+    logger.warning(`[TPD] Unrouted button custom_id: ${id}`);
+    await this.safeError(interaction, new Error('This button is not wired to a handler yet.'));
+  }
+
+  // ── Ticket Type Designer (tp:tt:*) ──────────────────────────────────────────
+  //
+  // Custom ID shapes:
+  //   tp:tt:<panelId>:<ref>              — main settings hub (TP.TT.main)
+  //   tp:tt:reset:<panelId>:<ref>:<key>  — clear overrides (TP.TT.reset)
+  private static readonly TT_KNOWN_SECTIONS = new Set([
+    'cat', 'roles', 'access', 'mperms', 'sperms', 'vis', 'claim', 'naming',
+    'auto', 'tx', 'stats', 'embed', 'edit', 'modal', 'mperm', 'sperm', 'setvis', 'ctog', 'reset',
+  ]);
+
+  private async routeTTButton(interaction: ButtonInteraction, guild: Guild, id: string): Promise<void> {
+    const rest = id.slice('tp:tt:'.length);
+    const segs = rest.split(':');
+    logger.info(`[TPD][TT] received custom_id="${id}" guild=${guild.id}`);
+
+    if (TicketPanelDesigner.TT_KNOWN_SECTIONS.has(segs[0])) {
+      const [section, panelId, ref] = segs;
+      if (section === 'reset') {
+        await this.handleTTReset(interaction, guild, panelId, ref);
+        return;
+      }
+      // Per-field section editors are not built yet — surface a clear, ephemeral
+      // message instead of a silent no-op ("This interaction failed").
+      logger.info(`[TPD][TT] section="${section}" panelId=${panelId} ref=${ref} — not yet implemented`);
+      await this.navTTMain(interaction, guild, panelId, ref, `Editing "${section}" from this hub isn't available yet — use the panel's regular sections, or "Clear Overrides" to reset this type.`);
+      return;
+    }
+
+    const [panelId, ref] = segs;
+    await this.navTTMain(interaction, guild, panelId, ref);
+  }
+
+  private async navTTMain(interaction: ButtonInteraction, guild: Guild, panelId: string, ref: TicketEntryRef, notice?: string): Promise<void> {
+    logger.info(`[TPD][TT] navTTMain entered — panelId=${panelId} ref=${ref}`);
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) {
+      logger.warning(`[TPD][TT] panel not found or guild mismatch — panelId=${panelId}`);
+      await this.navPanelList(interaction, guild, 0);
+      return;
+    }
+
+    const entry = getEntry(panel, ref);
+    if (!entry) {
+      logger.warning(`[TPD][TT] entry not found for ref="${ref}" on panel=${panelId} — likely stale (entry removed)`);
+      await this.nav(interaction, buildTTMain(panel, ref));
+      return;
+    }
+
+    logger.info(`[TPD][TT] entered — panel="${panel.name}" ticketType="${entry.ticketType}" ref=${ref}`);
+    const payload = buildTTMain(panel, ref);
+    if (notice) payload.content = `ℹ️ ${notice}`;
+    await this.nav(interaction, payload);
+  }
+
+  private async handleTTReset(interaction: ButtonInteraction, guild: Guild, panelId: string, ref: TicketEntryRef): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) {
+      await this.navPanelList(interaction, guild, 0);
+      return;
+    }
+    const entry = getEntry(panel, ref);
+    if (!entry) {
+      logger.warning(`[TPD][TT] reset requested for missing entry ref="${ref}" on panel=${panelId}`);
+      await this.nav(interaction, buildTTMain(panel, ref));
+      return;
+    }
+    await panelManager.update(panelId, setEntryOverrides(panel, ref, {}));
+    const updated = await panelManager.get(panelId);
+    const payload = buildTTMain(updated ?? panel, ref);
+    payload.content = '✅ Overrides cleared — this ticket type now inherits all panel defaults.';
+    await this.nav(interaction, payload);
   }
 
   private async routePDButton(interaction: ButtonInteraction, guild: Guild, id: string): Promise<void> {

@@ -7,3 +7,4 @@
 - [Discord bot re-import setup steps](discord-bot-reimport-setup.md) — fresh imports always lose node_modules and secrets; run pnpm install + re-request DISCORD_BOT_TOKEN/GEMINI_API_KEY before debugging further.
 - [Per-button ticket category override](ticket-button-category-override.md) — each ticket button/select-option can set its own Discord category, overriding the panel default; follow resolveEntry* lookup pattern.
 - [Ticket Type resolved-config wiring](ticket-type-resolved-config-wiring.md) — engines take `cfg` from resolveTicketType(), never raw panel; claim-behaviour enforcement was a documented-but-unwired stub, now fixed.
+- [Ticket Type Designer unrouted IDs](ticket-type-designer-unrouted-ids.md) — "This interaction failed" with no stack trace often means no router branch exists for that custom_id prefix at all; check the router before the handler.

@@ -9,8 +9,8 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from 'discord.js';
-import type { TicketPanel, TicketTemplate, TicketButtonConfig, TicketSelectMenuOption, TicketForm, FormQuestion, QuestionType } from '../../../community/tickets/types';
-import { QUESTION_TYPE_META, QUESTION_TYPES } from '../../../community/tickets/types';
+import type { TicketPanel, TicketTemplate, TicketButtonConfig, TicketSelectMenuOption, TicketForm, FormQuestion, QuestionType, TicketEntryRef } from '../../../community/tickets/types';
+import { QUESTION_TYPE_META, QUESTION_TYPES, getEntry, entryLabel, resolveTicketType, parseEntryRef } from '../../../community/tickets/types';
 import { FORM_TEMPLATES } from '../../../community/tickets/form-templates';
 import { buildPDMain } from './tp-permission-designer';
 import type { TicketDashboard } from '../../../community/tickets/statistics-engine';
@@ -374,6 +374,69 @@ export function buildSmOptionDetail(panel: TicketPanel, idx: number): CCPayload 
 
   const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
   assertUniqueCustomIds('buildSmOptionDetail', payload);
+  return payload;
+}
+
+// ── Ticket Type Designer (main hub) ─────────────────────────────────────────
+
+/** Where the "← Back" button on the Ticket Type Settings hub should return to, based on which entry it was opened from. */
+function ttBackButtonId(panel: TicketPanel, ref: TicketEntryRef): string {
+  const { kind, idx } = parseEntryRef(ref);
+  if (kind === 'b') return TP.section(panel.id, 'button');
+  if (kind === 'x') return TP.btnDetail(panel.id, idx);
+  return TP.smOpt(panel.id, idx);
+}
+
+export function buildTTMain(panel: TicketPanel, ref: TicketEntryRef): CCPayload {
+  const fn = 'buildTTMain';
+  const color = checkColor(FILE, fn, 'color', 0xfee75c);
+  const entry = getEntry(panel, ref);
+
+  if (!entry) {
+    const embed = verifyBuilder(FILE, fn, 'tt missing entry embed', () =>
+      new EmbedBuilder()
+        .setColor(0xed4245)
+        .setTitle('❌ Ticket Type Settings')
+        .setDescription('This button/option no longer exists on this panel — it may have been removed.'),
+    );
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      btn('← Panel',  TP.dash(panel.id), ButtonStyle.Secondary),
+      homeBtn(),
+    );
+    const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+    assertUniqueCustomIds('buildTTMain:missing', payload);
+    return payload;
+  }
+
+  const cfg = resolveTicketType(panel, entry.ticketType);
+  const overrideCount = entry.overrides ? Object.keys(entry.overrides).length : 0;
+
+  const embed = verifyBuilder(FILE, fn, 'tt main embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle(`🏷️ Ticket Type Settings — ${entryLabel(panel, ref)}`)
+      .setDescription(`Ticket type key: \`${entry.ticketType}\`\n${overrideCount > 0 ? `🏷️ **${overrideCount} field(s)** overridden for this type.` : '_No overrides set — this type currently inherits every panel default._'}`)
+      .addFields(
+        { name: '📁 Open / Closed / Archive', value: `${cfg.openCategory ? `<#${cfg.openCategory}>` : '_(none)_'} → ${cfg.closedCategory ? `<#${cfg.closedCategory}>` : '_(none)_'} → ${cfg.archiveCategory ? `<#${cfg.archiveCategory}>` : '_(none)_'}`, inline: false },
+        { name: '👥 Support / Manager / Admin roles', value: `${cfg.supportRoles.length} / ${cfg.managerRoles.length} / ${cfg.adminRoles.length}`, inline: true },
+        { name: '🎯 Priority', value: cfg.priority, inline: true },
+        { name: '🔒 Visibility', value: cfg.visibility, inline: true },
+        { name: '🎫 Ticket Limit', value: String(cfg.ticketLimit), inline: true },
+        { name: '⏱ Cooldown', value: `${cfg.cooldown}s`, inline: true },
+        { name: '🙈 Hide on Claim', value: cfg.claimBehaviour.hideFromOtherStaffOnClaim ? 'Enabled' : 'Disabled', inline: true },
+        { name: '📄 Transcript', value: cfg.transcript.enabled ? 'Enabled' : 'Disabled', inline: true },
+      )
+      .setFooter({ text: 'Editing individual settings from this hub is coming soon — use "Clear Overrides" to reset this type to panel defaults.' }),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('🗑 Clear Overrides', TP.TT.reset(panel.id, ref, 'all'), ButtonStyle.Danger, overrideCount === 0),
+    btn('← Back',             ttBackButtonId(panel, ref),        ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildTTMain', payload);
   return payload;
 }
 
