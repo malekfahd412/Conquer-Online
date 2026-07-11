@@ -12,7 +12,7 @@ import {
 import type { ITool, ToolDefinition, ToolExecuteResult } from '../../ai/tools/tool.interface';
 import { CATEGORY_META, CATEGORY_ORDER, toolDisplayName, truncate } from './cc-categories';
 import type { CategoryKey } from './cc-categories';
-import { checkColor, checkButtonStyle, checkCount, checkPageIndex, checkTextInputLength, verifyBuilder } from './cc-debug';
+import { checkColor, checkButtonStyle, checkCount, checkPageIndex, checkTextInputLength, verifyBuilder, validatePayload } from './cc-debug';
 import { logger } from '../../utils/logger';
 
 const FILE = 'cc-renderer.ts';
@@ -87,7 +87,7 @@ export function buildDashboard(toolCount: number, categoryToolCounts: Partial<Re
       ),
   );
 
-  return {
+  const payload = {
     content: '',
     embeds: [embed],
     components: [
@@ -95,6 +95,8 @@ export function buildDashboard(toolCount: number, categoryToolCounts: Partial<Re
       new ActionRowBuilder<ButtonBuilder>().addComponents(favBtn(), searchBtn()),
     ],
   };
+  validatePayload('buildDashboard', payload);
+  return payload;
 }
 
 function logger_warnOverflow(fn: string, total: number, capped: number): void {
@@ -140,18 +142,19 @@ export function buildCategoryPanel(category: CategoryKey, tools: ITool[], page: 
       ),
   );
 
-  const prevPage = checkPageIndex(FILE, fn, `prevPage(${category})`, safePage - 1, totalPages - 1);
-  const nextPage = checkPageIndex(FILE, fn, `nextPage(${category})`, safePage + 1, totalPages - 1);
-
+  // Use RAW unclamped page numbers as custom IDs so Prev and Next are ALWAYS unique.
+  // When totalPages===1: safePage=0, raw prev=-1, raw next=1 → "cc:pg:cat:-1" vs "cc:pg:cat:1" — never equal.
+  // The router's navToCategory already clamps incoming page values after parsing.
+  // DO NOT pass these through checkPageIndex — clamping both toward 0 is the exact bug.
   const navRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
     homeBtn(),
-    btn('◀ Prev', `cc:pg:${category}:${prevPage}`, ButtonStyle.Secondary, safePage === 0),
-    btn('Next ▶', `cc:pg:${category}:${nextPage}`, ButtonStyle.Secondary, safePage >= totalPages - 1),
+    btn('◀ Prev', `cc:pg:${category}:${safePage - 1}`, ButtonStyle.Secondary, safePage === 0),
+    btn('Next ▶', `cc:pg:${category}:${safePage + 1}`, ButtonStyle.Secondary, safePage >= totalPages - 1),
     favBtn(),
     searchBtn(),
   );
 
-  return {
+  const payload = {
     content: '',
     embeds: [embed],
     components: [
@@ -159,6 +162,8 @@ export function buildCategoryPanel(category: CategoryKey, tools: ITool[], page: 
       navRow,
     ],
   };
+  validatePayload(`buildCategoryPanel(${category},p${safePage})`, payload);
+  return payload;
 }
 
 // ── Tool Detail ────────────────────────────────────────────────────────────
@@ -211,7 +216,9 @@ export function buildToolDetail(tool: ITool, category: CategoryKey, isFav: boole
     homeBtn(),
   );
 
-  return { content: '', embeds: [embed], components: [row1] };
+  const payload = { content: '', embeds: [embed], components: [row1] };
+  validatePayload(`buildToolDetail(${d.name})`, payload);
+  return payload;
 }
 
 // ── Result ─────────────────────────────────────────────────────────────────
@@ -234,7 +241,9 @@ export function buildResult(toolName: string, result: ToolExecuteResult, categor
     homeBtn(),
   );
 
-  return { content: '', embeds: [embed], components: [row] };
+  const resultPayload = { content: '', embeds: [embed], components: [row] };
+  validatePayload(`buildResult(${toolName})`, resultPayload);
+  return resultPayload;
 }
 
 // ── Confirm (dangerous, no-param tools) ───────────────────────────────────
@@ -261,7 +270,9 @@ export function buildConfirm(tool: ITool, paramSummary: string, category: Catego
     homeBtn(),
   );
 
-  return { content: '', embeds: [embed], components: [row] };
+  const confirmPayload = { content: '', embeds: [embed], components: [row] };
+  validatePayload(`buildConfirm(${d.name})`, confirmPayload);
+  return confirmPayload;
 }
 
 // ── Search Results ─────────────────────────────────────────────────────────
@@ -292,7 +303,7 @@ export function buildSearchResults(query: string, tools: ITool[]): CCPayload {
 
   const select = verifyBuilder(FILE, fn, 'search results select', () =>
     new StringSelectMenuBuilder()
-      .setCustomId('cc:ts:utilities:0')
+      .setCustomId('cc:ts:search:0')
       .setPlaceholder('Select a result to view...')
       .addOptions(
         shown.map(tool => {
@@ -307,7 +318,7 @@ export function buildSearchResults(query: string, tools: ITool[]): CCPayload {
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(homeBtn(), searchBtn());
 
-  return {
+  const payload = {
     content: '',
     embeds: [embed],
     components: [
@@ -315,6 +326,8 @@ export function buildSearchResults(query: string, tools: ITool[]): CCPayload {
       row,
     ],
   };
+  validatePayload(`buildSearchResults("${query}")`, payload);
+  return payload;
 }
 
 // ── Favorites ──────────────────────────────────────────────────────────────
@@ -343,7 +356,7 @@ export function buildFavoritesPanel(tools: ITool[]): CCPayload {
 
   const select = verifyBuilder(FILE, fn, 'favorites select', () =>
     new StringSelectMenuBuilder()
-      .setCustomId('cc:ts:utilities:0')
+      .setCustomId('cc:ts:favs:0')
       .setPlaceholder('Open a favorite tool...')
       .addOptions(
         tools.slice(0, optionCount).map(tool => {
@@ -358,7 +371,7 @@ export function buildFavoritesPanel(tools: ITool[]): CCPayload {
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(homeBtn(), searchBtn());
 
-  return {
+  const favPayload = {
     content: '',
     embeds: [embed],
     components: [
@@ -366,6 +379,8 @@ export function buildFavoritesPanel(tools: ITool[]): CCPayload {
       row,
     ],
   };
+  validatePayload('buildFavoritesPanel', favPayload);
+  return favPayload;
 }
 
 // ── Modals ─────────────────────────────────────────────────────────────────

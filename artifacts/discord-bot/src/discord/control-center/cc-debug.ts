@@ -94,3 +94,39 @@ export function verifyBuilder<T>(file: string, fn: string, label: string, build:
     throw new Error(`${label} failed to build: ${message}`);
   }
 }
+
+/**
+ * Validates a CCPayload before it is sent to Discord.
+ * Throws with a detailed error if any component row contains duplicate custom IDs.
+ *
+ * Discord.js stores custom IDs as `data.custom_id` inside the Builder objects — they
+ * are NOT accessible as a `.customId` TS property. We serialize to JSON (which calls
+ * each Builder's `.toJSON()` method) and scan the resulting raw `custom_id` fields.
+ * This avoids TS type-mismatch errors and catches the exact ID string Discord will see.
+ */
+export function validatePayload(label: string, payload: { components?: unknown[] }): void {
+  interface RawRow  { components?: { custom_id?: string }[] }
+  interface RawRoot { components?: RawRow[] }
+
+  const raw = JSON.parse(JSON.stringify(payload)) as RawRoot;
+  const seen = new Set<string>();
+  const duplicates: string[] = [];
+
+  for (const row of raw.components ?? []) {
+    for (const comp of row.components ?? []) {
+      const id = comp.custom_id;
+      if (!id) continue;
+      if (seen.has(id)) {
+        duplicates.push(id);
+      } else {
+        seen.add(id);
+      }
+    }
+  }
+
+  if (duplicates.length > 0) {
+    const msg = `[CC][DUPLICATE_CUSTOM_ID] ${label} — duplicate IDs: ${duplicates.join(', ')}`;
+    logger.error(msg);
+    throw new Error(msg);
+  }
+}
