@@ -8,7 +8,9 @@
       ],
       "embedColor": 5763719,
       "buttons": [],
-      "autoRoleIds": [],
+      "autoRoleIds": [
+        "1521596508162490398"
+      ],
       "dmEnabled": false,
       "delaySeconds": 0,
       "channelId": "1524534739845775582",

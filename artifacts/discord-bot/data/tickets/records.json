@@ -261,9 +261,45 @@
       ],
       "claimedBy": "727578927593291796",
       "firstStaffReplyAt": 1783761597957
+    },
+    {
+      "id": "ticket_1783767880697_venua",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Store",
+      "channelId": "1525457798572412938",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 15,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783767880884,
+      "lastActivityAt": 1783767880884,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "closedAt": 1783767901554,
+      "closedBy": "727578927593291796"
+    },
+    {
+      "id": "ticket_1783767981139_ptxew",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Store",
+      "channelId": "1525458219785256990",
+      "openerId": "723982702625423430",
+      "status": "open",
+      "number": 16,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783767981284,
+      "lastActivityAt": 1783768001782,
+      "participantIds": [
+        "723982702625423430"
+      ]
     }
   ],
   "counters": {
-    "1213437502078062674": 14
+    "1213437502078062674": 16
   }
 }

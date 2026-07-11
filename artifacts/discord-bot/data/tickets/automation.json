@@ -12,6 +12,20 @@
       "userId": "522507355233976321",
       "ticketType": "Store",
       "lastClosedAt": 1783761751677
+    },
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "userId": "727578927593291796",
+      "ticketType": "Store",
+      "lastClosedAt": 1783767901556
+    },
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "userId": "723982702625423430",
+      "ticketType": "Store",
+      "lastClosedAt": 1783767988499
     }
   ],
   "activity": [
@@ -44,6 +58,11 @@
       "ticketId": "ticket_1783761512931_18o09",
       "channelId": "1525431090049712289",
       "lastActivityAt": 1783761761016
+    },
+    {
+      "ticketId": "ticket_1783767981139_ptxew",
+      "channelId": "1525458219785256990",
+      "lastActivityAt": 1783768002142
     }
   ],
   "log": []

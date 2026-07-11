@@ -250,7 +250,7 @@ export class TicketEngine {
 
     if (channel?.isTextBased()) {
       await transcriptEngine.deliver(guild, cfg, ticket, closedByTag);
-      await permissionEngine.lockForClose(channel as TextChannel, ticket.openerId);
+      await permissionEngine.denyOpenerAccessOnClose(channel as TextChannel, ticket.openerId);
       if (cfg.closedCategory) await categoryEngine.moveToClosed(channel as TextChannel, cfg);
       else if (cfg.archiveCategory) await categoryEngine.moveToArchive(channel as TextChannel, cfg);
     }
@@ -331,15 +331,16 @@ export class TicketEngine {
   /**
    * `cfg` must be the ticket-type-resolved config (see `resolveTicketType`) so the channel
    * moves back to this ticket type's own `openCategory` (per-button/select-option overrides
-   * respected), not just the panel-wide default. Undoes exactly what `close()` changed —
-   * the opener's send-message lock and the category move — leaving any claim-related
-   * overwrites untouched, since `close()` never touches those either.
+   * respected), and the opener's restored permissions reflect this ticket type's own
+   * `memberPerms` overrides, not just the panel-wide default. Undoes exactly what `close()`
+   * changed — the opener's ViewChannel/SendMessages denial and the category move — leaving
+   * any claim-related overwrites untouched, since `close()` never touches those either.
    */
   async reopen(guild: Guild, cfg: TicketPanel, ticket: TicketRecord, reopenedByUserId: string): Promise<void> {
     await this.update(ticket.id, { status: 'open', closedAt: undefined, closedBy: undefined, lastActivityAt: Date.now() });
     const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
     if (channel?.isTextBased()) {
-      await permissionEngine.unlockForReopen(channel as TextChannel, ticket.openerId);
+      await permissionEngine.restoreOpenerAccessOnReopen(channel as TextChannel, cfg, ticket.openerId);
       await categoryEngine.moveToOpen(channel as TextChannel, cfg);
     }
     await automationEngine.touchActivity(ticket.id, ticket.channelId);

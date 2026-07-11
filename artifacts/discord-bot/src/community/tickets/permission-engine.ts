@@ -3,7 +3,7 @@
 // channels, and gates who is allowed to open a ticket on a given panel.
 // Owns no storage; it derives everything from the TicketPanel it is given.
 // ─────────────────────────────────────────────────────────────────────────────
-import { PermissionFlagsBits, type Guild, type GuildMember, type OverwriteResolvable, type TextChannel } from 'discord.js';
+import { PermissionFlagsBits, type Guild, type GuildMember, type OverwriteResolvable, type PermissionOverwriteOptions, type TextChannel } from 'discord.js';
 import { normalizePanel } from './types';
 import type { TicketPanel, TicketMemberPermConfig, TicketStaffPermConfig } from './types';
 
@@ -54,6 +54,45 @@ function memberDenyFlags(cfg: TicketMemberPermConfig): bigint[] {
     .filter(k => !cfg[k])
     .map(k => MEMBER_PERM_FLAGS[k])
     .filter((f): f is bigint => f !== null);
+}
+
+/**
+ * Same keys as `MEMBER_PERM_FLAGS`, but as the string flag names `PermissionOverwriteOptions`
+ * expects (used with `.edit()`, which takes a boolean-per-flag object rather than the
+ * allow/deny bigint arrays `.set()`/channel-creation overwrites use).
+ */
+const MEMBER_PERM_NAMES: Record<keyof TicketMemberPermConfig, keyof PermissionOverwriteOptions> = {
+  viewChannel:            'ViewChannel',
+  sendMessages:           'SendMessages',
+  attachFiles:            'AttachFiles',
+  embedLinks:             'EmbedLinks',
+  addReactions:           'AddReactions',
+  useExternalEmojis:      'UseExternalEmojis',
+  useExternalStickers:    'UseExternalStickers',
+  mentionEveryone:        'MentionEveryone',
+  createPublicThreads:    'CreatePublicThreads',
+  createPrivateThreads:   'CreatePrivateThreads',
+  sendVoiceMessages:      'SendVoiceMessages',
+  readMessageHistory:     'ReadMessageHistory',
+  useApplicationCommands: 'UseApplicationCommands',
+};
+
+/**
+ * Computes the ticket opener's normal (open-ticket) permission set as a boolean-flag object,
+ * mirroring the opener branch of `buildOverwrites` below. `cfg` should be the ticket-type-resolved
+ * config (see `resolveTicketType`) so per-type `memberPerms` overrides apply. Used to restore the
+ * opener's access on reopen without disturbing any staff/role overwrites on the channel.
+ */
+function openerPermissionOptions(cfg: TicketPanel): PermissionOverwriteOptions {
+  const p = normalizePanel(cfg);
+  const keys = Object.keys(p.memberPerms) as (keyof TicketMemberPermConfig)[];
+  if (keys.length === 0) {
+    // Fallback mirrors the "no memberPerms configured" branch in buildOverwrites.
+    return { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true };
+  }
+  const opts: PermissionOverwriteOptions = {};
+  for (const k of keys) opts[MEMBER_PERM_NAMES[k]] = !!p.memberPerms[k];
+  return opts;
 }
 
 function staffExtraFlags(cfg: TicketStaffPermConfig): bigint[] {
@@ -182,6 +221,28 @@ export class PermissionEngine {
 
   async unlockForReopen(channel: TextChannel, openerId: string): Promise<void> {
     await channel.permissionOverwrites.edit(openerId, { SendMessages: true }).catch(() => {});
+  }
+
+  /**
+   * Revokes the ticket opener's access when a ticket is closed — explicitly denies `ViewChannel`
+   * (in addition to `SendMessages`) so the opener immediately loses sight of the closed ticket.
+   * Only edits the opener's own per-user overwrite; staff/support/manager/admin role overwrites
+   * are untouched, so they retain access exactly as `buildOverwrites` set them up. Distinct from
+   * `lockForClose` (used by `/ticket lock`, which keeps the ticket visible but read-only) — closing
+   * is a stronger action that removes visibility entirely.
+   */
+  async denyOpenerAccessOnClose(channel: TextChannel, openerId: string): Promise<void> {
+    await channel.permissionOverwrites.edit(openerId, { ViewChannel: false, SendMessages: false }).catch(() => {});
+  }
+
+  /**
+   * Restores the ticket opener's normal ticket permissions when a ticket is reopened, reversing
+   * `denyOpenerAccessOnClose`. `cfg` must be the ticket-type-resolved config (see `resolveTicketType`)
+   * so per-type `memberPerms` overrides apply. Only edits the opener's own overwrite — staff/role
+   * overwrites are left exactly as they are.
+   */
+  async restoreOpenerAccessOnReopen(channel: TextChannel, cfg: TicketPanel, openerId: string): Promise<void> {
+    await channel.permissionOverwrites.edit(openerId, openerPermissionOptions(cfg)).catch(() => {});
   }
 
   /**
