@@ -476,9 +476,30 @@
         "697186507722850306"
       ],
       "headerMessageId": "1525618532929241092"
+    },
+    {
+      "id": "ticket_1783807653381_couec",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Support",
+      "channelId": "1525624617610514532",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 26,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783807653652,
+      "lastActivityAt": 1783807653652,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "headerMessageId": "1525624618331930735",
+      "closedAt": 1783807688870,
+      "closedBy": "727578927593291796",
+      "lastLifecycleMessageId": "1525624766801903697"
     }
   ],
   "counters": {
-    "1213437502078062674": 25
+    "1213437502078062674": 26
   }
 }
