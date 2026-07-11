@@ -264,6 +264,66 @@ export class TicketEngine {
     }
   }
 
+  /**
+   * Adds a user to an existing ticket channel (`/ticket add`). Grants the same base
+   * view/send access as the opener and records them in `participantIds`. `cfg` must be
+   * the ticket-type-resolved config (see `resolveTicketType`) so log routing matches
+   * this ticket type. No-op (besides returning the ticket unchanged) if already a participant.
+   */
+  async addParticipant(guild: Guild, cfg: TicketPanel, ticket: TicketRecord, userId: string, actorTag: string): Promise<TicketRecord | undefined> {
+    if (ticket.participantIds.includes(userId)) return ticket;
+
+    const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
+    if (channel?.isTextBased()) await permissionEngine.grantAccess(channel as TextChannel, userId);
+
+    const updated = await this.update(ticket.id, {
+      participantIds: [...ticket.participantIds, userId],
+      lastActivityAt: Date.now(),
+    });
+    await automationEngine.touchActivity(ticket.id, ticket.channelId);
+    await this.logAction(guild, cfg, `➕ <@${userId}> was added to ticket **#${ticket.number}** by ${actorTag}`);
+    return updated;
+  }
+
+  /**
+   * Removes a user from an existing ticket channel (`/ticket remove`). Revokes their
+   * personal channel overwrite and drops them from `participantIds`. Callers must
+   * prevent removing the ticket opener themselves — this method does not enforce that.
+   */
+  async removeParticipant(guild: Guild, cfg: TicketPanel, ticket: TicketRecord, userId: string, actorTag: string): Promise<TicketRecord | undefined> {
+    const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
+    if (channel?.isTextBased()) await permissionEngine.revokeAccess(channel as TextChannel, userId);
+
+    const updated = await this.update(ticket.id, {
+      participantIds: ticket.participantIds.filter(id => id !== userId),
+      lastActivityAt: Date.now(),
+    });
+    await automationEngine.touchActivity(ticket.id, ticket.channelId);
+    await this.logAction(guild, cfg, `➖ <@${userId}> was removed from ticket **#${ticket.number}** by ${actorTag}`);
+    return updated;
+  }
+
+  /**
+   * Renames a ticket's Discord channel (`/ticket rename`). The new name is sanitized
+   * through `namingEngine` so it stays a valid Discord channel name. Throws if Discord
+   * rejects the rename (e.g. channel-name rate limit) — callers should catch and report.
+   */
+  async renameTicket(guild: Guild, cfg: TicketPanel, ticket: TicketRecord, newName: string, actorTag: string): Promise<string> {
+    const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
+    if (!channel?.isTextBased()) throw new Error('Ticket channel not found.');
+    const sanitized = namingEngine.sanitize(newName);
+    await (channel as TextChannel).setName(sanitized, `Renamed via /ticket rename by ${actorTag}`);
+    await this.logAction(guild, cfg, `✏️ Ticket **#${ticket.number}** renamed to **${sanitized}** by ${actorTag}`);
+    return sanitized;
+  }
+
+  /** Updates a ticket's priority (`/ticket priority`). `cfg` must be the ticket-type-resolved config so log routing matches this ticket type. */
+  async setPriority(guild: Guild, cfg: TicketPanel, ticket: TicketRecord, priority: TicketRecord['priority'], actorTag: string): Promise<TicketRecord | undefined> {
+    const updated = await this.update(ticket.id, { priority, lastActivityAt: Date.now() });
+    await this.logAction(guild, cfg, `🎯 Ticket **#${ticket.number}** priority set to **${priority}** by ${actorTag}`);
+    return updated;
+  }
+
   async reopen(guild: Guild, ticket: TicketRecord, reopenedByUserId: string): Promise<void> {
     await this.update(ticket.id, { status: 'open', closedAt: undefined, closedBy: undefined, lastActivityAt: Date.now() });
     const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);

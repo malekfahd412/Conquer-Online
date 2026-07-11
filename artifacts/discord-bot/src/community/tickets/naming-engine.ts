@@ -55,8 +55,8 @@ export class NamingEngine {
     return this.sanitize(name);
   }
 
-  /** Discord channel names must be lowercase, dash-separated, <= 100 chars. */
-  private sanitize(name: string): string {
+  /** Discord channel names must be lowercase, dash-separated, <= 100 chars. Public: also used to sanitize manual renames (e.g. `/ticket rename`). */
+  sanitize(name: string): string {
     return name
       .toLowerCase()
       .trim()

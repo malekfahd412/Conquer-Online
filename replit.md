@@ -69,6 +69,14 @@ A Discord bot that serves as a live server status dashboard **and** an AI-powere
 | `/voice leave` | Leave the voice channel |
 | `/voice status` | Show voice session status |
 | `/voice personality <type>` | Change voice personality (friendly/professional/gaming/funny/assistant) |
+| `/ticket add <user>` | Add a user to the current ticket (staff only) |
+| `/ticket remove <user>` | Remove a user from the current ticket (staff only, not the opener) |
+| `/ticket rename <name>` | Rename the current ticket's channel (staff only) |
+| `/ticket unclaim` | Release the current claim on this ticket |
+| `/ticket priority <low\|normal\|high\|urgent>` | Set the current ticket's priority (staff only) |
+| `/ticket info` | Show ticket details (opener, claim, priority, participants) — ephemeral |
+
+`/ticket` subcommands only work inside an active ticket channel and share the exact same Ticket System Pro engine methods and staff-role permission check used by the ticket buttons (see Ticket System Pro section below) — no separate permission or business logic.
 
 ## Voice AI
 

@@ -140,6 +140,83 @@ const VOICE_COMMAND = {
   ],
 };
 
+const TICKET_COMMAND = {
+  name: 'ticket',
+  description: 'Manage the ticket in this channel',
+  options: [
+    {
+      name: 'add',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Add a user to this ticket',
+      options: [
+        {
+          name: 'user',
+          type: ApplicationCommandOptionType.User,
+          description: 'User to add (mention or ID)',
+          required: true,
+        },
+      ],
+    },
+    {
+      name: 'remove',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Remove a user from this ticket',
+      options: [
+        {
+          name: 'user',
+          type: ApplicationCommandOptionType.User,
+          description: 'User to remove (mention or ID)',
+          required: true,
+        },
+      ],
+    },
+    {
+      name: 'rename',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Rename this ticket channel',
+      options: [
+        {
+          name: 'name',
+          type: ApplicationCommandOptionType.String,
+          description: 'New channel name',
+          required: true,
+          min_length: 1,
+          max_length: 90,
+        },
+      ],
+    },
+    {
+      name: 'unclaim',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Release the current claim on this ticket',
+    },
+    {
+      name: 'priority',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: "Set this ticket's priority",
+      options: [
+        {
+          name: 'level',
+          type: ApplicationCommandOptionType.String,
+          description: 'Priority level',
+          required: true,
+          choices: [
+            { name: 'Low', value: 'low' },
+            { name: 'Normal', value: 'normal' },
+            { name: 'High', value: 'high' },
+            { name: 'Urgent', value: 'urgent' },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'info',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Show information about this ticket',
+    },
+  ],
+};
+
 const PANEL_COMMAND = {
   name: 'panel',
   description: 'Open the Discord Control Center — browse and execute all 323 tools interactively',
@@ -160,6 +237,7 @@ const ALL_COMMANDS = [
   RESET_PREFS_COMMAND,
   WORKSPACE_COMMAND,
   VOICE_COMMAND,
+  TICKET_COMMAND,
 ];
 
 const GUILD_ID = '1213437502078062674';

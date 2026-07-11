@@ -224,6 +224,29 @@ export class PermissionEngine {
       await channel.permissionOverwrites.edit(ow as Parameters<typeof channel.permissionOverwrites.edit>[0], {}).catch(() => {});
     }
   }
+
+  /**
+   * Grants a user the same base view/send access as a ticket opener (see the opener
+   * fallback branch in `buildOverwrites`). Used by `/ticket add` to bring an extra
+   * participant into an existing ticket channel without altering role-based overwrites.
+   */
+  async grantAccess(channel: TextChannel, userId: string): Promise<void> {
+    await channel.permissionOverwrites.edit(userId, {
+      ViewChannel: true,
+      SendMessages: true,
+      ReadMessageHistory: true,
+      AttachFiles: true,
+    }).catch(() => {});
+  }
+
+  /**
+   * Removes a user's personal channel overwrite (used by `/ticket remove`). Leaves
+   * role-based overwrites untouched — if the user also holds a staff role, they keep
+   * whatever access that role grants.
+   */
+  async revokeAccess(channel: TextChannel, userId: string): Promise<void> {
+    await channel.permissionOverwrites.delete(userId).catch(() => {});
+  }
 }
 
 export const permissionEngine = new PermissionEngine();

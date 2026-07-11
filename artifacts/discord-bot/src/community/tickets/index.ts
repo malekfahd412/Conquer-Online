@@ -17,11 +17,14 @@ import {
   type ActionRow,
   type ButtonComponent,
   type ButtonInteraction,
+  type ChatInputCommandInteraction,
   type Client,
   type Guild,
+  type Message,
   type MessageActionRowComponent,
   type ModalSubmitInteraction,
   type StringSelectMenuInteraction,
+  type TextChannel,
 } from 'discord.js';
 import { runMigration } from './migration';
 import { panelManager, PanelManager } from './panel-manager';
@@ -36,7 +39,7 @@ import { namingEngine, NamingEngine } from './naming-engine';
 import { categoryEngine, CategoryEngine } from './category-engine';
 import { transcriptEngine, TranscriptEngine } from './transcript-engine';
 import { genId } from './store';
-import type { TicketForm, TicketPanel } from './types';
+import type { TicketForm, TicketPanel, TicketPriority, TicketRecord } from './types';
 import { getEntry, entryRefForTicketType, resolveTicketType } from './types';
 import { logger } from '../../utils/logger';
 
@@ -370,6 +373,17 @@ class TicketSystem {
     }
   }
 
+  /**
+   * The single staff gate shared by the claim button and every staff-only `/ticket`
+   * subcommand (add, remove, rename, priority) — `resolveTicketType`'s `cfg` must be
+   * passed in so per-ticket-type role overrides apply exactly as they do for claiming.
+   */
+  private isStaffMember(cfg: TicketPanel, member: GuildMember | null): boolean {
+    const staffRoleIds = new Set([...cfg.supportRoles, ...cfg.managerRoles, ...cfg.adminRoles]);
+    const memberRoleIds = member ? Array.from(member.roles.cache.keys()) : [];
+    return memberRoleIds.some(id => staffRoleIds.has(id));
+  }
+
   private async claim(interaction: ButtonInteraction, guild: Guild, ticketId: string, claim: boolean): Promise<void> {
     const ticket = await ticketEngine.getById(ticketId);
     if (!ticket) {
@@ -385,10 +399,7 @@ class TicketSystem {
     const member = interaction.member instanceof GuildMember ? interaction.member : null;
 
     if (claim) {
-      const staffRoleIds = new Set([...cfg.supportRoles, ...cfg.managerRoles, ...cfg.adminRoles]);
-      const memberRoleIds = member ? Array.from(member.roles.cache.keys()) : [];
-      const isStaff = memberRoleIds.some(id => staffRoleIds.has(id));
-      if (!isStaff) {
+      if (!this.isStaffMember(cfg, member)) {
         await interaction.reply({ content: '❌ You are not allowed to claim this ticket.', ephemeral: true });
         return;
       }
@@ -406,13 +417,31 @@ class TicketSystem {
     }
 
     await interaction.reply({ content: claim ? `🙋 ${interaction.user} claimed this ticket.` : `↩️ ${interaction.user} unclaimed this ticket.` });
-    await this.updateClaimHeader(interaction, claim ? interaction.user.id : undefined);
+    if (interaction.message) await this.applyClaimHeaderUpdate(interaction.message, claim ? interaction.user.id : undefined);
+  }
+
+  /** Locates a ticket's header message (the one carrying its `tk:claim:<id>` button) so non-button callers (e.g. `/ticket unclaim`) can sync it too. */
+  private async findClaimHeaderMessage(guild: Guild, ticket: TicketRecord): Promise<Message | undefined> {
+    const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
+    if (!channel?.isTextBased()) return undefined;
+    try {
+      const messages = await (channel as TextChannel).messages.fetch({ limit: 50 });
+      return messages.find(m =>
+        m.components.some(row =>
+          row.type === ComponentType.ActionRow &&
+          (row as ActionRow<MessageActionRowComponent>).components.some(
+            c => (c as ButtonComponent).customId === `tk:claim:${ticket.id}`,
+          ),
+        ),
+      );
+    } catch (err) {
+      logger.warning('[TICKETS] Failed to locate ticket header message for claim sync', err);
+      return undefined;
+    }
   }
 
   /** Updates the original ticket header message (embed field + Claim button state) to reflect the current claim status. */
-  private async updateClaimHeader(interaction: ButtonInteraction, claimedBy: string | undefined): Promise<void> {
-    const message = interaction.message;
-    if (!message) return;
+  private async applyClaimHeaderUpdate(message: Message, claimedBy: string | undefined): Promise<void> {
     try {
       const sourceEmbed = message.embeds[0];
       const embed = sourceEmbed ? EmbedBuilder.from(sourceEmbed) : new EmbedBuilder();
@@ -502,7 +531,146 @@ class TicketSystem {
     await interaction.editReply({ content: `📄 Transcript generated (${result.messageCount} messages).`, files: [file] });
   }
 
-  private async replyError(interaction: ButtonInteraction | ModalSubmitInteraction | StringSelectMenuInteraction): Promise<void> {
+  /**
+   * `/ticket` slash command — add, remove, rename, unclaim, priority, info.
+   * Only works inside an active ticket channel, and calls the exact same engine
+   * methods (and, for staff-gated subcommands, the exact same `isStaffMember`
+   * check) as the equivalent `tk:*` buttons — no permission or business logic
+   * is duplicated here.
+   */
+  async handleSlashCommand(interaction: ChatInputCommandInteraction, guild: Guild): Promise<void> {
+    try {
+      const ticket = await ticketEngine.getByChannel(interaction.channelId);
+      if (!ticket) {
+        await interaction.reply({ content: '❌ This command can only be used inside a ticket channel.', ephemeral: true });
+        return;
+      }
+      const rawPanel = await panelManager.get(ticket.panelId);
+      if (!rawPanel) {
+        await interaction.reply({ content: '❌ This ticket panel no longer exists.', ephemeral: true });
+        return;
+      }
+      const cfg = resolveTicketType(rawPanel, ticket.ticketType);
+      const member = interaction.member instanceof GuildMember ? interaction.member : null;
+      const sub = interaction.options.getSubcommand(true);
+
+      switch (sub) {
+        case 'add':
+          await this.slashAddUser(interaction, guild, cfg, ticket, member);
+          break;
+        case 'remove':
+          await this.slashRemoveUser(interaction, guild, cfg, ticket, member);
+          break;
+        case 'rename':
+          await this.slashRenameTicket(interaction, guild, cfg, ticket, member);
+          break;
+        case 'unclaim':
+          await this.slashUnclaim(interaction, guild, cfg, ticket);
+          break;
+        case 'priority':
+          await this.slashSetPriority(interaction, guild, cfg, ticket, member);
+          break;
+        case 'info':
+          await this.slashTicketInfo(interaction, rawPanel, ticket);
+          break;
+        default:
+          await interaction.reply({ content: '❌ Unknown /ticket subcommand.', ephemeral: true });
+      }
+    } catch (err) {
+      logger.error('[TICKETS] /ticket command error', err);
+      await this.replyError(interaction);
+    }
+  }
+
+  private async slashAddUser(interaction: ChatInputCommandInteraction, guild: Guild, cfg: TicketPanel, ticket: TicketRecord, member: GuildMember | null): Promise<void> {
+    if (!this.isStaffMember(cfg, member)) {
+      await interaction.reply({ content: '❌ You are not allowed to add users to this ticket.', ephemeral: true });
+      return;
+    }
+    const user = interaction.options.getUser('user', true);
+    if (user.id === ticket.openerId || ticket.participantIds.includes(user.id)) {
+      await interaction.reply({ content: `❌ ${user} already has access to this ticket.`, ephemeral: true });
+      return;
+    }
+    await ticketEngine.addParticipant(guild, cfg, ticket, user.id, interaction.user.tag);
+    await interaction.reply({ content: `➕ ${interaction.user} added ${user} to this ticket.` });
+  }
+
+  private async slashRemoveUser(interaction: ChatInputCommandInteraction, guild: Guild, cfg: TicketPanel, ticket: TicketRecord, member: GuildMember | null): Promise<void> {
+    if (!this.isStaffMember(cfg, member)) {
+      await interaction.reply({ content: '❌ You are not allowed to remove users from this ticket.', ephemeral: true });
+      return;
+    }
+    const user = interaction.options.getUser('user', true);
+    if (user.id === ticket.openerId) {
+      await interaction.reply({ content: '❌ You cannot remove the ticket opener. Close the ticket instead.', ephemeral: true });
+      return;
+    }
+    if (!ticket.participantIds.includes(user.id)) {
+      await interaction.reply({ content: `❌ ${user} is not part of this ticket.`, ephemeral: true });
+      return;
+    }
+    await ticketEngine.removeParticipant(guild, cfg, ticket, user.id, interaction.user.tag);
+    await interaction.reply({ content: `➖ ${interaction.user} removed ${user} from this ticket.` });
+  }
+
+  private async slashRenameTicket(interaction: ChatInputCommandInteraction, guild: Guild, cfg: TicketPanel, ticket: TicketRecord, member: GuildMember | null): Promise<void> {
+    if (!this.isStaffMember(cfg, member)) {
+      await interaction.reply({ content: '❌ You are not allowed to rename this ticket.', ephemeral: true });
+      return;
+    }
+    const name = interaction.options.getString('name', true);
+    try {
+      const sanitized = await ticketEngine.renameTicket(guild, cfg, ticket, name, interaction.user.tag);
+      await interaction.reply({ content: `✏️ ${interaction.user} renamed this ticket to **${sanitized}**.` });
+    } catch (err) {
+      logger.warning('[TICKETS] /ticket rename failed', err);
+      await interaction.reply({ content: '❌ Failed to rename this ticket (Discord may be rate-limiting channel renames — try again shortly).', ephemeral: true });
+    }
+  }
+
+  private async slashUnclaim(interaction: ChatInputCommandInteraction, guild: Guild, cfg: TicketPanel, ticket: TicketRecord): Promise<void> {
+    if (!ticket.claimedBy) {
+      await interaction.reply({ content: '❌ This ticket is not currently claimed.', ephemeral: true });
+      return;
+    }
+    // Mirrors the button's unclaim path exactly (see `claim(interaction, guild, ticketId, false)`):
+    // no extra staff gate beyond being inside the ticket channel, by design.
+    await ticketEngine.claim(guild, cfg, ticket.id, interaction.user.id, false);
+    await interaction.reply({ content: `↩️ ${interaction.user} unclaimed this ticket.` });
+    const header = await this.findClaimHeaderMessage(guild, ticket);
+    if (header) await this.applyClaimHeaderUpdate(header, undefined);
+  }
+
+  private async slashSetPriority(interaction: ChatInputCommandInteraction, guild: Guild, cfg: TicketPanel, ticket: TicketRecord, member: GuildMember | null): Promise<void> {
+    if (!this.isStaffMember(cfg, member)) {
+      await interaction.reply({ content: '❌ You are not allowed to change this ticket\'s priority.', ephemeral: true });
+      return;
+    }
+    const level = interaction.options.getString('level', true) as TicketPriority;
+    await ticketEngine.setPriority(guild, cfg, ticket, level, interaction.user.tag);
+    await interaction.reply({ content: `🎯 ${interaction.user} set this ticket's priority to **${level}**.` });
+  }
+
+  private async slashTicketInfo(interaction: ChatInputCommandInteraction, panel: TicketPanel, ticket: TicketRecord): Promise<void> {
+    const embed = new EmbedBuilder()
+      .setColor(panel.embed.color)
+      .setTitle(`🎫 Ticket #${ticket.number}`)
+      .addFields(
+        { name: 'Type', value: ticket.ticketType, inline: true },
+        { name: 'Status', value: ticket.status, inline: true },
+        { name: 'Priority', value: ticket.priority, inline: true },
+        { name: 'Opened by', value: `<@${ticket.openerId}>`, inline: true },
+        { name: 'Claimed by', value: ticket.claimedBy ? `<@${ticket.claimedBy}>` : '_Unclaimed_', inline: true },
+        { name: 'Participants', value: ticket.participantIds.length > 0 ? ticket.participantIds.map(id => `<@${id}>`).join(', ') : '_None added_', inline: false },
+        { name: 'Opened', value: `<t:${Math.floor(ticket.createdAt / 1000)}:R>`, inline: true },
+        { name: 'Last activity', value: `<t:${Math.floor(ticket.lastActivityAt / 1000)}:R>`, inline: true },
+      )
+      .setFooter({ text: `Ticket ID: ${ticket.id} • Panel: ${panel.name}` });
+    await interaction.reply({ embeds: [embed], ephemeral: true });
+  }
+
+  private async replyError(interaction: ButtonInteraction | ModalSubmitInteraction | StringSelectMenuInteraction | ChatInputCommandInteraction): Promise<void> {
     const payload = { content: '❌ An error occurred processing this ticket action.', ephemeral: true };
     if (interaction.deferred || interaction.replied) await interaction.editReply(payload).catch(() => {});
     else await interaction.reply(payload).catch(() => {});

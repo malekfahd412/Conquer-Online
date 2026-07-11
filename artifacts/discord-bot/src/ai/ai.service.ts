@@ -175,6 +175,17 @@ export class AIService {
           );
           return;
         }
+        if (name === 'ticket') {
+          const ticketInteraction = interaction as ChatInputCommandInteraction;
+          if (!ticketInteraction.guild) {
+            ticketInteraction.reply({ content: '❌ This command can only be used inside a server.', ephemeral: true }).catch(() => {});
+            return;
+          }
+          ticketSystem.handleSlashCommand(ticketInteraction, ticketInteraction.guild).catch(err =>
+            logger.error('Ticket slash command error', err),
+          );
+          return;
+        }
       }
 
       // ── Control Center interactions (cc:* custom IDs) ──────────────────────

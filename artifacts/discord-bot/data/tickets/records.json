@@ -242,9 +242,26 @@
       "participantIds": [
         "727578927593291796"
       ]
+    },
+    {
+      "id": "ticket_1783761512931_18o09",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Store",
+      "channelId": "1525431090049712289",
+      "openerId": "522507355233976321",
+      "status": "open",
+      "number": 14,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783761513239,
+      "lastActivityAt": 1783761513239,
+      "participantIds": [
+        "522507355233976321"
+      ]
     }
   ],
   "counters": {
-    "1213437502078062674": 13
+    "1213437502078062674": 14
   }
 }
