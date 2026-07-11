@@ -228,6 +228,18 @@ export class ControlCenterService {
     const tools = this.cache.getToolsByCategory(category);
     const safePage = Math.max(0, Math.min(page, Math.floor((tools.length - 1) / 20)));
     const payload = buildCategoryPanel(category, tools, safePage);
+
+    if (category === 'tickets') {
+      payload.components.push(
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setLabel('🎨 Ticket Panel Designer')
+            .setCustomId('tp:list')
+            .setStyle(ButtonStyle.Primary),
+        ),
+      );
+    }
+
     const uiGenMs = Date.now() - tUi;
     await this.nav(interaction, payload, `category:${category}`, { uiGen: uiGenMs });
   }

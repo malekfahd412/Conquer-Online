@@ -1,0 +1,1049 @@
+import {
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+} from 'discord.js';
+import type { TicketPanel, TicketButtonConfig, TicketSelectMenuOption, TicketModalQuestion } from '../../../community/tickets/types';
+import type { TicketDashboard } from '../../../community/tickets/statistics-engine';
+import { truncate } from '../cc-categories';
+import { CC } from '../cc-ids';
+import { checkColor, verifyBuilder, assertUniqueCustomIds } from '../cc-debug';
+import { TP, SECTION_META } from './tp-ids';
+import type { CCPayload } from '../cc-renderer';
+
+const FILE = 'tp-renderer.ts';
+export const PANELS_PER_PAGE = 10;
+
+// ── Shared button helpers ───────────────────────────────────────────────────
+
+function btn(label: string, id: string, style: ButtonStyle, disabled = false): ButtonBuilder {
+  return verifyBuilder(FILE, 'btn', `btn:${id}`, () =>
+    new ButtonBuilder().setLabel(truncate(label, 80)).setCustomId(id).setStyle(style).setDisabled(disabled),
+  );
+}
+
+function homeBtn(): ButtonBuilder  { return btn('🏠 Home',     CC.HOME,     ButtonStyle.Secondary); }
+function listBtn(): ButtonBuilder   { return btn('← Panels',   TP.LIST,     ButtonStyle.Secondary); }
+function dashBtn(id: string): ButtonBuilder { return btn('← Dashboard', TP.dash(id), ButtonStyle.Secondary); }
+
+function fmtColor(n: number): string {
+  return `#${n.toString(16).padStart(6, '0').toUpperCase()}`;
+}
+
+function fmtMs(ms: number): string {
+  if (ms <= 0) return 'N/A';
+  const secs = Math.round(ms / 1000);
+  if (secs < 60) return `${secs}s`;
+  const mins = Math.floor(secs / 60);
+  return `${mins}m ${secs % 60}s`;
+}
+
+// ── Panel List ──────────────────────────────────────────────────────────────
+
+export function buildPanelList(panels: TicketPanel[], offset: number, totalCount: number): CCPayload {
+  const fn = 'buildPanelList';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+  const page = Math.floor(offset / PANELS_PER_PAGE) + 1;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PANELS_PER_PAGE));
+  const slice = panels.slice(0, PANELS_PER_PAGE);
+
+  const desc = totalCount === 0
+    ? 'No ticket panels configured yet.\nClick **➕ Create New Panel** to get started.'
+    : `${totalCount} panel${totalCount !== 1 ? 's' : ''} — Page ${page}/${totalPages}\nSelect a panel below to configure it.`;
+
+  const embed = verifyBuilder(FILE, fn, 'list embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('🎨 Ticket Panel Designer')
+      .setDescription(desc)
+      .setFooter({ text: 'Panels are the messages users click to open tickets' }),
+  );
+
+  const components: CCPayload['components'] = [];
+
+  if (slice.length > 0) {
+    const select = verifyBuilder(FILE, fn, 'panel select', () =>
+      new StringSelectMenuBuilder()
+        .setCustomId(TP.panelSelect(offset))
+        .setPlaceholder('Select a panel to configure...')
+        .addOptions(
+          slice.map(p =>
+            new StringSelectMenuOptionBuilder()
+              .setLabel(truncate(p.name || 'Unnamed Panel', 100))
+              .setDescription(truncate(`${p.enabled ? '🟢 Enabled' : '🔴 Disabled'} · ${p.description || 'No description'}`, 100))
+              .setValue(p.id),
+          ),
+        ),
+    );
+    components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select));
+  }
+
+  const prevOffset = offset - PANELS_PER_PAGE;
+  const nextOffset = offset + PANELS_PER_PAGE;
+  const navRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('➕ Create New Panel', TP.NEW,            ButtonStyle.Primary),
+    btn('◀ Prev',              TP.list(prevOffset), ButtonStyle.Secondary, offset === 0),
+    btn('▶ Next',              TP.list(nextOffset), ButtonStyle.Secondary, nextOffset >= totalCount),
+    homeBtn(),
+  );
+  components.push(navRow);
+
+  const payload: CCPayload = { content: '', embeds: [embed], components };
+  assertUniqueCustomIds('buildPanelList', payload);
+  return payload;
+}
+
+// ── Panel Dashboard ─────────────────────────────────────────────────────────
+
+export function buildPanelDashboard(panel: TicketPanel): CCPayload {
+  const fn = 'buildPanelDashboard';
+  const color = checkColor(FILE, fn, 'color', 0xfee75c);
+
+  const channelStatus = panel.channelId
+    ? panel.messageId ? `<#${panel.channelId}> (published)` : `<#${panel.channelId}> (not published)`
+    : 'No channel set';
+
+  const embed = verifyBuilder(FILE, fn, 'dash embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle(`🎨 ${truncate(panel.name, 100)}`)
+      .setDescription(truncate(panel.description || 'No description set.', 1000))
+      .addFields(
+        { name: '📡 Status',   value: panel.enabled ? '🟢 Enabled' : '🔴 Disabled', inline: true },
+        { name: '📍 Channel',  value: channelStatus,                                  inline: true },
+        { name: '🎟 Naming',   value: `\`${panel.namingScheme}\``,                   inline: true },
+        { name: '🔘 Opener',   value: panel.selectMenu ? '📋 Select Menu' : `🔘 Button: ${panel.button.label}`, inline: true },
+        { name: '❓ Questions', value: panel.modal.enabled ? `${panel.modal.questions.length} question(s)` : 'Disabled', inline: true },
+        { name: '🤖 Auto-close', value: panel.automation.autoCloseInactivityMinutes > 0 ? `${panel.automation.autoCloseInactivityMinutes}m` : 'Off', inline: true },
+      )
+      .setFooter({ text: `Panel ID: ${panel.id}` }),
+  );
+
+  const row0 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn(`${SECTION_META.general.emoji} General`,      TP.section(panel.id, 'general'),      ButtonStyle.Secondary),
+    btn(`${SECTION_META.appearance.emoji} Appearance`, TP.section(panel.id, 'appearance'),  ButtonStyle.Secondary),
+    btn(`${SECTION_META.button.emoji} Button`,        TP.section(panel.id, 'button'),       ButtonStyle.Secondary),
+    btn(`${SECTION_META.permissions.emoji} Permissions`, TP.section(panel.id, 'permissions'), ButtonStyle.Secondary),
+    btn(`${SECTION_META.questions.emoji} Questions`,  TP.section(panel.id, 'questions'),    ButtonStyle.Secondary),
+  );
+  const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn(`${SECTION_META.categories.emoji} Categories`, TP.section(panel.id, 'categories'),  ButtonStyle.Secondary),
+    btn(`${SECTION_META.naming.emoji} Naming`,        TP.section(panel.id, 'naming'),       ButtonStyle.Secondary),
+    btn(`${SECTION_META.lifecycle.emoji} Lifecycle`,  TP.section(panel.id, 'lifecycle'),    ButtonStyle.Secondary),
+    btn(`${SECTION_META.automation.emoji} Automation`, TP.section(panel.id, 'automation'),  ButtonStyle.Secondary),
+    btn(`${SECTION_META.transcripts.emoji} Transcripts`, TP.section(panel.id, 'transcripts'), ButtonStyle.Secondary),
+  );
+  const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('👁 Preview',                                  TP.preview(panel.id),                 ButtonStyle.Secondary),
+    btn(`${SECTION_META.publish.emoji} Publish`,       TP.section(panel.id, 'publish'),      ButtonStyle.Success),
+    btn(`${SECTION_META.stats.emoji} Statistics`,     TP.section(panel.id, 'stats'),        ButtonStyle.Secondary),
+    btn(panel.enabled ? '🔴 Disable' : '🟢 Enable',   TP.toggle(panel.id, 'enabled'),       panel.enabled ? ButtonStyle.Secondary : ButtonStyle.Success),
+    btn('🗑 Delete',                                   TP.del(panel.id),                     ButtonStyle.Danger),
+  );
+  const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(listBtn(), homeBtn());
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row0, row1, row2, row3] };
+  assertUniqueCustomIds('buildPanelDashboard', payload);
+  return payload;
+}
+
+// ── General Section ─────────────────────────────────────────────────────────
+
+export function buildGeneralSection(panel: TicketPanel): CCPayload {
+  const fn = 'buildGeneralSection';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+
+  const embed = verifyBuilder(FILE, fn, 'general embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('⚙️ General')
+      .addFields(
+        { name: 'Panel Name',   value: truncate(panel.name || '_(not set)_', 256),                   inline: false },
+        { name: 'Description',  value: truncate(panel.description || '_(not set)_', 512),             inline: false },
+        { name: 'Enabled',      value: panel.enabled ? '🟢 Yes' : '🔴 No',                           inline: true  },
+      )
+      .setFooter({ text: 'Click Edit to update all general fields at once' }),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Edit Info',              TP.edit(panel.id, 'general'),       ButtonStyle.Primary),
+    btn(panel.enabled ? '🔴 Disable' : '🟢 Enable', TP.toggle(panel.id, 'enabled'), panel.enabled ? ButtonStyle.Secondary : ButtonStyle.Success),
+    dashBtn(panel.id),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildGeneralSection', payload);
+  return payload;
+}
+
+// ── Appearance Section ──────────────────────────────────────────────────────
+
+const EMBED_VARS_HELP = '{user} · {server} · {membercount} · {date} · {ticket}';
+
+export function buildAppearanceSection(panel: TicketPanel): CCPayload {
+  const fn = 'buildAppearanceSection';
+  const safeColor = checkColor(FILE, fn, 'panelColor', panel.embed.color);
+
+  const embed = verifyBuilder(FILE, fn, 'appearance embed', () =>
+    new EmbedBuilder()
+      .setColor(safeColor)
+      .setTitle('🎨 Appearance')
+      .addFields(
+        { name: 'Embed Title',       value: truncate(panel.embed.title || '_(not set)_', 256),       inline: false },
+        { name: 'Embed Color',       value: fmtColor(panel.embed.color),                              inline: true  },
+        { name: 'Footer',            value: truncate(panel.embed.footer || '_(none)_', 256),          inline: true  },
+        { name: 'Thumbnail URL',     value: truncate(panel.embed.thumbnail || '_(none)_', 256),       inline: false },
+        { name: 'Image/Banner URL',  value: truncate(panel.embed.banner || '_(none)_', 256),          inline: false },
+        { name: 'Author',            value: truncate(panel.embed.author || '_(none)_', 256),          inline: true  },
+        { name: 'Timestamp',         value: panel.embed.showTimestamp ? '🟢 On' : '🔴 Off',          inline: true  },
+        { name: '📋 Available Variables', value: EMBED_VARS_HELP,                                    inline: false },
+      )
+      .setFooter({ text: 'Description is set separately via Edit Embed' }),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Edit Embed',      TP.edit(panel.id, 'embed'),       ButtonStyle.Primary),
+    btn('🖼 Edit Media',      TP.edit(panel.id, 'media'),       ButtonStyle.Secondary),
+    btn(panel.embed.showTimestamp ? '🕑 Hide Time' : '🕑 Show Time', TP.toggle(panel.id, 'timestamp'), ButtonStyle.Secondary),
+    dashBtn(panel.id),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildAppearanceSection', payload);
+  return payload;
+}
+
+// ── Button Section ──────────────────────────────────────────────────────────
+
+export function buildButtonSection(panel: TicketPanel): CCPayload {
+  const fn = 'buildButtonSection';
+  const color = checkColor(FILE, fn, 'color', 0x57f287);
+
+  const isSmMode = !!(panel.selectMenu && panel.selectMenu.options.length > 0) || !!(panel.selectMenu);
+  const extras = panel.additionalButtons;
+
+  const primaryLine = `Label: **${panel.button.label}** · Style: ${panel.button.style}${panel.button.emoji ? ` · ${panel.button.emoji}` : ''} · Type: \`${panel.button.ticketType}\``;
+  const extrasText = extras.length === 0
+    ? '_No extra buttons_'
+    : extras.map((b, i) => `${i + 1}. **${b.label}** (${b.style}) · Type: \`${b.ticketType}\``).join('\n');
+
+  const smText = isSmMode && panel.selectMenu
+    ? `${panel.selectMenu.options.length} option(s) configured\nPlaceholder: ${panel.selectMenu.placeholder || '_(default)_'}`
+    : '_Disabled — using buttons_';
+
+  const embed = verifyBuilder(FILE, fn, 'button embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('🔘 Button & Select Menu Designer')
+      .addFields(
+        { name: '🔘 Primary Button',    value: primaryLine,                    inline: false },
+        { name: '➕ Extra Buttons',     value: truncate(extrasText, 512),       inline: false },
+        { name: '📋 Select Menu Mode',  value: truncate(smText, 256),           inline: false },
+      )
+      .setFooter({ text: 'A panel can use buttons OR a select menu — not both' }),
+  );
+
+  const components: CCPayload['components'] = [];
+
+  const row0 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Primary Button',    TP.btnPrimary(panel.id),                ButtonStyle.Primary),
+    btn('➕ Add Button',        TP.btnAdd(panel.id),                    ButtonStyle.Secondary, extras.length >= 4),
+    btn(isSmMode ? '🔘 Use Buttons' : '📋 Use Select Menu', TP.toggle(panel.id, 'selectmenu'), ButtonStyle.Secondary),
+    dashBtn(panel.id),
+    homeBtn(),
+  );
+  components.push(row0);
+
+  if (isSmMode && panel.selectMenu) {
+    components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(
+      btn('➕ Add Option',      TP.smAdd(panel.id),    ButtonStyle.Secondary, (panel.selectMenu.options.length) >= 25),
+      btn('✏️ Edit Placeholder', TP.edit(panel.id, 'smplaceholder'), ButtonStyle.Secondary),
+    ));
+    if (panel.selectMenu.options.length > 0) {
+      const select = new StringSelectMenuBuilder()
+        .setCustomId(TP.smOptSel(panel.id))
+        .setPlaceholder('Select an option to edit or remove...')
+        .addOptions(
+          panel.selectMenu.options.slice(0, 25).map((o, i) =>
+            new StringSelectMenuOptionBuilder()
+              .setLabel(truncate(o.label, 100))
+              .setDescription(truncate(`Type: ${o.ticketType}${o.description ? ` — ${o.description}` : ''}`, 100))
+              .setValue(String(i)),
+          ),
+        );
+      components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select));
+    }
+  } else if (!isSmMode && extras.length > 0) {
+    const select = new StringSelectMenuBuilder()
+      .setCustomId(TP.extraBtnSel(panel.id))
+      .setPlaceholder('Select an extra button to edit or remove...')
+      .addOptions(
+        extras.slice(0, 25).map((b, i) =>
+          new StringSelectMenuOptionBuilder()
+            .setLabel(truncate(b.label, 100))
+            .setDescription(truncate(`Style: ${b.style} · Type: ${b.ticketType}`, 100))
+            .setValue(String(i)),
+        ),
+      );
+    components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select));
+  }
+
+  const payload: CCPayload = { content: '', embeds: [embed], components };
+  assertUniqueCustomIds('buildButtonSection', payload);
+  return payload;
+}
+
+// ── Extra Button Detail ─────────────────────────────────────────────────────
+
+export function buildExtraButtonDetail(panel: TicketPanel, idx: number): CCPayload {
+  const fn = 'buildExtraButtonDetail';
+  const btn_ = panel.additionalButtons[idx];
+  const color = checkColor(FILE, fn, 'color', 0x57f287);
+
+  const embed = verifyBuilder(FILE, fn, 'btn detail embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle(`🔘 Extra Button #${idx + 1}`)
+      .addFields(
+        { name: 'Label',      value: btn_?.label || '_(missing)_',     inline: true },
+        { name: 'Style',      value: btn_?.style || '_(missing)_',     inline: true },
+        { name: 'Emoji',      value: btn_?.emoji || '_(none)_',        inline: true },
+        { name: 'Ticket Type', value: `\`${btn_?.ticketType || 'default'}\``, inline: true },
+      ),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Edit',   TP.btnEdit(panel.id, idx), ButtonStyle.Primary),
+    btn('🗑 Remove', TP.btnRm(panel.id, idx),   ButtonStyle.Danger),
+    btn('← Buttons', TP.section(panel.id, 'button'), ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildExtraButtonDetail', payload);
+  return payload;
+}
+
+// ── Select Menu Option Detail ───────────────────────────────────────────────
+
+export function buildSmOptionDetail(panel: TicketPanel, idx: number): CCPayload {
+  const fn = 'buildSmOptionDetail';
+  const opt = panel.selectMenu?.options[idx];
+  const color = checkColor(FILE, fn, 'color', 0x57f287);
+
+  const embed = verifyBuilder(FILE, fn, 'sm opt embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle(`📋 Select Menu Option #${idx + 1}`)
+      .addFields(
+        { name: 'Label',       value: opt?.label || '_(missing)_',       inline: true },
+        { name: 'Emoji',       value: opt?.emoji || '_(none)_',          inline: true },
+        { name: 'Ticket Type', value: `\`${opt?.ticketType || 'default'}\``, inline: true },
+        { name: 'Description', value: opt?.description || '_(none)_',   inline: false },
+      ),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Edit',   TP.smEdit(panel.id, idx),       ButtonStyle.Primary),
+    btn('🗑 Remove', TP.smRm(panel.id, idx),          ButtonStyle.Danger),
+    btn('← Button',  TP.section(panel.id, 'button'), ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildSmOptionDetail', payload);
+  return payload;
+}
+
+// ── Permissions Section ─────────────────────────────────────────────────────
+
+export function buildPermissionsSection(panel: TicketPanel): CCPayload {
+  const fn = 'buildPermissionsSection';
+  const color = checkColor(FILE, fn, 'color', 0xf5a623);
+
+  const fmtIds = (ids: string[]) => ids.length ? ids.map(id => `<@&${id}>`).join(' ') : '_None_';
+
+  const embed = verifyBuilder(FILE, fn, 'perms embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('🔐 Permissions')
+      .addFields(
+        { name: '👷 Support Roles',   value: truncate(fmtIds(panel.supportRoles), 512),   inline: false },
+        { name: '🛠 Manager Roles',   value: truncate(fmtIds(panel.managerRoles), 512),   inline: false },
+        { name: '🔔 Ping Roles',      value: truncate(fmtIds(panel.pingRoles), 512),      inline: false },
+        { name: '✅ Allowed Roles',   value: truncate(fmtIds(panel.allowedRoles), 512),   inline: true  },
+        { name: '🚫 Blocked Roles',   value: truncate(fmtIds(panel.blockedRoles), 512),   inline: true  },
+        { name: '📋 Log Channel',     value: panel.logChannelId ? `<#${panel.logChannelId}>` : '_Not set_', inline: false },
+      )
+      .setFooter({ text: 'Enter role IDs separated by commas' }),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('👷 Staff Roles',   TP.edit(panel.id, 'staffroles'),  ButtonStyle.Primary),
+    btn('🔑 Access Control', TP.edit(panel.id, 'accessroles'), ButtonStyle.Secondary),
+    btn('📋 Log Channel',   TP.edit(panel.id, 'logchannel'),  ButtonStyle.Secondary),
+    dashBtn(panel.id),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildPermissionsSection', payload);
+  return payload;
+}
+
+// ── Questions Section ───────────────────────────────────────────────────────
+
+export function buildQuestionsSection(panel: TicketPanel): CCPayload {
+  const fn = 'buildQuestionsSection';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+  const qs = panel.modal.questions;
+
+  const qText = qs.length === 0
+    ? '_No questions configured. Enable modal and add questions to prompt users when opening a ticket._'
+    : qs.map((q, i) => `${i + 1}. **${truncate(q.label, 60)}** (${q.style}, ${q.required ? 'required' : 'optional'})`).join('\n');
+
+  const embed = verifyBuilder(FILE, fn, 'questions embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('❓ Ticket Questions')
+      .addFields(
+        { name: '📋 Modal Enabled', value: panel.modal.enabled ? '🟢 Yes' : '🔴 No', inline: true },
+        { name: `Questions (${qs.length}/5)`, value: truncate(qText, 1024), inline: false },
+      )
+      .setFooter({ text: 'Discord modals support up to 5 questions' }),
+  );
+
+  const components: CCPayload['components'] = [];
+  const row0 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('➕ Add Question',          TP.qAdd(panel.id),                   ButtonStyle.Primary, qs.length >= 5),
+    btn(panel.modal.enabled ? '🔴 Disable Modal' : '🟢 Enable Modal',
+        TP.toggle(panel.id, 'modalenabled'), ButtonStyle.Secondary),
+    dashBtn(panel.id),
+    homeBtn(),
+  );
+  components.push(row0);
+
+  if (qs.length > 0) {
+    const select = new StringSelectMenuBuilder()
+      .setCustomId(TP.qSel(panel.id))
+      .setPlaceholder('Select a question to edit or remove...')
+      .addOptions(
+        qs.slice(0, 5).map((q, i) =>
+          new StringSelectMenuOptionBuilder()
+            .setLabel(truncate(q.label, 100))
+            .setDescription(truncate(`${q.style} · ${q.required ? 'required' : 'optional'}${q.placeholder ? ` · ${q.placeholder}` : ''}`, 100))
+            .setValue(String(i)),
+        ),
+      );
+    components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select));
+  }
+
+  const payload: CCPayload = { content: '', embeds: [embed], components };
+  assertUniqueCustomIds('buildQuestionsSection', payload);
+  return payload;
+}
+
+// ── Question Detail ─────────────────────────────────────────────────────────
+
+export function buildQuestionDetail(panel: TicketPanel, idx: number): CCPayload {
+  const fn = 'buildQuestionDetail';
+  const q = panel.modal.questions[idx];
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+
+  const embed = verifyBuilder(FILE, fn, 'q detail embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle(`❓ Question #${idx + 1}`)
+      .addFields(
+        { name: 'ID',          value: `\`${q?.id || 'unknown'}\``,               inline: true  },
+        { name: 'Label',       value: truncate(q?.label || '_(missing)_', 256),   inline: true  },
+        { name: 'Style',       value: q?.style === 'paragraph' ? 'Paragraph' : 'Short', inline: true },
+        { name: 'Required',    value: q?.required ? '✅ Yes' : '❌ No',           inline: true  },
+        { name: 'Placeholder', value: truncate(q?.placeholder || '_(none)_', 256), inline: false },
+        { name: 'Length',      value: `Min: ${q?.minLength ?? 0} · Max: ${q?.maxLength ?? 1000}`, inline: true },
+      ),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Edit',     TP.qEdit(panel.id, idx),          ButtonStyle.Primary),
+    btn('🗑 Remove',   TP.qRm(panel.id, idx),             ButtonStyle.Danger),
+    btn('← Questions', TP.section(panel.id, 'questions'), ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildQuestionDetail', payload);
+  return payload;
+}
+
+// ── Categories Section ──────────────────────────────────────────────────────
+
+export function buildCategoriesSection(panel: TicketPanel): CCPayload {
+  const fn = 'buildCategoriesSection';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+
+  const embed = verifyBuilder(FILE, fn, 'categories embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('📁 Category Routing')
+      .addFields(
+        { name: '📂 Open Category',     value: panel.openCategory    ? `<#${panel.openCategory}>`    : '_Not set_', inline: true },
+        { name: '🔒 Closed Category',   value: panel.closedCategory  ? `<#${panel.closedCategory}>`  : '_Not set_', inline: true },
+        { name: '🗄 Archive Category',  value: panel.archiveCategory ? `<#${panel.archiveCategory}>` : '_Not set_', inline: true },
+      )
+      .setFooter({ text: 'Enter category channel IDs' }),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Edit Categories', TP.edit(panel.id, 'categories'), ButtonStyle.Primary),
+    dashBtn(panel.id),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildCategoriesSection', payload);
+  return payload;
+}
+
+// ── Naming Section ──────────────────────────────────────────────────────────
+
+export function buildNamingSection(panel: TicketPanel): CCPayload {
+  const fn = 'buildNamingSection';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+
+  const preview = panel.namingScheme
+    .replace('{user}', 'johndoe')
+    .replace('{username}', 'johndoe')
+    .replace('{userid}', '123456789')
+    .replace('{displayname}', 'John Doe')
+    .replace('{ticket}', 'panel_abc12')
+    .replace('{counter}', '0042')
+    .replace('{number}', '0042')
+    .replace('{date}', '2026-07-11')
+    .replace('{time}', '14-30')
+    .replace('{year}', '2026')
+    .replace('{month}', '07')
+    .replace('{day}', '11')
+    .replace('{random}', 'x7k2m')
+    .replace('{type}', 'support')
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]/g, '')
+    .slice(0, 90) || 'ticket';
+
+  const embed = verifyBuilder(FILE, fn, 'naming embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('📝 Ticket Naming')
+      .addFields(
+        { name: 'Current Scheme', value: `\`${panel.namingScheme}\``,    inline: false },
+        { name: '👁 Live Preview', value: `\`${preview}\``,              inline: false },
+        { name: '📋 Variables',    value: [
+          '`{user}` / `{username}` — opener\'s username',
+          '`{userid}` — opener\'s Discord ID',
+          '`{displayname}` — opener\'s display name',
+          '`{counter}` / `{number}` — 4-digit ticket counter',
+          '`{date}` — YYYY-MM-DD · `{time}` — HH-MM',
+          '`{year}` · `{month}` · `{day}`',
+          '`{random}` — 5-char random token',
+          '`{type}` — ticket type from the button/menu',
+        ].join('\n'),                                                      inline: false },
+      )
+      .setFooter({ text: 'Channel names are lowercase, max 90 chars, dashes only' }),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Edit Scheme', TP.edit(panel.id, 'naming'), ButtonStyle.Primary),
+    dashBtn(panel.id),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildNamingSection', payload);
+  return payload;
+}
+
+// ── Lifecycle Section ───────────────────────────────────────────────────────
+
+export function buildLifecycleSection(panel: TicketPanel): CCPayload {
+  const fn = 'buildLifecycleSection';
+  const color = checkColor(FILE, fn, 'color', 0xfee75c);
+
+  const embed = verifyBuilder(FILE, fn, 'lifecycle embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('🔄 Lifecycle')
+      .addFields(
+        { name: '🎟 Ticket Limit',       value: `${panel.ticketLimit} per user`,            inline: true },
+        { name: '⏱ Cooldown',            value: panel.cooldown > 0 ? `${panel.cooldown}s` : 'None', inline: true },
+        { name: '⚡ Priority',           value: panel.priority.charAt(0).toUpperCase() + panel.priority.slice(1), inline: true },
+      )
+      .setFooter({ text: 'Ticket limit = max open tickets per user on this panel' }),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Edit', TP.edit(panel.id, 'lifecycle'), ButtonStyle.Primary),
+    dashBtn(panel.id),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildLifecycleSection', payload);
+  return payload;
+}
+
+// ── Automation Section ──────────────────────────────────────────────────────
+
+export function buildAutomationSection(panel: TicketPanel): CCPayload {
+  const fn = 'buildAutomationSection';
+  const color = checkColor(FILE, fn, 'color', 0xf5a623);
+  const a = panel.automation;
+
+  const embed = verifyBuilder(FILE, fn, 'automation embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('🤖 Automation')
+      .addFields(
+        { name: '⏰ Auto-close (inactivity)', value: a.autoCloseInactivityMinutes > 0 ? `${a.autoCloseInactivityMinutes}m` : '🔴 Off', inline: true },
+        { name: '🗑 Auto-delete after close', value: a.autoDeleteAfterCloseMinutes > 0 ? `${a.autoDeleteAfterCloseMinutes}m` : '🔴 Off', inline: true },
+        { name: '⏱ Cooldown',                value: a.cooldownSeconds > 0 ? `${a.cooldownSeconds}s` : '🔴 Off',           inline: true },
+        { name: '🔔 Staff Reminder',          value: a.reminderMinutes > 0 ? `${a.reminderMinutes}m` : '🔴 Off',           inline: true },
+      )
+      .setFooter({ text: 'Set any value to 0 to disable that automation' }),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Edit', TP.edit(panel.id, 'automation'), ButtonStyle.Primary),
+    dashBtn(panel.id),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildAutomationSection', payload);
+  return payload;
+}
+
+// ── Transcripts Section ─────────────────────────────────────────────────────
+
+export function buildTranscriptsSection(panel: TicketPanel): CCPayload {
+  const fn = 'buildTranscriptsSection';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+  const t = panel.transcript;
+
+  const embed = verifyBuilder(FILE, fn, 'transcripts embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('📄 Transcripts')
+      .addFields(
+        { name: '📋 Enabled',    value: t.enabled ? '🟢 Yes' : '🔴 No',                    inline: true },
+        { name: '📍 Channel',    value: t.channelId ? `<#${t.channelId}>` : '_Not set_',    inline: true },
+        { name: '📦 Formats',    value: t.formats.join(', ') || 'html',                      inline: true },
+        { name: '📨 DM to User', value: t.dmUser ? '🟢 Yes' : '🔴 No',                     inline: true },
+      )
+      .setFooter({ text: 'Transcripts are generated when a ticket is closed' }),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Edit Settings',    TP.edit(panel.id, 'transcripts'),   ButtonStyle.Primary),
+    btn(t.enabled ? '🔴 Disable' : '🟢 Enable', TP.toggle(panel.id, 'transcriptenabled'), ButtonStyle.Secondary),
+    dashBtn(panel.id),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildTranscriptsSection', payload);
+  return payload;
+}
+
+// ── Statistics Section ──────────────────────────────────────────────────────
+
+export function buildStatsSection(panel: TicketPanel, stats: TicketDashboard): CCPayload {
+  const fn = 'buildStatsSection';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+
+  const leaderboard = stats.leaderboard.length
+    ? stats.leaderboard.slice(0, 5).map(([uid, n], i) => `${i + 1}. <@${uid}> — ${n} claim${n !== 1 ? 's' : ''}`).join('\n')
+    : '_No claim data yet_';
+
+  const embed = verifyBuilder(FILE, fn, 'stats embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('📊 Statistics')
+      .addFields(
+        { name: '🎟 Total Opened',      value: String(stats.total),           inline: true },
+        { name: '🟢 Currently Open',    value: String(stats.open),            inline: true },
+        { name: '🔒 Closed',            value: String(stats.closed),          inline: true },
+        { name: '⏱ Avg Response Time',  value: fmtMs(stats.avgResponseMs),   inline: true },
+        { name: '📈 Track Response',    value: panel.statistics.trackResponseTime ? '🟢 On' : '🔴 Off', inline: true },
+        { name: '📈 Track Claims',      value: panel.statistics.trackClaims    ? '🟢 On' : '🔴 Off', inline: true },
+        { name: '🏆 Top Claimers',      value: truncate(leaderboard, 512),    inline: false },
+      )
+      .setFooter({ text: `Panel: ${panel.name}` }),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn(panel.statistics.trackResponseTime ? '🔴 Stop Response Tracking' : '🟢 Track Response',
+        TP.toggle(panel.id, 'trackresponse'), ButtonStyle.Secondary),
+    btn(panel.statistics.trackClaims ? '🔴 Stop Claim Tracking' : '🟢 Track Claims',
+        TP.toggle(panel.id, 'trackclaims'), ButtonStyle.Secondary),
+    dashBtn(panel.id),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildStatsSection', payload);
+  return payload;
+}
+
+// ── Publish Section ─────────────────────────────────────────────────────────
+
+export function buildPublishSection(panel: TicketPanel): CCPayload {
+  const fn = 'buildPublishSection';
+  const color = checkColor(FILE, fn, 'color', 0x57f287);
+
+  const channelLine = panel.channelId ? `<#${panel.channelId}>` : '_Not set_';
+  const msgLine = panel.messageId ? `Message ID: \`${panel.messageId}\`` : '_Not published yet_';
+
+  const embed = verifyBuilder(FILE, fn, 'publish embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('📤 Publish Panel')
+      .addFields(
+        { name: '📍 Current Channel', value: channelLine, inline: true },
+        { name: '📌 Message',         value: msgLine,     inline: true },
+      )
+      .setDescription(
+        panel.messageId
+          ? '✅ This panel is published. Use **Update** to re-publish in the same channel, or **Publish to Channel** to send it somewhere new.'
+          : '⚠️ This panel is not yet published. Click **Publish to Channel** to send it.',
+      )
+      .setFooter({ text: 'Publishing updates an existing message instead of creating a duplicate' }),
+  );
+
+  const components: CCPayload['components'] = [];
+  const row0Btns: ButtonBuilder[] = [
+    btn('📤 Publish to Channel', TP.edit(panel.id, 'publish'), ButtonStyle.Primary),
+  ];
+  if (panel.messageId && panel.channelId) {
+    row0Btns.push(btn('🔄 Update Existing', TP.repub(panel.id), ButtonStyle.Success));
+  }
+  row0Btns.push(dashBtn(panel.id), homeBtn());
+  components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(row0Btns));
+
+  const payload: CCPayload = { content: '', embeds: [embed], components };
+  assertUniqueCustomIds('buildPublishSection', payload);
+  return payload;
+}
+
+// ── Preview Screen ──────────────────────────────────────────────────────────
+
+export function buildPreviewSection(panel: TicketPanel): CCPayload {
+  const fn = 'buildPreviewSection';
+  const safeColor = checkColor(FILE, fn, 'previewColor', panel.embed.color);
+
+  const buttonDesc = panel.selectMenu && panel.selectMenu.options.length > 0
+    ? `📋 **Select Menu** — ${panel.selectMenu.options.length} option(s): ${panel.selectMenu.options.slice(0, 3).map(o => `\`${o.label}\``).join(', ')}${panel.selectMenu.options.length > 3 ? '...' : ''}`
+    : [panel.button, ...panel.additionalButtons].map(b => `[${b.emoji ? b.emoji + ' ' : ''}${b.label}]`).join('  ');
+
+  const embed = verifyBuilder(FILE, fn, 'preview embed', () => {
+    const e = new EmbedBuilder()
+      .setColor(safeColor)
+      .setTitle(truncate(panel.embed.title || '(No title)', 256))
+      .setDescription(truncate(panel.embed.description || '(No description)', 4096));
+
+    if (panel.embed.footer)    e.setFooter({ text: truncate(panel.embed.footer, 2048) });
+    if (panel.embed.thumbnail) e.setThumbnail(panel.embed.thumbnail);
+    if (panel.embed.banner)    e.setImage(panel.embed.banner);
+    if (panel.embed.author)    e.setAuthor({ name: truncate(panel.embed.author, 256) });
+    if (panel.embed.showTimestamp) e.setTimestamp();
+
+    e.addFields({ name: '🔘 Buttons (preview only)', value: truncate(buttonDesc, 512), inline: false });
+    return e;
+  });
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('📤 Publish',  TP.section(panel.id, 'publish'), ButtonStyle.Primary),
+    dashBtn(panel.id),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildPreviewSection', payload);
+  return payload;
+}
+
+// ── Delete Confirm ──────────────────────────────────────────────────────────
+
+export function buildDeleteConfirm(panel: TicketPanel): CCPayload {
+  const fn = 'buildDeleteConfirm';
+  const color = checkColor(FILE, fn, 'color', 0xed4245);
+
+  const embed = verifyBuilder(FILE, fn, 'delete embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('🗑 Delete Panel?')
+      .setDescription(`You are about to permanently delete **${truncate(panel.name, 100)}**.\n\nThis removes the panel configuration. The published message (if any) remains in the channel but becomes non-functional.`)
+      .setFooter({ text: 'This cannot be undone' }),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✅ Confirm Delete', TP.delYes(panel.id), ButtonStyle.Danger),
+    btn('✖ Cancel',          TP.dash(panel.id),   ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildDeleteConfirm', payload);
+  return payload;
+}
+
+// ── Success / Error Feedback ────────────────────────────────────────────────
+
+export function buildFeedback(success: boolean, message: string, panelId?: string): CCPayload {
+  const fn = 'buildFeedback';
+  const color = checkColor(FILE, fn, 'color', success ? 0x57f287 : 0xed4245);
+
+  const embed = verifyBuilder(FILE, fn, 'feedback embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle(success ? '✅ Done' : '❌ Error')
+      .setDescription(truncate(message, 2000)),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    ...(panelId ? [dashBtn(panelId)] : [listBtn()]),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildFeedback', payload);
+  return payload;
+}
+
+// ── Modals ──────────────────────────────────────────────────────────────────
+
+function ti(id: string, label: string, style: TextInputStyle, value: string, placeholder: string, required = true, maxLength = 1000): TextInputBuilder {
+  const input = new TextInputBuilder()
+    .setCustomId(id)
+    .setLabel(truncate(label, 45))
+    .setStyle(style)
+    .setPlaceholder(truncate(placeholder, 100))
+    .setRequired(required)
+    .setMaxLength(Math.min(maxLength, 4000));
+  if (value) input.setValue(truncate(value, Math.min(maxLength, 4000)));
+  return input;
+}
+
+function row<T extends TextInputBuilder>(input: T): ActionRowBuilder<T> {
+  return new ActionRowBuilder<T>().addComponents(input);
+}
+
+export function buildCreatePanelModal(): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.NEW_M)
+    .setTitle('Create Ticket Panel')
+    .addComponents(
+      row(ti('name',        'Panel Name',        TextInputStyle.Short,     '', 'e.g. Support Tickets')),
+      row(ti('description', 'Description',       TextInputStyle.Short,     '', 'Internal note about this panel', false, 256)),
+      row(ti('embedTitle',  'Embed Title',        TextInputStyle.Short,     '', 'e.g. 🎫 Open a Support Ticket')),
+      row(ti('embedDesc',   'Embed Description',  TextInputStyle.Paragraph, '', 'Shown on the panel embed. Supports {server}, {membercount}', true, 2000)),
+      row(ti('btnLabel',    'Button Label',       TextInputStyle.Short,     '', 'e.g. Open Ticket')),
+    );
+}
+
+export function buildEditGeneralModal(panel: TicketPanel): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.modal(panel.id, 'general'))
+    .setTitle('Edit General Info')
+    .addComponents(
+      row(ti('name',        'Panel Name',    TextInputStyle.Short,     panel.name,        'e.g. Support Tickets', true, 100)),
+      row(ti('description', 'Description',   TextInputStyle.Short,     panel.description, 'Internal note about this panel', false, 256)),
+    );
+}
+
+export function buildEditEmbedModal(panel: TicketPanel): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.modal(panel.id, 'embed'))
+    .setTitle('Edit Embed')
+    .addComponents(
+      row(ti('title',       'Embed Title',       TextInputStyle.Short,     panel.embed.title,             'e.g. 🎫 Support Tickets', true, 256)),
+      row(ti('description', 'Embed Description', TextInputStyle.Paragraph, panel.embed.description,       'Message shown on the panel. Use {server}, {membercount}…', true, 2000)),
+      row(ti('color',       'Color (hex)',        TextInputStyle.Short,     fmtColor(panel.embed.color),  'e.g. 5865F2', true, 6)),
+      row(ti('footer',      'Footer Text',        TextInputStyle.Short,     panel.embed.footer || '',      'Optional footer', false, 256)),
+      row(ti('author',      'Author Name',        TextInputStyle.Short,     panel.embed.author || '',      'Optional author line', false, 256)),
+    );
+}
+
+export function buildEditMediaModal(panel: TicketPanel): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.modal(panel.id, 'media'))
+    .setTitle('Edit Media')
+    .addComponents(
+      row(ti('thumbnail', 'Thumbnail URL', TextInputStyle.Short, panel.embed.thumbnail || '', 'https://…  (small image, top-right)', false, 512)),
+      row(ti('banner',    'Image/Banner URL', TextInputStyle.Short, panel.embed.banner || '', 'https://…  (large image below)', false, 512)),
+    );
+}
+
+export function buildEditCategoriesModal(panel: TicketPanel): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.modal(panel.id, 'categories'))
+    .setTitle('Category Routing')
+    .addComponents(
+      row(ti('openCategory',    'Open Category ID',    TextInputStyle.Short, panel.openCategory    || '', 'ID of the category for open tickets',    false, 20)),
+      row(ti('closedCategory',  'Closed Category ID',  TextInputStyle.Short, panel.closedCategory  || '', 'ID of the category for closed tickets',  false, 20)),
+      row(ti('archiveCategory', 'Archive Category ID', TextInputStyle.Short, panel.archiveCategory || '', 'ID of the category for archived tickets', false, 20)),
+    );
+}
+
+export function buildEditNamingModal(panel: TicketPanel): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.modal(panel.id, 'naming'))
+    .setTitle('Ticket Naming Scheme')
+    .addComponents(
+      row(ti('namingScheme', 'Naming Scheme', TextInputStyle.Short, panel.namingScheme, 'e.g. ticket-{counter} or support-{username}', true, 90)),
+    );
+}
+
+export function buildEditLifecycleModal(panel: TicketPanel): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.modal(panel.id, 'lifecycle'))
+    .setTitle('Lifecycle Settings')
+    .addComponents(
+      row(ti('ticketLimit', 'Ticket Limit (per user)', TextInputStyle.Short, String(panel.ticketLimit), '1 = only one open ticket at a time', true, 3)),
+      row(ti('cooldown',    'Cooldown (seconds)',       TextInputStyle.Short, String(panel.cooldown),    '0 = disabled', true, 6)),
+      row(ti('priority',    'Priority',                 TextInputStyle.Short, panel.priority,            'low | normal | high | urgent', true, 6)),
+    );
+}
+
+export function buildEditAutomationModal(panel: TicketPanel): ModalBuilder {
+  const a = panel.automation;
+  return new ModalBuilder()
+    .setCustomId(TP.modal(panel.id, 'automation'))
+    .setTitle('Automation')
+    .addComponents(
+      row(ti('autoCloseInactivityMinutes',  'Auto-close after (minutes)', TextInputStyle.Short, String(a.autoCloseInactivityMinutes), '0 = off', true, 6)),
+      row(ti('autoDeleteAfterCloseMinutes', 'Auto-delete after close (min)', TextInputStyle.Short, String(a.autoDeleteAfterCloseMinutes), '0 = off', true, 6)),
+      row(ti('cooldownSeconds',             'Cooldown (seconds)',           TextInputStyle.Short, String(a.cooldownSeconds),             '0 = off', true, 6)),
+      row(ti('reminderMinutes',             'Staff reminder (minutes)',     TextInputStyle.Short, String(a.reminderMinutes),             '0 = off', true, 6)),
+    );
+}
+
+export function buildEditTranscriptsModal(panel: TicketPanel): ModalBuilder {
+  const t = panel.transcript;
+  return new ModalBuilder()
+    .setCustomId(TP.modal(panel.id, 'transcripts'))
+    .setTitle('Transcript Settings')
+    .addComponents(
+      row(ti('channelId', 'Channel ID',     TextInputStyle.Short, t.channelId || '', 'Channel to post transcripts in', false, 20)),
+      row(ti('formats',   'Formats',        TextInputStyle.Short, t.formats.join(','), 'html, markdown (comma-separated)', true, 20)),
+      row(ti('dmUser',    'DM to User',     TextInputStyle.Short, String(t.dmUser), 'true or false', true, 5)),
+    );
+}
+
+export function buildEditStaffRolesModal(panel: TicketPanel): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.modal(panel.id, 'staffroles'))
+    .setTitle('Staff Role IDs')
+    .addComponents(
+      row(ti('supportRoles', 'Support Role IDs',  TextInputStyle.Paragraph, panel.supportRoles.join(','), 'Comma-separated role IDs', false, 1000)),
+      row(ti('managerRoles', 'Manager Role IDs',  TextInputStyle.Paragraph, panel.managerRoles.join(','), 'Comma-separated role IDs', false, 1000)),
+      row(ti('pingRoles',    'Ping Role IDs',     TextInputStyle.Paragraph, panel.pingRoles.join(','),    'Comma-separated role IDs — pinged on open', false, 1000)),
+    );
+}
+
+export function buildEditAccessRolesModal(panel: TicketPanel): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.modal(panel.id, 'accessroles'))
+    .setTitle('Access Control')
+    .addComponents(
+      row(ti('allowedRoles', 'Allowed Role IDs', TextInputStyle.Paragraph, panel.allowedRoles.join(','), 'Only these roles can open tickets (empty = everyone)', false, 1000)),
+      row(ti('blockedRoles', 'Blocked Role IDs', TextInputStyle.Paragraph, panel.blockedRoles.join(','), 'These roles cannot open tickets', false, 1000)),
+    );
+}
+
+export function buildEditLogChannelModal(panel: TicketPanel): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.modal(panel.id, 'logchannel'))
+    .setTitle('Log Channel')
+    .addComponents(
+      row(ti('logChannelId', 'Log Channel ID', TextInputStyle.Short, panel.logChannelId || '', 'Channel where ticket actions are logged', false, 20)),
+    );
+}
+
+export function buildPrimaryButtonModal(panel: TicketPanel): ModalBuilder {
+  const b = panel.button;
+  return new ModalBuilder()
+    .setCustomId(TP.btnPrimaryM(panel.id))
+    .setTitle('Edit Primary Button')
+    .addComponents(
+      row(ti('label',      'Button Label', TextInputStyle.Short, b.label,              'e.g. Open Ticket', true, 80)),
+      row(ti('style',      'Style',        TextInputStyle.Short, b.style,              'Primary | Secondary | Success | Danger', true, 10)),
+      row(ti('emoji',      'Emoji',        TextInputStyle.Short, b.emoji || '',        'e.g. 🎫 (optional)', false, 32)),
+      row(ti('ticketType', 'Ticket Type',  TextInputStyle.Short, b.ticketType,         'Internal key, e.g. support', true, 50)),
+    );
+}
+
+export function buildExtraButtonModal(_panelId: string, existingBtn: TicketButtonConfig | null, customIdSuffix: string): ModalBuilder {
+  const isEdit = existingBtn !== null;
+  return new ModalBuilder()
+    .setCustomId(customIdSuffix)
+    .setTitle(isEdit ? 'Edit Extra Button' : 'Add Extra Button')
+    .addComponents(
+      row(ti('label',      'Button Label', TextInputStyle.Short, existingBtn?.label      || '', 'e.g. General Support', true, 80)),
+      row(ti('style',      'Style',        TextInputStyle.Short, existingBtn?.style      || 'Primary', 'Primary | Secondary | Success | Danger', true, 10)),
+      row(ti('emoji',      'Emoji',        TextInputStyle.Short, existingBtn?.emoji      || '', 'e.g. 🎫 (optional)', false, 32)),
+      row(ti('ticketType', 'Ticket Type',  TextInputStyle.Short, existingBtn?.ticketType || '', 'Internal key, e.g. billing', true, 50)),
+    );
+}
+
+export function buildSmOptionModal(_panelId: string, existingOpt: TicketSelectMenuOption | null, customIdSuffix: string): ModalBuilder {
+  const isEdit = existingOpt !== null;
+  return new ModalBuilder()
+    .setCustomId(customIdSuffix)
+    .setTitle(isEdit ? 'Edit Select Option' : 'Add Select Option')
+    .addComponents(
+      row(ti('label',       'Option Label',  TextInputStyle.Short, existingOpt?.label       || '', 'e.g. General Support', true, 100)),
+      row(ti('ticketType',  'Ticket Type',   TextInputStyle.Short, existingOpt?.ticketType  || '', 'Internal key, e.g. billing', true, 50)),
+      row(ti('description', 'Description',   TextInputStyle.Short, existingOpt?.description || '', 'Shown under the label (optional)', false, 100)),
+      row(ti('emoji',       'Emoji',         TextInputStyle.Short, existingOpt?.emoji       || '', '🎫 (optional)', false, 32)),
+    );
+}
+
+export function buildSmPlaceholderModal(panel: TicketPanel): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.modal(panel.id, 'smplaceholder'))
+    .setTitle('Select Menu Placeholder')
+    .addComponents(
+      row(ti('placeholder', 'Placeholder Text', TextInputStyle.Short, panel.selectMenu?.placeholder || '', 'e.g. Select a ticket type…', false, 150)),
+    );
+}
+
+export function buildQuestionModal(_panelId: string, existingQ: TicketModalQuestion | null, customIdSuffix: string): ModalBuilder {
+  const isEdit = existingQ !== null;
+  return new ModalBuilder()
+    .setCustomId(customIdSuffix)
+    .setTitle(isEdit ? 'Edit Question' : 'Add Question')
+    .addComponents(
+      row(ti('id',          'Question ID (unique key)', TextInputStyle.Short, existingQ?.id          || '', 'e.g. reason (no spaces)',  true, 50)),
+      row(ti('label',       'Question Label',            TextInputStyle.Short, existingQ?.label       || '', 'e.g. Describe your issue', true, 45)),
+      row(ti('style',       'Style',                     TextInputStyle.Short, existingQ?.style       || 'short', 'short or paragraph',   true, 9)),
+      row(ti('placeholder', 'Placeholder',               TextInputStyle.Short, existingQ?.placeholder || '', 'Hint text (optional)',    false, 100)),
+      row(ti('required',    'Required (true/false)',      TextInputStyle.Short, String(existingQ?.required ?? true), 'true or false', true, 5)),
+    );
+}
+
+export function buildPublishChannelModal(panel: TicketPanel): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.pubModal(panel.id))
+    .setTitle('Publish to Channel')
+    .addComponents(
+      row(ti('channelId', 'Channel ID', TextInputStyle.Short, panel.channelId || '', 'The text channel to post the panel in', true, 20)),
+    );
+}

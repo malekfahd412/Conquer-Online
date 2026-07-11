@@ -2,3 +2,4 @@
 - [Discord bot workflow restart zombie process](discord-bot-workflow-restart-zombie.md) — restart can leave old tsx process alive; duplicate gateway logins cause misleading "Unknown interaction" errors that look like code bugs.
 - [Control Center duplicate custom_id fix](cc-duplicate-id-fix.md) — pagination buttons must use raw unclamped page numbers as IDs; clamping collapses both to same value on single-page categories.
 - [Ticket System Pro architecture](ticket-system-pro.md) — 10-engine ticket system under community/tickets/; migration pattern and tk:* custom ID stability rules.
+- [Ticket Panel Designer wiring](tp-designer-wiring.md) — tp:* prefix routed in ai.service.ts before tk:* block; entry via 🎨 button injected into CC tickets category in navToCategory.

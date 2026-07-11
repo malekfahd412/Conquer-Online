@@ -1,0 +1,247 @@
+Task 9 — Ticket System Pro (Phase 2)
+
+Objective
+
+Build the complete Ticket Panel Designer on top of the new Ticket Engine.
+
+The engine already exists.
+
+Now build the user-facing configuration system.
+
+Everything must be configurable directly from Discord through the Control Center.
+
+DO NOT use hardcoded values.
+
+DO NOT require editing JSON files manually.
+
+====================================================
+
+Panel Dashboard
+
+====================================================
+
+Selecting a Ticket Panel from the Control Center must open a dashboard.
+
+Sections:
+
+General
+
+Appearance
+
+Button
+
+Permissions
+
+Questions
+
+Categories
+
+Naming
+
+Lifecycle
+
+Automation
+
+Transcripts
+
+Statistics
+
+Preview
+
+Publish
+
+====================================================
+
+General
+
+====================================================
+
+Editable:
+
+Panel Name
+
+Description
+
+Enabled / Disabled
+
+Internal Notes
+
+Panel Icon
+
+====================================================
+
+Appearance
+
+====================================================
+
+Configure:
+
+Embed Title
+
+Embed Description
+
+Embed Color
+
+Thumbnail
+
+Image
+
+Author
+
+Footer
+
+Timestamp
+
+Variables
+
+Support placeholders like:
+
+{user}
+
+{server}
+
+{membercount}
+
+{date}
+
+{ticket}
+
+====================================================
+
+Button Designer
+
+====================================================
+
+Support:
+
+Button Label
+
+Emoji
+
+Style
+
+Primary
+
+Secondary
+
+Success
+
+Danger
+
+Link
+
+Disabled
+
+OR
+
+Switch panel to Select Menu mode.
+
+If Select Menu:
+
+Allow unlimited ticket options.
+
+Each option has:
+
+Label
+
+Description
+
+Emoji
+
+Destination
+
+====================================================
+
+Category Routing
+
+====================================================
+
+Configure:
+
+Open Category
+
+Closed Category
+
+Archive Category
+
+Overflow Category
+
+====================================================
+
+Naming
+
+====================================================
+
+Live preview.
+
+Support every variable provided by NamingEngine.
+
+Examples:
+
+ticket-{counter}
+
+support-{username}
+
+report-{user}
+
+====================================================
+
+Preview
+
+====================================================
+
+Generate the exact embed and components without publishing.
+
+====================================================
+
+Publish
+
+====================================================
+
+Publish to any channel.
+
+Editing a panel should update the original message without recreating it.
+
+====================================================
+
+Control Center
+
+====================================================
+
+Integrate everything into the Control Center.
+
+No slash commands required.
+
+Everything must be accessible through interactive buttons, select menus and modals.
+
+====================================================
+
+Requirements
+
+====================================================
+
+No duplicated code.
+
+Reuse TicketEngine APIs.
+
+No direct JSON editing.
+
+Zero TypeScript errors.
+
+Zero TODOs.
+
+Zero placeholders.
+
+====================================================
+
+Return only:
+
+Files created
+
+Files modified
+
+Control Center pages added
+
+Runtime status
+
+Build status

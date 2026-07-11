@@ -39,9 +39,11 @@ export class PanelManager {
 
   buildPayload(panel: TicketPanel): MessageCreateOptions {
     const embed = new EmbedBuilder().setColor(panel.embed.color).setTitle(panel.embed.title).setDescription(panel.embed.description);
-    if (panel.embed.footer) embed.setFooter({ text: panel.embed.footer });
-    if (panel.embed.thumbnail) embed.setThumbnail(panel.embed.thumbnail);
-    if (panel.embed.banner) embed.setImage(panel.embed.banner);
+    if (panel.embed.footer)         embed.setFooter({ text: panel.embed.footer });
+    if (panel.embed.thumbnail)      embed.setThumbnail(panel.embed.thumbnail);
+    if (panel.embed.banner)         embed.setImage(panel.embed.banner);
+    if (panel.embed.author)         embed.setAuthor({ name: panel.embed.author });
+    if (panel.embed.showTimestamp)  embed.setTimestamp();
 
     const rows: (ActionRowBuilder<ButtonBuilder> | ActionRowBuilder<StringSelectMenuBuilder>)[] = [];
 
