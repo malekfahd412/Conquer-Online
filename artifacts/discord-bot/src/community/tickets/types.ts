@@ -93,8 +93,13 @@ export interface TicketTypeOverrides {
   automation?: TicketAutomationConfig;
   statistics?: TicketStatisticsConfig;
 
-  /** Welcome embed shown inside the created ticket channel — distinct from the panel's selection-message `embed`. */
-  ticketEmbed?: TicketEmbedConfig;
+  /**
+   * Welcome embed shown inside the created ticket channel — distinct from the panel's
+   * selection-message `embed`. Every field is independently optional: a field left unset
+   * falls back to the panel/engine default for that field (see `createChannel` in
+   * ticket-engine.ts) without affecting any other field or any other ticket type.
+   */
+  ticketEmbed?: Partial<TicketEmbedConfig>;
 }
 
 export interface TicketSelectMenuConfig {
@@ -461,7 +466,7 @@ export function entryLabel(panel: TicketPanel, ref: TicketEntryRef): string {
 /** A resolved, ticket-type-specific config. Structurally a `TicketPanel` — pass it anywhere a panel is expected. */
 export interface ResolvedTicketConfig extends TicketPanel {
   /** Per-type welcome-embed override, if the ticket type set one. Undefined = use the engine's hardcoded default template. */
-  ticketEmbedOverride?: TicketEmbedConfig;
+  ticketEmbedOverride?: Partial<TicketEmbedConfig>;
   /** The ref this config was resolved for, for diagnostics. */
   resolvedFor?: TicketEntryRef;
 }

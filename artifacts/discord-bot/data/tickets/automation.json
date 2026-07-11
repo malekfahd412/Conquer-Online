@@ -18,14 +18,14 @@
       "panelId": "panel_1783747543306_kk73l",
       "userId": "727578927593291796",
       "ticketType": "Store",
-      "lastClosedAt": 1783767901556
+      "lastClosedAt": 1783771583408
     },
     {
       "guildId": "1213437502078062674",
       "panelId": "panel_1783747543306_kk73l",
       "userId": "723982702625423430",
       "ticketType": "Store",
-      "lastClosedAt": 1783768655298
+      "lastClosedAt": 1783772010240
     },
     {
       "guildId": "1213437502078062674",
@@ -33,6 +33,27 @@
       "userId": "1231346883096612988",
       "ticketType": "Support Manger",
       "lastClosedAt": 1783771237605
+    },
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "userId": "723982702625423430",
+      "ticketType": "Support",
+      "lastClosedAt": 1783772014070
+    },
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "userId": "723982702625423430",
+      "ticketType": "Staff",
+      "lastClosedAt": 1783772015913
+    },
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "userId": "723982702625423430",
+      "ticketType": "Support Manger",
+      "lastClosedAt": 1783772018294
     }
   ],
   "activity": [
@@ -75,6 +96,11 @@
       "ticketId": "ticket_1783768652328_rzq6s",
       "channelId": "1525461035119808626",
       "lastActivityAt": 1783768996880
+    },
+    {
+      "ticketId": "ticket_1783772525330_27rhk",
+      "channelId": "1525477279738626188",
+      "lastActivityAt": 1783772525551
     }
   ],
   "log": []

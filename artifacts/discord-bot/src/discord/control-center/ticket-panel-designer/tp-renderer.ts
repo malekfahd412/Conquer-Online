@@ -482,9 +482,10 @@ export function buildTTMain(panel: TicketPanel, ref: TicketEntryRef): CCPayload 
   );
 
   const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    btn('📁 Categories', TP.TT.cat(panel.id, ref),    ButtonStyle.Secondary),
-    btn('👥 Roles',      TP.TT.roles(panel.id, ref),  ButtonStyle.Secondary),
-    btn('📝 Naming',     TP.TT.naming(panel.id, ref), ButtonStyle.Secondary),
+    btn('📁 Categories',     TP.TT.cat(panel.id, ref),   ButtonStyle.Secondary),
+    btn('👥 Roles',          TP.TT.roles(panel.id, ref), ButtonStyle.Secondary),
+    btn('📝 Naming',         TP.TT.naming(panel.id, ref), ButtonStyle.Secondary),
+    btn('🖼️ Welcome Embed', TP.TT.embed(panel.id, ref), ButtonStyle.Secondary),
   );
   const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
     btn('🗑 Clear All Overrides', TP.TT.reset(panel.id, ref, 'all'), ButtonStyle.Danger, overrideCount === 0),
@@ -610,6 +611,56 @@ export function buildTTNaming(panel: TicketPanel, ref: TicketEntryRef): CCPayloa
 
   const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
   assertUniqueCustomIds('buildTTNaming', payload);
+  return payload;
+}
+
+// ── Ticket Type Designer — Welcome Embed page ───────────────────────────────
+
+/** `undefined` → not overridden, so the page can show "inherits default" for that field alone. */
+function ttEmbedLine(value: string | undefined, fallbackLabel: string): string {
+  return value ? truncate(value, 200) : `_(${fallbackLabel})_`;
+}
+
+export function buildTTEmbed(panel: TicketPanel, ref: TicketEntryRef): CCPayload {
+  const fn = 'buildTTEmbed';
+  const entry = getEntry(panel, ref);
+  if (!entry) return buildTTMissingEntry(panel, fn);
+
+  const te = entry.overrides?.ticketEmbed ?? {};
+  const hasOverride = Object.keys(te).length > 0;
+  const previewColor = checkColor(FILE, fn, 'color', te.color ?? panel.embed.color);
+
+  const embed = verifyBuilder(FILE, fn, 'tt embed settings embed', () =>
+    new EmbedBuilder()
+      .setColor(previewColor)
+      .setTitle(`🖼️ Welcome Embed — ${entryLabel(panel, ref)}`)
+      .setDescription('This is the embed posted in the ticket channel the moment it\'s created. Every field below is independent — leave a field blank in its editor to inherit the panel/default value without touching the others.')
+      .addFields(
+        { name: 'Title',       value: ttEmbedLine(te.title, 'inherits auto-generated title'), inline: false },
+        { name: 'Description', value: ttEmbedLine(te.description, 'inherits default welcome message'), inline: false },
+        { name: 'Color',       value: te.color !== undefined ? fmtColor(te.color) : `${fmtColor(panel.embed.color)} _(panel default)_`, inline: true },
+        { name: 'Footer',      value: ttEmbedLine(te.footer, 'inherits default footer'), inline: true },
+        { name: 'Author',      value: ttEmbedLine(te.author, 'none'), inline: true },
+        { name: 'Thumbnail',   value: ttEmbedLine(te.thumbnail, 'none'), inline: false },
+        { name: 'Banner/Image', value: ttEmbedLine(te.banner, 'none'), inline: false },
+        { name: 'Timestamp',   value: te.showTimestamp ? '🟢 On' : '🔴 Off', inline: true },
+      )
+      .setFooter({ text: 'Applies only to this button/option — every other ticket type keeps its own welcome embed untouched.' }),
+  );
+
+  const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Edit Embed',  TP.TT.edit(panel.id, ref, 'embed'),      ButtonStyle.Primary),
+    btn('🖼 Edit Media',  TP.TT.edit(panel.id, ref, 'embedmedia'), ButtonStyle.Secondary),
+    btn(te.showTimestamp ? '🕑 Hide Time' : '🕑 Show Time', TP.TT.ctog(panel.id, ref, 'embedTimestamp'), ButtonStyle.Secondary),
+  );
+  const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('↩️ Reset to Panel Default', TP.TT.reset(panel.id, ref, 'embed'), ButtonStyle.Secondary, !hasOverride),
+    btn('← Back',                    TP.TT.main(panel.id, ref),           ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row1, row2] };
+  assertUniqueCustomIds('buildTTEmbed', payload);
   return payload;
 }
 
@@ -1255,6 +1306,31 @@ export function buildTTEditNamingModal(panel: TicketPanel, ref: TicketEntryRef):
     .setTitle('Naming Scheme (this type)')
     .addComponents(
       row(ti('namingScheme', 'Naming Scheme', TextInputStyle.Short, o.namingScheme || '', 'Blank = auto from label, e.g. sales-{counter}', false, 90)),
+    );
+}
+
+export function buildTTEditEmbedModal(panel: TicketPanel, ref: TicketEntryRef): ModalBuilder {
+  const te = getEntry(panel, ref)?.overrides?.ticketEmbed ?? {};
+  return new ModalBuilder()
+    .setCustomId(TP.TT.ttModal(panel.id, ref, 'embed'))
+    .setTitle('Welcome Embed (this type)')
+    .addComponents(
+      row(ti('title',       'Embed Title',       TextInputStyle.Short,     te.title || '',       'Blank = auto-generated title', false, 256)),
+      row(ti('description', 'Embed Description', TextInputStyle.Paragraph, te.description || '', 'Blank = inherit default welcome message', false, 2000)),
+      row(ti('color',       'Color (hex)',        TextInputStyle.Short,     te.color !== undefined ? fmtColor(te.color) : '', 'Blank = inherit panel color, e.g. 5865F2', false, 6)),
+      row(ti('footer',      'Footer Text',        TextInputStyle.Short,     te.footer || '',      'Blank = inherit default footer', false, 256)),
+      row(ti('author',      'Author Name',        TextInputStyle.Short,     te.author || '',      'Blank = none', false, 256)),
+    );
+}
+
+export function buildTTEditEmbedMediaModal(panel: TicketPanel, ref: TicketEntryRef): ModalBuilder {
+  const te = getEntry(panel, ref)?.overrides?.ticketEmbed ?? {};
+  return new ModalBuilder()
+    .setCustomId(TP.TT.ttModal(panel.id, ref, 'embedmedia'))
+    .setTitle('Welcome Embed Media (this type)')
+    .addComponents(
+      row(ti('thumbnail', 'Thumbnail URL',    TextInputStyle.Short, te.thumbnail || '', 'https://…  (small image, top-right) — blank = none', false, 512)),
+      row(ti('banner',    'Image/Banner URL', TextInputStyle.Short, te.banner || '',    'https://…  (large image below) — blank = none', false, 512)),
     );
 }
 

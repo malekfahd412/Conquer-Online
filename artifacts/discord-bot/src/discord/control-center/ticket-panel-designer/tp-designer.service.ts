@@ -20,7 +20,7 @@ import { buildFormFromTemplate, type FormTemplateKey } from '../../../community/
 import { questionEngine, MAX_QUESTIONS_PER_FORM } from '../../../community/tickets/question-engine';
 import { genId } from '../../../community/tickets/store';
 import type { PermissionManager } from '../../../ai/permission-manager';
-import type { TicketPanel, TicketButtonConfig, TicketSelectMenuOption, TicketPriority, TicketMemberPermConfig, TicketStaffPermConfig, TicketClaimBehaviourConfig, TicketVisibilityMode, TicketForm, FormQuestion, FormNextRule, QuestionType, TicketEntryRef, TicketTypeOverrides } from '../../../community/tickets/types';
+import type { TicketPanel, TicketButtonConfig, TicketSelectMenuOption, TicketPriority, TicketMemberPermConfig, TicketStaffPermConfig, TicketClaimBehaviourConfig, TicketVisibilityMode, TicketForm, FormQuestion, FormNextRule, QuestionType, TicketEntryRef, TicketTypeOverrides, TicketEmbedConfig } from '../../../community/tickets/types';
 import { normalizePanel, DEFAULT_MEMBER_PERMS, DEFAULT_STAFF_PERMS, DEFAULT_CLAIM_BEHAVIOUR, QUESTION_TYPES, getEntry, setEntryOverrides } from '../../../community/tickets/types';
 import {
   buildPDMain,
@@ -59,6 +59,7 @@ import {
   buildTTCategories,
   buildTTRoles,
   buildTTNaming,
+  buildTTEmbed,
   buildFeedback,
   buildTemplateGallery,
   buildTemplateDetail,
@@ -81,6 +82,8 @@ import {
   buildTTEditCategoriesModal,
   buildTTEditRolesModal,
   buildTTEditNamingModal,
+  buildTTEditEmbedModal,
+  buildTTEditEmbedMediaModal,
   buildPrimaryButtonModal,
   buildExtraButtonModal,
   buildSmOptionModal,
@@ -359,6 +362,7 @@ export class TicketPanelDesigner {
     cat:    ['openCategory', 'closedCategory', 'archiveCategory'],
     roles:  ['supportRoles', 'pingRoles'],
     naming: ['namingScheme'],
+    embed:  ['ticketEmbed'],
   };
 
   private async routeTTButton(interaction: ButtonInteraction, guild: Guild, id: string): Promise<void> {
@@ -383,8 +387,10 @@ export class TicketPanelDesigner {
       if (section === 'cat')    { await this.navTTCategories(interaction, guild, panelId, ref); return; }
       if (section === 'roles')  { await this.navTTRoles(interaction, guild, panelId, ref); return; }
       if (section === 'naming') { await this.navTTNaming(interaction, guild, panelId, ref); return; }
+      if (section === 'embed')  { await this.navTTEmbed(interaction, guild, panelId, ref); return; }
+      if (section === 'ctog')   { await this.handleTTToggle(interaction, guild, panelId, ref, extra); return; }
 
-      // Remaining per-field section editors (access/mperms/sperms/vis/claim/auto/tx/stats/embed)
+      // Remaining per-field section editors (access/mperms/sperms/vis/claim/auto/tx/stats)
       // are not built yet — surface a clear, ephemeral message instead of a silent no-op.
       logger.info(`[TPD][TT] section="${section}" panelId=${panelId} ref=${ref} — not yet implemented`);
       await this.navTTMain(interaction, guild, panelId, ref, `Editing "${section}" from this hub isn't available yet — use Categories / Roles / Naming above, or "Clear All Overrides" to reset this type.`);
@@ -416,6 +422,32 @@ export class TicketPanelDesigner {
     await this.nav(interaction, buildTTNaming(panel, ref));
   }
 
+  private async navTTEmbed(interaction: ButtonInteraction, guild: Guild, panelId: string, ref: TicketEntryRef): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+    if (!getEntry(panel, ref)) { await this.nav(interaction, buildTTMain(panel, ref)); return; }
+    await this.nav(interaction, buildTTEmbed(panel, ref));
+  }
+
+  /** `tp:tt:ctog:<panelId>:<ref>:<field>` — toggles a boolean field owned by a ticket type's overrides (currently only the welcome embed's timestamp). */
+  private async handleTTToggle(interaction: ButtonInteraction, guild: Guild, panelId: string, ref: TicketEntryRef, field: string | undefined): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+    const entry = getEntry(panel, ref);
+    if (!entry) { await this.nav(interaction, buildTTMain(panel, ref)); return; }
+
+    const next: TicketTypeOverrides = { ...(entry.overrides ?? {}) };
+    if (field === 'embedTimestamp') {
+      const te: Partial<TicketEmbedConfig> = { ...(next.ticketEmbed ?? {}) };
+      te.showTimestamp = !te.showTimestamp;
+      next.ticketEmbed = te;
+    }
+
+    await panelManager.update(panelId, setEntryOverrides(panel, ref, next));
+    const updated = await panelManager.get(panelId);
+    await this.nav(interaction, buildTTEmbed(updated ?? panel, ref));
+  }
+
   private async showTTEditModal(interaction: ButtonInteraction, guild: Guild, panelId: string, ref: TicketEntryRef, section: string | undefined): Promise<void> {
     const panel = await panelManager.get(panelId);
     if (!panel || panel.guildId !== guild.id) {
@@ -428,9 +460,11 @@ export class TicketPanelDesigner {
     }
 
     switch (section) {
-      case 'cat':    await interaction.showModal(buildTTEditCategoriesModal(panel, ref)); break;
-      case 'roles':  await interaction.showModal(buildTTEditRolesModal(panel, ref)); break;
-      case 'naming': await interaction.showModal(buildTTEditNamingModal(panel, ref)); break;
+      case 'cat':        await interaction.showModal(buildTTEditCategoriesModal(panel, ref)); break;
+      case 'roles':      await interaction.showModal(buildTTEditRolesModal(panel, ref)); break;
+      case 'naming':     await interaction.showModal(buildTTEditNamingModal(panel, ref)); break;
+      case 'embed':      await interaction.showModal(buildTTEditEmbedModal(panel, ref)); break;
+      case 'embedmedia': await interaction.showModal(buildTTEditEmbedMediaModal(panel, ref)); break;
       default:
         await interaction.reply({ content: `❌ Editing "${section}" isn't available yet for individual ticket types.`, flags: MessageFlags.Ephemeral });
     }
@@ -488,6 +522,7 @@ export class TicketPanelDesigner {
       case 'cat':    payload = buildTTCategories(updated ?? panel, ref); break;
       case 'roles':  payload = buildTTRoles(updated ?? panel, ref); break;
       case 'naming': payload = buildTTNaming(updated ?? panel, ref); break;
+      case 'embed':  payload = buildTTEmbed(updated ?? panel, ref); break;
       default:       payload = buildTTMain(updated ?? panel, ref); break;
     }
     payload.content = section === 'all'
@@ -533,6 +568,38 @@ export class TicketPanelDesigner {
           if (namingScheme) next.namingScheme = namingScheme; else delete next.namingScheme;
           break;
         }
+        case 'embed': {
+          const title       = getField(interaction, 'title',       false);
+          const description = getField(interaction, 'description', false);
+          const colorRaw    = getField(interaction, 'color',       false);
+          const footer      = getField(interaction, 'footer',      false);
+          const author      = getField(interaction, 'author',      false);
+          let color: number | undefined;
+          if (colorRaw) {
+            const parsed = parseColor(colorRaw);
+            if (parsed === null) throw new Error(`Invalid hex color: "${colorRaw}". Use format 5865F2 or #5865F2.`);
+            color = parsed;
+          }
+          // Each field is independent — only the fields present in THIS modal (title/description/
+          // color/footer/author) are touched; thumbnail/banner from the media modal are preserved.
+          const te: Partial<TicketEmbedConfig> = { ...(next.ticketEmbed ?? {}) };
+          if (title)               te.title = title;             else delete te.title;
+          if (description)         te.description = description; else delete te.description;
+          if (color !== undefined) te.color = color;              else delete te.color;
+          if (footer)               te.footer = footer;            else delete te.footer;
+          if (author)               te.author = author;            else delete te.author;
+          if (Object.keys(te).length > 0) next.ticketEmbed = te; else delete next.ticketEmbed;
+          break;
+        }
+        case 'embedmedia': {
+          const thumbnail = getField(interaction, 'thumbnail', false);
+          const banner    = getField(interaction, 'banner',    false);
+          const te: Partial<TicketEmbedConfig> = { ...(next.ticketEmbed ?? {}) };
+          if (thumbnail) te.thumbnail = thumbnail; else delete te.thumbnail;
+          if (banner)    te.banner = banner;       else delete te.banner;
+          if (Object.keys(te).length > 0) next.ticketEmbed = te; else delete next.ticketEmbed;
+          break;
+        }
         default:
           throw new Error(`Unknown ticket type section: "${section}"`);
       }
@@ -551,6 +618,8 @@ export class TicketPanelDesigner {
       case 'cat':    payload = buildTTCategories(updated ?? panel, ref); break;
       case 'roles':  payload = buildTTRoles(updated ?? panel, ref); break;
       case 'naming': payload = buildTTNaming(updated ?? panel, ref); break;
+      case 'embed':
+      case 'embedmedia': payload = buildTTEmbed(updated ?? panel, ref); break;
       default:       payload = buildTTMain(updated ?? panel, ref); break;
     }
     await this.navReply(interaction, payload);

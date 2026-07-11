@@ -335,9 +335,132 @@
       ],
       "closedAt": 1783771237604,
       "closedBy": "727578927593291796"
+    },
+    {
+      "id": "ticket_1783771548503_9fzer",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Store",
+      "channelId": "1525473182486888488",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 19,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783771548675,
+      "lastActivityAt": 1783771579129,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "headerMessageId": "1525473183292194857",
+      "closedAt": 1783771583407,
+      "closedBy": "727578927593291796",
+      "lastLifecycleMessageId": "1525473328951853069"
+    },
+    {
+      "id": "ticket_1783771993901_wg46y",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Store",
+      "channelId": "1525475050193686680",
+      "openerId": "723982702625423430",
+      "status": "closed",
+      "number": 20,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783771994082,
+      "lastActivityAt": 1783771994082,
+      "participantIds": [
+        "723982702625423430"
+      ],
+      "headerMessageId": "1525475051179343963",
+      "closedAt": 1783772010239,
+      "closedBy": "723982702625423430",
+      "lastLifecycleMessageId": "1525475119454093323"
+    },
+    {
+      "id": "ticket_1783771996056_mzzv0",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Support",
+      "channelId": "1525475059526008884",
+      "openerId": "723982702625423430",
+      "status": "closed",
+      "number": 21,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783771996281,
+      "lastActivityAt": 1783771996281,
+      "participantIds": [
+        "723982702625423430"
+      ],
+      "headerMessageId": "1525475060155158601",
+      "closedAt": 1783772014068,
+      "closedBy": "723982702625423430",
+      "lastLifecycleMessageId": "1525475135597973558"
+    },
+    {
+      "id": "ticket_1783771998995_jkhbc",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Support Manger",
+      "channelId": "1525475071827775511",
+      "openerId": "723982702625423430",
+      "status": "closed",
+      "number": 22,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783771999243,
+      "lastActivityAt": 1783771999243,
+      "participantIds": [
+        "723982702625423430"
+      ],
+      "headerMessageId": "1525475072935071877",
+      "closedAt": 1783772018293,
+      "closedBy": "723982702625423430",
+      "lastLifecycleMessageId": "1525475153474224169"
+    },
+    {
+      "id": "ticket_1783772001394_qcbgy",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Staff",
+      "channelId": "1525475082066067476",
+      "openerId": "723982702625423430",
+      "status": "closed",
+      "number": 23,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783772001631,
+      "lastActivityAt": 1783772001631,
+      "participantIds": [
+        "723982702625423430"
+      ],
+      "headerMessageId": "1525475083081224283",
+      "closedAt": 1783772015908,
+      "closedBy": "723982702625423430",
+      "lastLifecycleMessageId": "1525475143554433035"
+    },
+    {
+      "id": "ticket_1783772525330_27rhk",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Store",
+      "channelId": "1525477279738626188",
+      "openerId": "727578927593291796",
+      "status": "open",
+      "number": 24,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783772525550,
+      "lastActivityAt": 1783772525550,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "headerMessageId": "1525477280363577347"
     }
   ],
   "counters": {
-    "1213437502078062674": 18
+    "1213437502078062674": 24
   }
 }
