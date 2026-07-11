@@ -16,7 +16,7 @@ export interface TicketEmbedConfig {
   footer?: string;
   thumbnail?: string;
   banner?: string;
-  author?: string;
+  messageContent?: string;
   showTimestamp?: boolean;
 }
 

@@ -210,7 +210,7 @@ export function buildAppearanceSection(panel: TicketPanel): CCPayload {
         { name: 'Footer',            value: truncate(panel.embed.footer || '_(none)_', 256),          inline: true  },
         { name: 'Thumbnail URL',     value: truncate(panel.embed.thumbnail || '_(none)_', 256),       inline: false },
         { name: 'Image/Banner URL',  value: truncate(panel.embed.banner || '_(none)_', 256),          inline: false },
-        { name: 'Author',            value: truncate(panel.embed.author || '_(none)_', 256),          inline: true  },
+        { name: 'Message Content',    value: truncate(panel.embed.messageContent || '_(none)_', 256), inline: true  },
         { name: 'Timestamp',         value: panel.embed.showTimestamp ? '🟢 On' : '🔴 Off',          inline: true  },
         { name: '📋 Available Variables', value: EMBED_VARS_HELP,                                    inline: false },
       )
@@ -640,7 +640,7 @@ export function buildTTEmbed(panel: TicketPanel, ref: TicketEntryRef): CCPayload
         { name: 'Description', value: ttEmbedLine(te.description, 'inherits default welcome message'), inline: false },
         { name: 'Color',       value: te.color !== undefined ? fmtColor(te.color) : `${fmtColor(panel.embed.color)} _(panel default)_`, inline: true },
         { name: 'Footer',      value: ttEmbedLine(te.footer, 'inherits default footer'), inline: true },
-        { name: 'Author',      value: ttEmbedLine(te.author, 'none'), inline: true },
+        { name: 'Message Content', value: ttEmbedLine(te.messageContent, 'none'), inline: true },
         { name: 'Thumbnail',   value: ttEmbedLine(te.thumbnail, 'none'), inline: false },
         { name: 'Banner/Image', value: ttEmbedLine(te.banner, 'none'), inline: false },
         { name: 'Timestamp',   value: te.showTimestamp ? '🟢 On' : '🔴 Off', inline: true },
@@ -947,7 +947,6 @@ export function buildPreviewSection(panel: TicketPanel): CCPayload {
     if (panel.embed.footer)    e.setFooter({ text: truncate(panel.embed.footer, 2048) });
     if (panel.embed.thumbnail) e.setThumbnail(panel.embed.thumbnail);
     if (panel.embed.banner)    e.setImage(panel.embed.banner);
-    if (panel.embed.author)    e.setAuthor({ name: truncate(panel.embed.author, 256) });
     if (panel.embed.showTimestamp) e.setTimestamp();
 
     e.addFields({ name: '🔘 Buttons (preview only)', value: truncate(buttonDesc, 512), inline: false });
@@ -1242,7 +1241,7 @@ export function buildEditEmbedModal(panel: TicketPanel): ModalBuilder {
       row(ti('description', 'Embed Description', TextInputStyle.Paragraph, panel.embed.description,       'Message shown on the panel. Use {server}, {membercount}…', true, 2000)),
       row(ti('color',       'Color (hex)',        TextInputStyle.Short,     fmtColor(panel.embed.color),  'e.g. 5865F2', true, 6)),
       row(ti('footer',      'Footer Text',        TextInputStyle.Short,     panel.embed.footer || '',      'Optional footer', false, 256)),
-      row(ti('author',      'Author Name',        TextInputStyle.Short,     panel.embed.author || '',      'Optional author line', false, 256)),
+      row(ti('messageContent', 'Message Content', TextInputStyle.Paragraph, panel.embed.messageContent || '', 'Text sent above the embed. Supports {user} {username} {displayname} {userid} {ticket} {type}', false, 2000)),
     );
 }
 
@@ -1319,7 +1318,7 @@ export function buildTTEditEmbedModal(panel: TicketPanel, ref: TicketEntryRef): 
       row(ti('description', 'Embed Description', TextInputStyle.Paragraph, te.description || '', 'Blank = inherit default welcome message', false, 2000)),
       row(ti('color',       'Color (hex)',        TextInputStyle.Short,     te.color !== undefined ? fmtColor(te.color) : '', 'Blank = inherit panel color, e.g. 5865F2', false, 6)),
       row(ti('footer',      'Footer Text',        TextInputStyle.Short,     te.footer || '',      'Blank = inherit default footer', false, 256)),
-      row(ti('author',      'Author Name',        TextInputStyle.Short,     te.author || '',      'Blank = none', false, 256)),
+      row(ti('messageContent', 'Message Content', TextInputStyle.Paragraph, te.messageContent || '', 'Blank = none. Supports {user} {username} {displayname} {userid} {ticket} {type}', false, 2000)),
     );
 }
 

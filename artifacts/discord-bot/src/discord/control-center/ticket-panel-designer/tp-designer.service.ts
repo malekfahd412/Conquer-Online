@@ -573,7 +573,7 @@ export class TicketPanelDesigner {
           const description = getField(interaction, 'description', false);
           const colorRaw    = getField(interaction, 'color',       false);
           const footer      = getField(interaction, 'footer',      false);
-          const author      = getField(interaction, 'author',      false);
+          const messageContent = getField(interaction, 'messageContent', false);
           let color: number | undefined;
           if (colorRaw) {
             const parsed = parseColor(colorRaw);
@@ -581,13 +581,13 @@ export class TicketPanelDesigner {
             color = parsed;
           }
           // Each field is independent — only the fields present in THIS modal (title/description/
-          // color/footer/author) are touched; thumbnail/banner from the media modal are preserved.
+          // color/footer/messageContent) are touched; thumbnail/banner from the media modal are preserved.
           const te: Partial<TicketEmbedConfig> = { ...(next.ticketEmbed ?? {}) };
           if (title)               te.title = title;             else delete te.title;
           if (description)         te.description = description; else delete te.description;
           if (color !== undefined) te.color = color;              else delete te.color;
           if (footer)               te.footer = footer;            else delete te.footer;
-          if (author)               te.author = author;            else delete te.author;
+          if (messageContent)       te.messageContent = messageContent; else delete te.messageContent;
           if (Object.keys(te).length > 0) next.ticketEmbed = te; else delete next.ticketEmbed;
           break;
         }
@@ -1336,14 +1336,14 @@ export class TicketPanelDesigner {
           break;
         }
         case 'embed': {
-          const title       = getField(interaction, 'title',       true);
-          const description = getField(interaction, 'description', true);
-          const colorRaw    = getField(interaction, 'color',       true);
-          const footer      = getField(interaction, 'footer',      false);
-          const author      = getField(interaction, 'author',      false);
+          const title          = getField(interaction, 'title',          true);
+          const description    = getField(interaction, 'description',    true);
+          const colorRaw       = getField(interaction, 'color',          true);
+          const footer         = getField(interaction, 'footer',         false);
+          const messageContent = getField(interaction, 'messageContent', false);
           const color = parseColor(colorRaw);
           if (color === null) throw new Error(`Invalid hex color: "${colorRaw}". Use format 5865F2 or #5865F2.`);
-          patch = { embed: { ...panel.embed, title, description, color, footer: footer || undefined, author: author || undefined } };
+          patch = { embed: { ...panel.embed, title, description, color, footer: footer || undefined, messageContent: messageContent || undefined } };
           sectionKey = 'appearance';
           break;
         }

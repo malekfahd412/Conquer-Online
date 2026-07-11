@@ -186,7 +186,6 @@ export class TicketEngine {
       .setFooter({ text: embedOverride?.footer || `Ticket ID: ${ticket.id} • Priority: ${cfg.priority}` });
     if (embedOverride?.thumbnail) embed.setThumbnail(embedOverride.thumbnail);
     if (embedOverride?.banner) embed.setImage(embedOverride.banner);
-    if (embedOverride?.author) embed.setAuthor({ name: embedOverride.author });
     if (embedOverride?.showTimestamp) embed.setTimestamp();
 
     if (cfg.modal.enabled && Object.keys(answers).length > 0) {
@@ -205,10 +204,21 @@ export class TicketEngine {
     );
 
     const pingRoles = cfg.pingRoles.map(id => `<@&${id}>`).join(' ');
+    const rawMessageContent = embedOverride?.messageContent ?? '';
+    const parsedMessageContent = rawMessageContent
+      ? rawMessageContent
+          .split('{user}').join(`<@${opener.id}>`)
+          .split('{userid}').join(opener.id)
+          .split('{username}').join(opener.username)
+          .split('{displayname}').join(opener.displayName)
+          .split('{ticket}').join(ticketId)
+          .split('{type}').join(ticketType)
+      : '';
+    const content = parsedMessageContent || pingRoles || undefined;
     // This is the ticket's one permanent header/welcome message. Its ID is recorded so every
     // other engine/handler can be certain never to edit or replace it — close/reopen post their
     // own new lifecycle messages instead (see `close`/`reopen` below and index.ts).
-    const headerMessage = await channel.send({ content: pingRoles || undefined, embeds: [embed], components: [row] });
+    const headerMessage = await channel.send({ content, embeds: [embed], components: [row] });
     await this.update(ticket.id, { headerMessageId: headerMessage.id });
     ticket.headerMessageId = headerMessage.id;
 
