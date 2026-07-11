@@ -34,6 +34,26 @@ export interface WelcomeCardConfig {
   fontFamily: string;
 }
 
+/**
+ * Configurable welcome message sent directly below the welcome card image.
+ * Supports placeholders: {user}, {username}, {displayname}, {userid},
+ * {server}, {membercount}, {date}, {time}.
+ */
+export interface WelcomeMessageConfig {
+  /** Plain-text content sent as a normal message. Supports placeholders. */
+  content: string;
+  /** Whether to also attach an embed to the message. */
+  embedEnabled: boolean;
+  embedTitle: string;
+  embedDescription: string;
+  /** Decimal colour integer (e.g. 0x57f287). */
+  embedColor: number;
+  embedFooter: string;
+  embedThumbnail: string;
+  embedImage: string;
+  embedTimestamp: boolean;
+}
+
 export interface WelcomeConfig {
   guildId: string;
   enabled: boolean;
@@ -49,6 +69,7 @@ export interface WelcomeConfig {
   dmMessage?: string;
   delaySeconds: number;
   card: WelcomeCardConfig;
+  welcomeMessage: WelcomeMessageConfig;
 }
 
 export interface GoodbyeConfig {
@@ -94,15 +115,29 @@ export const DEFAULT_CARD: WelcomeCardConfig = {
   textColor: '#FFFFFF', fontSize: 30, fontFamily: 'Poppins',
 };
 
+export const DEFAULT_WELCOME_MESSAGE: WelcomeMessageConfig = {
+  content: '',
+  embedEnabled: false,
+  embedTitle: '',
+  embedDescription: '',
+  embedColor: 0x57f287,
+  embedFooter: '',
+  embedThumbnail: '',
+  embedImage: '',
+  embedTimestamp: false,
+};
+
 const defaultWelcome = (guildId: string): WelcomeConfig => ({
   guildId, enabled: false, messages: ['Welcome {user} to {server}! We now have {membercount} members.'],
   embedColor: 0x57f287, buttons: [], autoRoleIds: [], dmEnabled: false, delaySeconds: 0,
   card: { ...DEFAULT_CARD },
+  welcomeMessage: { ...DEFAULT_WELCOME_MESSAGE },
 });
 
-/** Backfills `card` (and any of its fields) for configs persisted before the welcome-card feature existed. */
+/** Backfills `card` and `welcomeMessage` (and any sub-fields) for configs persisted before these features existed. */
 function normalizeWelcome(cfg: WelcomeConfig): WelcomeConfig {
   cfg.card = { ...DEFAULT_CARD, ...(cfg.card ?? {}) };
+  cfg.welcomeMessage = { ...DEFAULT_WELCOME_MESSAGE, ...(cfg.welcomeMessage ?? {}) };
   return cfg;
 }
 
@@ -134,6 +169,17 @@ export async function setWelcomeCardConfig(guildId: string, patch: Partial<Welco
   if (!cfg) { cfg = defaultWelcome(guildId); data.welcome.push(cfg); }
   normalizeWelcome(cfg);
   cfg.card = { ...cfg.card, ...patch };
+  await save(data);
+  return cfg;
+}
+
+/** Patches only the welcome-message sub-config, deep-merging so unrelated fields survive. */
+export async function setWelcomeMessageConfig(guildId: string, patch: Partial<WelcomeMessageConfig>): Promise<WelcomeConfig> {
+  const data = await load();
+  let cfg = data.welcome.find(w => w.guildId === guildId);
+  if (!cfg) { cfg = defaultWelcome(guildId); data.welcome.push(cfg); }
+  normalizeWelcome(cfg);
+  cfg.welcomeMessage = { ...cfg.welcomeMessage, ...patch };
   await save(data);
   return cfg;
 }

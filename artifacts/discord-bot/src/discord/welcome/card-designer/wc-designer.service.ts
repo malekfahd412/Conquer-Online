@@ -1,19 +1,29 @@
 import {
   AttachmentBuilder,
+  EmbedBuilder,
   MessageFlags,
   type Guild,
   type GuildMember,
+  type TextChannel,
   type ButtonInteraction,
   type StringSelectMenuInteraction,
   type ModalSubmitInteraction,
   type Interaction,
 } from 'discord.js';
 import type { PermissionManager } from '../../../ai/permission-manager';
-import { getWelcomeConfig, setWelcomeCardConfig, type WelcomeCardConfig } from '../welcome-store';
+import {
+  getWelcomeConfig,
+  setWelcomeConfig,
+  setWelcomeCardConfig,
+  setWelcomeMessageConfig,
+  type WelcomeCardConfig,
+  type WelcomeMessageConfig,
+} from '../welcome-store';
 import { renderWelcomeCard, saveBackgroundImage, FONT_FAMILIES } from '../welcome-card-renderer';
 import {
   buildWCHome,
   buildWCBorder,
+  buildWCMsgEditor,
   buildWCFeedback,
   buildAvatarModal,
   buildBorderModal,
@@ -21,9 +31,14 @@ import {
   buildServerNamePosModal,
   buildMemberCountPosModal,
   buildStyleModal,
+  buildMsgContentModal,
+  buildMsgEmbedModal,
+  buildMsgMediaModal,
+  buildPublishModal,
 } from './wc-ui';
 import { WC } from './wc-ids';
 import { logger } from '../../../utils/logger';
+import { fillWelcomeVariables } from '../welcome.service';
 
 type NavInteraction = ButtonInteraction | StringSelectMenuInteraction;
 
@@ -55,6 +70,20 @@ function parseIntSafe(raw: string, min: number, max: number, fallback: number): 
 function parseHexColor(raw: string, fallback: string): string {
   const clean = raw.trim();
   return /^#[0-9a-fA-F]{6}$/.test(clean) ? clean.toUpperCase() : (/^[0-9a-fA-F]{6}$/.test(clean) ? `#${clean.toUpperCase()}` : fallback);
+}
+
+function hexColorToInt(hex: string, fallback: number): number {
+  const clean = hex.replace('#', '');
+  const n = parseInt(clean, 16);
+  return isNaN(n) ? fallback : n;
+}
+
+/** Parse a channel ID from raw text — strips Discord mention syntax (<#1234>) if present. */
+function parseChannelId(raw: string): string {
+  const trimmed = raw.trim();
+  const mention = trimmed.match(/^<#(\d+)>$/);
+  if (mention) return mention[1];
+  return trimmed;
 }
 
 const ALLOWED_IMAGE_TYPES: Record<string, string> = {
@@ -137,6 +166,36 @@ export class WelcomeCardDesigner {
       case WC.PREVIEW:
         await this.handlePreview(interaction, guild);
         return;
+
+      // ── Welcome Message editor ────────────────────────────────────────────
+      case WC.MSG:
+        await this.nav(interaction, buildWCMsgEditor(cfg));
+        return;
+      case WC.MSG_TOGGLE: {
+        const updated = await setWelcomeMessageConfig(guild.id, { embedEnabled: !cfg.welcomeMessage.embedEnabled });
+        await this.nav(interaction, buildWCMsgEditor(updated));
+        return;
+      }
+      case WC.MSG_CONTENT:
+        await interaction.showModal(buildMsgContentModal(cfg.welcomeMessage));
+        return;
+      case WC.MSG_EMBED:
+        await interaction.showModal(buildMsgEmbedModal(cfg.welcomeMessage));
+        return;
+      case WC.MSG_MEDIA:
+        await interaction.showModal(buildMsgMediaModal(cfg.welcomeMessage));
+        return;
+
+      // ── Publish ───────────────────────────────────────────────────────────
+      case WC.PUBLISH:
+        await interaction.showModal(buildPublishModal(cfg.channelId));
+        return;
+
+      // ── Test ──────────────────────────────────────────────────────────────
+      case WC.TEST:
+        await this.handleTest(interaction, guild);
+        return;
+
       default:
         await this.nav(interaction, buildWCFeedback(false, `Unknown action: \`${id}\``));
     }
@@ -161,59 +220,105 @@ export class WelcomeCardDesigner {
     const id = interaction.customId;
     const cfg = await getWelcomeConfig(guild.id);
 
-    let patch: Partial<WelcomeCardConfig> = {};
+    // ── Card config modals ──────────────────────────────────────────────────
+    let cardPatch: Partial<WelcomeCardConfig> = {};
 
     switch (id) {
       case WC.AVATAR_M: {
-        patch = {
+        cardPatch = {
           avatarX: parseIntSafe(getField(interaction, 'avatarX'), 0, 4000, cfg.card.avatarX),
           avatarY: parseIntSafe(getField(interaction, 'avatarY'), 0, 4000, cfg.card.avatarY),
           avatarSize: parseIntSafe(getField(interaction, 'avatarSize'), 8, 2000, cfg.card.avatarSize),
         };
-        break;
+        const updated = await setWelcomeCardConfig(guild.id, cardPatch);
+        await interaction.reply({ ...buildWCHome(updated), flags: MessageFlags.Ephemeral });
+        return;
       }
       case WC.BORDER_M: {
-        patch = {
+        cardPatch = {
           avatarBorderWidth: parseIntSafe(getField(interaction, 'borderWidth'), 0, 100, cfg.card.avatarBorderWidth),
           avatarBorderColor: parseHexColor(getField(interaction, 'borderColor'), cfg.card.avatarBorderColor),
         };
-        break;
+        const updated = await setWelcomeCardConfig(guild.id, cardPatch);
+        await interaction.reply({ ...buildWCHome(updated), flags: MessageFlags.Ephemeral });
+        return;
       }
       case WC.TEXT_USERNAME_M: {
-        patch = {
+        cardPatch = {
           usernameX: parseIntSafe(getField(interaction, 'x'), 0, 4000, cfg.card.usernameX),
           usernameY: parseIntSafe(getField(interaction, 'y'), 0, 4000, cfg.card.usernameY),
         };
-        break;
+        const updated = await setWelcomeCardConfig(guild.id, cardPatch);
+        await interaction.reply({ ...buildWCHome(updated), flags: MessageFlags.Ephemeral });
+        return;
       }
       case WC.TEXT_SERVER_M: {
-        patch = {
+        cardPatch = {
           serverNameX: parseIntSafe(getField(interaction, 'x'), 0, 4000, cfg.card.serverNameX),
           serverNameY: parseIntSafe(getField(interaction, 'y'), 0, 4000, cfg.card.serverNameY),
         };
-        break;
+        const updated = await setWelcomeCardConfig(guild.id, cardPatch);
+        await interaction.reply({ ...buildWCHome(updated), flags: MessageFlags.Ephemeral });
+        return;
       }
       case WC.TEXT_MEMBERS_M: {
-        patch = {
+        cardPatch = {
           memberCountX: parseIntSafe(getField(interaction, 'x'), 0, 4000, cfg.card.memberCountX),
           memberCountY: parseIntSafe(getField(interaction, 'y'), 0, 4000, cfg.card.memberCountY),
         };
-        break;
+        const updated = await setWelcomeCardConfig(guild.id, cardPatch);
+        await interaction.reply({ ...buildWCHome(updated), flags: MessageFlags.Ephemeral });
+        return;
       }
       case WC.STYLE_M: {
-        patch = {
+        cardPatch = {
           fontSize: parseIntSafe(getField(interaction, 'fontSize'), 8, 200, cfg.card.fontSize),
           textColor: parseHexColor(getField(interaction, 'textColor'), cfg.card.textColor),
         };
-        break;
+        const updated = await setWelcomeCardConfig(guild.id, cardPatch);
+        await interaction.reply({ ...buildWCHome(updated), flags: MessageFlags.Ephemeral });
+        return;
       }
+
+      // ── Welcome Message modals ──────────────────────────────────────────
+      case WC.MSG_CONTENT_M: {
+        const content = getField(interaction, 'content');
+        const updated = await setWelcomeMessageConfig(guild.id, { content });
+        await interaction.reply({ ...buildWCMsgEditor(updated), flags: MessageFlags.Ephemeral });
+        return;
+      }
+      case WC.MSG_EMBED_M: {
+        const msgPatch: Partial<WelcomeMessageConfig> = {
+          embedTitle:       getField(interaction, 'embedTitle'),
+          embedDescription: getField(interaction, 'embedDescription'),
+          embedColor:       hexColorToInt(parseHexColor(getField(interaction, 'embedColor'), `#${cfg.welcomeMessage.embedColor.toString(16).padStart(6, '0')}`), cfg.welcomeMessage.embedColor),
+          embedFooter:      getField(interaction, 'embedFooter'),
+        };
+        const updated = await setWelcomeMessageConfig(guild.id, msgPatch);
+        await interaction.reply({ ...buildWCMsgEditor(updated), flags: MessageFlags.Ephemeral });
+        return;
+      }
+      case WC.MSG_MEDIA_M: {
+        const tsRaw = getField(interaction, 'embedTimestamp').toLowerCase();
+        const msgPatch: Partial<WelcomeMessageConfig> = {
+          embedThumbnail: getField(interaction, 'embedThumbnail'),
+          embedImage:     getField(interaction, 'embedImage'),
+          embedTimestamp: tsRaw === 'yes' || tsRaw === 'true' || tsRaw === '1',
+        };
+        const updated = await setWelcomeMessageConfig(guild.id, msgPatch);
+        await interaction.reply({ ...buildWCMsgEditor(updated), flags: MessageFlags.Ephemeral });
+        return;
+      }
+
+      // ── Publish modal ──────────────────────────────────────────────────
+      case WC.PUBLISH_M: {
+        await this.handlePublish(interaction, guild);
+        return;
+      }
+
       default:
         await interaction.reply({ ...buildWCFeedback(false, `Unknown modal: \`${id}\``), flags: MessageFlags.Ephemeral });
-        return;
     }
-
-    const updated = await setWelcomeCardConfig(guild.id, patch);
-    await interaction.reply({ ...buildWCHome(updated), flags: MessageFlags.Ephemeral });
   }
 
   // ── Background upload flow ──────────────────────────────────────────────────
@@ -307,6 +412,133 @@ export class WelcomeCardDesigner {
     } catch (err) {
       logger.error('[WCD] Preview render failed', err);
       await interaction.editReply({ content: `❌ Failed to render preview: ${err instanceof Error ? err.message : String(err)}` });
+    }
+  }
+
+  // ── Publish ───────────────────────────────────────────────────────────────────
+
+  private async handlePublish(interaction: ModalSubmitInteraction, guild: Guild): Promise<void> {
+    const rawId = getField(interaction, 'channelId');
+    const channelId = parseChannelId(rawId);
+
+    if (!/^\d{17,20}$/.test(channelId)) {
+      await interaction.reply({
+        ...buildWCFeedback(false, `Invalid channel ID: \`${rawId}\`. Enter a numeric channel ID or paste a #channel mention.`),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    try {
+      const channel = await guild.channels.fetch(channelId).catch(() => null);
+      if (!channel || !channel.isTextBased()) {
+        await interaction.reply({
+          ...buildWCFeedback(false, `Channel \`${channelId}\` not found or is not a text channel.`),
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+
+      const updated = await setWelcomeConfig(guild.id, { channelId, enabled: true });
+      logger.info(`[WCD] Welcome published to channel ${channelId} in guild ${guild.id}`);
+      await interaction.reply({
+        ...buildWCFeedback(true, `✅ Welcome system is now **active** in <#${channelId}>!\n\nNew members will automatically receive the welcome card image and configured welcome message.`),
+        flags: MessageFlags.Ephemeral,
+      });
+      // Refresh home with updated config
+      await interaction.followUp({ ...buildWCHome(updated), flags: MessageFlags.Ephemeral });
+    } catch (err) {
+      logger.error('[WCD] Publish failed', err);
+      await interaction.reply({
+        ...buildWCFeedback(false, `Publish failed: ${err instanceof Error ? err.message : String(err)}`),
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+  }
+
+  // ── Test Welcome ──────────────────────────────────────────────────────────────
+
+  private async handleTest(interaction: ButtonInteraction, guild: Guild): Promise<void> {
+    const cfg = await getWelcomeConfig(guild.id);
+
+    if (!cfg.channelId) {
+      await interaction.reply({
+        content: '❌ No welcome channel configured yet. Click **📢 Publish Welcome** first to set a channel.',
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    try {
+      const channel = await guild.channels.fetch(cfg.channelId).catch(() => null);
+      if (!channel || !channel.isTextBased()) {
+        await interaction.editReply({ content: `❌ Configured channel <#${cfg.channelId}> not found or is not a text channel.` });
+        return;
+      }
+
+      // Build a fake member-like object from the admin doing the test
+      const adminMember = interaction.member as GuildMember;
+      const fakeMember = {
+        id: adminMember.id,
+        user: {
+          id: adminMember.id,
+          username: adminMember.user.username,
+          displayAvatarURL: (opts?: Parameters<typeof adminMember.user.displayAvatarURL>[0]) =>
+            adminMember.user.displayAvatarURL(opts),
+        },
+        displayName: adminMember.displayName,
+        guild,
+      } as unknown as GuildMember;
+
+      // 1) Send the card image
+      const png = await renderWelcomeCard({
+        card: cfg.card,
+        avatarUrl: adminMember.user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true }),
+        displayName: adminMember.displayName,
+        serverName: guild.name,
+        memberCount: guild.memberCount,
+      });
+      const cardFile = new AttachmentBuilder(png, { name: 'welcome-card.png' });
+
+      const cardEmbed = new EmbedBuilder().setColor(cfg.embedColor);
+      const cardText = fillWelcomeVariables(cfg.messages[0] ?? '', fakeMember);
+      cardEmbed.setDescription(cardText);
+      if (cfg.embedTitle) cardEmbed.setTitle(fillWelcomeVariables(cfg.embedTitle, fakeMember));
+      cardEmbed.setImage('attachment://welcome-card.png');
+
+      await (channel as TextChannel).send({ embeds: [cardEmbed], files: [cardFile] });
+
+      // 2) Send the welcome message below it
+      const wm = cfg.welcomeMessage;
+      const hasContent = wm.content?.trim();
+      const hasEmbed = wm.embedEnabled;
+
+      if (hasContent || hasEmbed) {
+        const msgContent = hasContent ? fillWelcomeVariables(wm.content, fakeMember) : undefined;
+        const embeds: EmbedBuilder[] = [];
+
+        if (hasEmbed) {
+          const msgEmbed = new EmbedBuilder().setColor(wm.embedColor || cfg.embedColor);
+          if (wm.embedTitle)       msgEmbed.setTitle(fillWelcomeVariables(wm.embedTitle, fakeMember));
+          if (wm.embedDescription) msgEmbed.setDescription(fillWelcomeVariables(wm.embedDescription, fakeMember));
+          if (wm.embedFooter)      msgEmbed.setFooter({ text: fillWelcomeVariables(wm.embedFooter, fakeMember) });
+          if (wm.embedThumbnail)   msgEmbed.setThumbnail(wm.embedThumbnail);
+          if (wm.embedImage)       msgEmbed.setImage(wm.embedImage);
+          if (wm.embedTimestamp)   msgEmbed.setTimestamp();
+          embeds.push(msgEmbed);
+        }
+
+        await (channel as TextChannel).send({ content: msgContent, embeds });
+      }
+
+      await interaction.editReply({
+        content: `✅ Test sent to <#${cfg.channelId}>!\n\n_Using your avatar and name as a stand-in for a new member. Nothing was saved._`,
+      });
+    } catch (err) {
+      logger.error('[WCD] Test welcome failed', err);
+      await interaction.editReply({ content: `❌ Test failed: ${err instanceof Error ? err.message : String(err)}` });
     }
   }
 

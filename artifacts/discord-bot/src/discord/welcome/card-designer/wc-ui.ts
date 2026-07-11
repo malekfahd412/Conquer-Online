@@ -16,7 +16,7 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from 'discord.js';
-import type { WelcomeConfig, WelcomeCardConfig } from '../welcome-store';
+import type { WelcomeConfig, WelcomeCardConfig, WelcomeMessageConfig } from '../welcome-store';
 import { FONT_FAMILIES } from '../welcome-card-renderer';
 import { CC } from '../../control-center/cc-ids';
 import { truncate } from '../../control-center/cc-categories';
@@ -37,13 +37,13 @@ function btn(label: string, id: string, style: ButtonStyle): ButtonBuilder {
 function homeBtn(): ButtonBuilder { return btn('🏠 Home', CC.HOME, ButtonStyle.Secondary); }
 function backBtn(): ButtonBuilder { return btn('← Welcome Card Designer', WC.HOME, ButtonStyle.Secondary); }
 
-function ti(id: string, label: string, value: string, placeholder: string, maxLength = 20): TextInputBuilder {
+function ti(id: string, label: string, value: string, placeholder: string, maxLength = 20, style = TextInputStyle.Short, required = true): TextInputBuilder {
   const input = new TextInputBuilder()
     .setCustomId(id)
     .setLabel(truncate(label, 45))
-    .setStyle(TextInputStyle.Short)
+    .setStyle(style)
     .setPlaceholder(truncate(placeholder, 100))
-    .setRequired(true)
+    .setRequired(required)
     .setMaxLength(maxLength);
   if (value) input.setValue(value);
   return input;
@@ -64,9 +64,18 @@ export function buildWCHome(cfg: WelcomeConfig): CCPayload {
   const card = cfg.card;
   const color = checkColor(FILE, fn, 'color', cfg.embedColor);
 
-  const status = card.backgroundImage
+  const cardStatus = card.backgroundImage
     ? `✅ Enabled — background: \`${card.backgroundImage}\``
     : '⚪ Disabled — upload a background image to activate the card. Until then, the classic embed image/thumbnail is used.';
+
+  const wm = cfg.welcomeMessage;
+  const msgStatus = (wm.content || wm.embedEnabled)
+    ? `✅ Configured${wm.embedEnabled ? ' (with embed)' : ''}`
+    : '⚪ Not configured — click ✉️ Welcome Message to set one up.';
+
+  const publishStatus = cfg.channelId
+    ? `✅ Publishing to <#${cfg.channelId}>`
+    : '⚪ No channel set — click 📢 Publish Welcome to configure.';
 
   const embed = verifyBuilder(FILE, fn, 'home embed', () =>
     new EmbedBuilder()
@@ -74,7 +83,7 @@ export function buildWCHome(cfg: WelcomeConfig): CCPayload {
       .setTitle('🖼️ Welcome Card Designer')
       .setDescription(
         'Design a ProBot-style dynamic welcome image: background + circular avatar + username, server name and member count text, all positioned exactly where you want.\n\n' +
-        `**Status:** ${status}`,
+        `**Card:** ${cardStatus}\n**Welcome Message:** ${msgStatus}\n**Publish:** ${publishStatus}`,
       )
       .addFields(
         {
@@ -109,12 +118,17 @@ export function buildWCHome(cfg: WelcomeConfig): CCPayload {
   );
   const row2 = buildFontSelectRow(card.fontFamily);
   const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✉️ Welcome Message', WC.MSG, ButtonStyle.Primary),
+    btn('📢 Publish Welcome', WC.PUBLISH, ButtonStyle.Success),
+    btn('🧪 Test Welcome', WC.TEST, ButtonStyle.Secondary),
+  );
+  const row4 = new ActionRowBuilder<ButtonBuilder>().addComponents(
     btn('👀 Live Preview', WC.PREVIEW, ButtonStyle.Success),
     btn('← Welcome', CC.cat('welcome'), ButtonStyle.Secondary),
     homeBtn(),
   );
 
-  const payload: CCPayload = { content: '', embeds: [embed], components: [row0, row1, row2, row3] };
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row0, row1, row2, row3, row4] };
   assertUniqueCustomIds('buildWCHome', payload);
   return payload;
 }
@@ -159,6 +173,62 @@ export function buildWCBorder(cfg: WelcomeConfig): CCPayload {
 
   const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
   assertUniqueCustomIds('buildWCBorder', payload);
+  return payload;
+}
+
+// ── Welcome Message editor page ───────────────────────────────────────────────
+
+export function buildWCMsgEditor(cfg: WelcomeConfig): CCPayload {
+  const fn = 'buildWCMsgEditor';
+  const wm = cfg.welcomeMessage;
+  const color = checkColor(FILE, fn, 'color', cfg.embedColor);
+
+  const contentPreview = wm.content
+    ? `\`\`\`\n${truncate(wm.content, 300)}\n\`\`\``
+    : '_No content set_';
+
+  const embedLines: string[] = [];
+  if (wm.embedEnabled) {
+    if (wm.embedTitle)       embedLines.push(`**Title:** ${truncate(wm.embedTitle, 60)}`);
+    if (wm.embedDescription) embedLines.push(`**Desc:** ${truncate(wm.embedDescription, 80)}`);
+    embedLines.push(`**Color:** #${wm.embedColor.toString(16).padStart(6, '0').toUpperCase()}`);
+    if (wm.embedFooter)    embedLines.push(`**Footer:** ${truncate(wm.embedFooter, 60)}`);
+    if (wm.embedThumbnail) embedLines.push(`**Thumbnail:** set`);
+    if (wm.embedImage)     embedLines.push(`**Image:** set`);
+    if (wm.embedTimestamp) embedLines.push(`**Timestamp:** on`);
+  }
+
+  const embed = verifyBuilder(FILE, fn, 'msg embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('✉️ Welcome Message')
+      .setDescription(
+        'This message is sent directly below the welcome card image whenever a new member joins.\n\n' +
+        'Supported placeholders: `{user}` `{username}` `{displayname}` `{userid}` `{server}` `{membercount}` `{date}` `{time}`',
+      )
+      .addFields(
+        { name: '📄 Content', value: contentPreview, inline: false },
+        {
+          name: `📋 Embed — ${wm.embedEnabled ? '✅ ON' : '⚪ OFF'}`,
+          value: wm.embedEnabled && embedLines.length ? embedLines.join('\n') : '_Disabled_',
+          inline: false,
+        },
+      ),
+  );
+
+  const row0 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✏️ Edit Content', WC.MSG_CONTENT, ButtonStyle.Primary),
+    btn('📝 Edit Embed', WC.MSG_EMBED, ButtonStyle.Secondary),
+    btn('🖼️ Media & Timestamp', WC.MSG_MEDIA, ButtonStyle.Secondary),
+    btn(wm.embedEnabled ? '🔴 Embed Off' : '🟢 Embed On', WC.MSG_TOGGLE, wm.embedEnabled ? ButtonStyle.Danger : ButtonStyle.Success),
+  );
+  const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    backBtn(),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row0, row1] };
+  assertUniqueCustomIds('buildWCMsgEditor', payload);
   return payload;
 }
 
@@ -217,6 +287,61 @@ export function buildStyleModal(card: WelcomeCardConfig): ModalBuilder {
     ti('fontSize', 'Font Size (px)', String(card.fontSize), 'e.g. 30'),
     ti('textColor', 'Text Color (hex)', card.textColor, 'e.g. #FFFFFF', 7),
   );
+}
+
+/** Modal 1/3 for welcome message editing — plain text content. */
+export function buildMsgContentModal(wm: WelcomeMessageConfig): ModalBuilder {
+  const input = new TextInputBuilder()
+    .setCustomId('content')
+    .setLabel('Message Content (supports placeholders)')
+    .setStyle(TextInputStyle.Paragraph)
+    .setPlaceholder('Welcome {user} 👋\n\nWelcome to **{server}**!\n\nPlease read the rules before chatting.')
+    .setRequired(false)
+    .setMaxLength(2000);
+  if (wm.content) input.setValue(wm.content);
+  return new ModalBuilder()
+    .setCustomId(WC.MSG_CONTENT_M)
+    .setTitle('Welcome Message — Content')
+    .addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(input));
+}
+
+/** Modal 2/3 — embed title, description, color, footer. */
+export function buildMsgEmbedModal(wm: WelcomeMessageConfig): ModalBuilder {
+  return modal(
+    WC.MSG_EMBED_M,
+    'Welcome Message — Embed',
+    ti('embedTitle',       'Embed Title (optional)',       wm.embedTitle,       'e.g. Welcome to {server}!',   256, TextInputStyle.Short,     false),
+    ti('embedDescription', 'Embed Description (optional)', wm.embedDescription, 'e.g. We now have {membercount} members.', 4000, TextInputStyle.Paragraph, false),
+    ti('embedColor',       'Embed Color (hex, e.g. #57F287)', `#${wm.embedColor.toString(16).padStart(6, '0').toUpperCase()}`, '#57F287', 7),
+    ti('embedFooter',      'Footer Text (optional)',       wm.embedFooter,      'e.g. {server} • {date}',      2048, TextInputStyle.Short,     false),
+  );
+}
+
+/** Modal 3/3 — thumbnail, image URL, timestamp toggle. */
+export function buildMsgMediaModal(wm: WelcomeMessageConfig): ModalBuilder {
+  return modal(
+    WC.MSG_MEDIA_M,
+    'Welcome Message — Media & Timestamp',
+    ti('embedThumbnail', 'Thumbnail URL (optional)', wm.embedThumbnail, 'https://...', 500, TextInputStyle.Short, false),
+    ti('embedImage',     'Image URL (optional)',      wm.embedImage,     'https://...', 500, TextInputStyle.Short, false),
+    ti('embedTimestamp', 'Show Timestamp? (yes / no)', wm.embedTimestamp ? 'yes' : 'no', 'yes or no', 3),
+  );
+}
+
+/** Modal for Publish — asks for a channel ID (or #mention). */
+export function buildPublishModal(currentChannelId?: string): ModalBuilder {
+  const input = new TextInputBuilder()
+    .setCustomId('channelId')
+    .setLabel('Welcome Channel ID (or paste #channel mention)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('e.g. 1234567890123456789 or <#1234567890123456789>')
+    .setRequired(true)
+    .setMaxLength(100);
+  if (currentChannelId) input.setValue(currentChannelId);
+  return new ModalBuilder()
+    .setCustomId(WC.PUBLISH_M)
+    .setTitle('📢 Publish Welcome')
+    .addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(input));
 }
 
 // ── Feedback ─────────────────────────────────────────────────────────────────

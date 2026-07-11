@@ -8,21 +8,67 @@ import {
   type PartialGuildMember,
   type TextChannel,
 } from 'discord.js';
-import { getWelcomeConfig, getGoodbyeConfig } from './welcome-store';
+import { getWelcomeConfig, getGoodbyeConfig, type WelcomeConfig } from './welcome-store';
 import { renderWelcomeCard } from './welcome-card-renderer';
 import { logger } from '../../utils/logger';
 
-function fillVariables(template: string, member: GuildMember | PartialGuildMember): string {
+/**
+ * Replace all supported placeholders with live values for the given member.
+ *
+ * Supported: {user} {username} {displayname} {userid} {server} {membercount} {date} {time}
+ *
+ * Exported so the Welcome Card Designer can use it for test sends without
+ * duplicating the logic.
+ */
+export function fillWelcomeVariables(template: string, member: GuildMember | PartialGuildMember): string {
+  const now = new Date();
   return template
-    .replace(/\{user\}/g, `<@${member.id}>`)
-    .replace(/\{username\}/g, member.user.username)
-    .replace(/\{server\}/g, member.guild.name)
-    .replace(/\{membercount\}/g, String(member.guild.memberCount));
+    .replace(/\{user\}/g,        `<@${member.id}>`)
+    .replace(/\{username\}/g,    member.user.username)
+    .replace(/\{displayname\}/g, member.displayName ?? member.user.username)
+    .replace(/\{userid\}/g,      member.id)
+    .replace(/\{server\}/g,      member.guild.name)
+    .replace(/\{membercount\}/g, String(member.guild.memberCount))
+    .replace(/\{date\}/g,        now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }))
+    .replace(/\{time\}/g,        now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
 }
 
 function pickRandom<T>(arr: T[]): T | undefined {
   if (arr.length === 0) return undefined;
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/**
+ * Send the configured welcome message directly below the card image.
+ * A no-op if neither plain content nor an embed has been configured.
+ */
+async function sendWelcomeMessage(
+  channel: TextChannel,
+  cfg: WelcomeConfig,
+  member: GuildMember | PartialGuildMember,
+): Promise<void> {
+  const wm = cfg.welcomeMessage;
+  if (!wm) return;
+
+  const hasContent = wm.content?.trim().length > 0;
+  const hasEmbed   = wm.embedEnabled;
+  if (!hasContent && !hasEmbed) return;
+
+  const content = hasContent ? fillWelcomeVariables(wm.content, member) : undefined;
+  const embeds: EmbedBuilder[] = [];
+
+  if (hasEmbed) {
+    const embed = new EmbedBuilder().setColor(wm.embedColor || cfg.embedColor);
+    if (wm.embedTitle)       embed.setTitle(fillWelcomeVariables(wm.embedTitle, member));
+    if (wm.embedDescription) embed.setDescription(fillWelcomeVariables(wm.embedDescription, member));
+    if (wm.embedFooter)      embed.setFooter({ text: fillWelcomeVariables(wm.embedFooter, member) });
+    if (wm.embedThumbnail)   embed.setThumbnail(wm.embedThumbnail);
+    if (wm.embedImage)       embed.setImage(wm.embedImage);
+    if (wm.embedTimestamp)   embed.setTimestamp();
+    embeds.push(embed);
+  }
+
+  await channel.send({ content, embeds }).catch(err => logger.error('Welcome message send failed', err));
 }
 
 export class WelcomeService {
@@ -40,18 +86,22 @@ export class WelcomeService {
 
     try {
       if (cfg.autoNickname) {
-        await member.setNickname(fillVariables(cfg.autoNickname, member)).catch(() => {});
+        await member.setNickname(fillWelcomeVariables(cfg.autoNickname, member)).catch(() => {});
       }
 
       const send = async () => {
-        const template = pickRandom(cfg.messages) ?? '';
-        const text = fillVariables(template, member);
-
+        // ── Channel post (card embed + welcome message) ─────────────────────
+        // Channel delivery is best-effort: a missing/invalid channel never
+        // blocks DM delivery below.
         if (cfg.channelId) {
           const channel = await member.guild.channels.fetch(cfg.channelId).catch(() => null);
           if (channel?.isTextBased()) {
+            // ── Card embed (existing behaviour, unchanged) ──────────────────
+            const template = pickRandom(cfg.messages) ?? '';
+            const text = fillWelcomeVariables(template, member);
+
             const embed = new EmbedBuilder().setColor(cfg.embedColor).setDescription(text);
-            if (cfg.embedTitle) embed.setTitle(fillVariables(cfg.embedTitle, member));
+            if (cfg.embedTitle) embed.setTitle(fillWelcomeVariables(cfg.embedTitle, member));
 
             // ProBot-style dynamic welcome card: only used once an admin has uploaded
             // a background via the Welcome Card Designer. Until then, behavior is
@@ -84,12 +134,18 @@ export class WelcomeService {
                   cfg.buttons.map(b => new ButtonBuilder().setLabel(b.label).setURL(b.url).setStyle(ButtonStyle.Link).setEmoji(b.emoji ?? '🔗')),
                 )]
               : [];
-            await (channel as TextChannel).send({ embeds: [embed], components, files }).catch(err => logger.error('Welcome message send failed', err));
+
+            await (channel as TextChannel).send({ embeds: [embed], components, files })
+              .catch(err => logger.error('Welcome card send failed', err));
+
+            // ── Welcome message (new: sent directly below the card) ─────────
+            await sendWelcomeMessage(channel as TextChannel, cfg, member);
           }
         }
 
+        // ── DM — independent of channel delivery ────────────────────────────
         if (cfg.dmEnabled && cfg.dmMessage) {
-          await member.send(fillVariables(cfg.dmMessage, member)).catch(() => {});
+          await member.send(fillWelcomeVariables(cfg.dmMessage, member)).catch(() => {});
         }
       };
 
@@ -106,20 +162,20 @@ export class WelcomeService {
 
     try {
       const template = pickRandom(cfg.messages) ?? '';
-      const text = fillVariables(template, member);
+      const text = fillWelcomeVariables(template, member);
 
       if (cfg.channelId) {
         const channel = await member.guild.channels.fetch(cfg.channelId).catch(() => null);
         if (channel?.isTextBased()) {
           const embed = new EmbedBuilder().setColor(cfg.embedColor).setDescription(text);
-          if (cfg.embedTitle) embed.setTitle(fillVariables(cfg.embedTitle, member));
+          if (cfg.embedTitle) embed.setTitle(fillWelcomeVariables(cfg.embedTitle, member));
           if (cfg.image) embed.setImage(cfg.image);
           await (channel as TextChannel).send({ embeds: [embed] }).catch(err => logger.error('Goodbye message send failed', err));
         }
       }
 
       if (cfg.dmEnabled && cfg.dmMessage) {
-        await member.send(fillVariables(cfg.dmMessage, member)).catch(() => {});
+        await member.send(fillWelcomeVariables(cfg.dmMessage, member)).catch(() => {});
       }
     } catch (err) {
       logger.error('Goodbye handler error', err);
