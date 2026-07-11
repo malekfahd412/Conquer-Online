@@ -2,7 +2,7 @@
   "welcome": [
     {
       "guildId": "1213437502078062674",
-      "enabled": true,
+      "enabled": false,
       "messages": [
         "welcome {user} to {server}"
       ],

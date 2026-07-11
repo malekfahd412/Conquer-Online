@@ -332,7 +332,7 @@ export function buildMsgMediaModal(wm: WelcomeMessageConfig): ModalBuilder {
 export function buildPublishModal(currentChannelId?: string): ModalBuilder {
   const input = new TextInputBuilder()
     .setCustomId('channelId')
-    .setLabel('Welcome Channel ID (or paste #channel mention)')
+    .setLabel('Channel ID or paste a #channel mention')
     .setStyle(TextInputStyle.Short)
     .setPlaceholder('e.g. 1234567890123456789 or <#1234567890123456789>')
     .setRequired(true)

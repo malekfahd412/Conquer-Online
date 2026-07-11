@@ -448,7 +448,8 @@ export class WelcomeCardDesigner {
       // Refresh home with updated config
       await interaction.followUp({ ...buildWCHome(updated), flags: MessageFlags.Ephemeral });
     } catch (err) {
-      logger.error('[WCD] Publish failed', err);
+      const rawErrors = (err as Record<string, unknown>)?.rawError as Record<string, unknown> | undefined;
+      logger.error('[WCD] Publish failed — Discord raw errors:', rawErrors?.errors ?? rawErrors ?? err);
       await interaction.reply({
         ...buildWCFeedback(false, `Publish failed: ${err instanceof Error ? err.message : String(err)}`),
         flags: MessageFlags.Ephemeral,
@@ -502,34 +503,26 @@ export class WelcomeCardDesigner {
       });
       const cardFile = new AttachmentBuilder(png, { name: 'welcome-card.png' });
 
-      // Card image sent as a plain attachment — no embed wrapper
-      await (channel as TextChannel).send({ files: [cardFile] });
-
-      // 2) Send the welcome message below it
+      // ONE message: card image + welcome text + optional embed
       const wm = cfg.welcomeMessage;
-      const hasContent = wm.content?.trim();
-      const hasEmbed = wm.embedEnabled;
+      const msgContent = wm.content?.trim()
+        ? fillWelcomeVariables(wm.content, fakeMember)
+        : undefined;
 
-      if (hasContent || hasEmbed) {
-        const msgContent = hasContent ? fillWelcomeVariables(wm.content, fakeMember) : undefined;
-        const embeds: EmbedBuilder[] = [];
-
-        if (hasEmbed) {
-          const msgEmbed = new EmbedBuilder().setColor(wm.embedColor || cfg.embedColor);
-          let embedHasContent = false;
-          if (wm.embedTitle)       { msgEmbed.setTitle(fillWelcomeVariables(wm.embedTitle, fakeMember));                              embedHasContent = true; }
-          if (wm.embedDescription) { msgEmbed.setDescription(fillWelcomeVariables(wm.embedDescription, fakeMember));                 embedHasContent = true; }
-          if (wm.embedFooter)      { msgEmbed.setFooter({ text: fillWelcomeVariables(wm.embedFooter, fakeMember) });                 embedHasContent = true; }
-          if (wm.embedThumbnail)   { msgEmbed.setThumbnail(wm.embedThumbnail);                                                       embedHasContent = true; }
-          if (wm.embedImage)       { msgEmbed.setImage(wm.embedImage);                                                               embedHasContent = true; }
-          if (wm.embedTimestamp)   { msgEmbed.setTimestamp();                                                                         embedHasContent = true; }
-          if (embedHasContent) embeds.push(msgEmbed);
-        }
-
-        if (msgContent || embeds.length > 0) {
-          await (channel as TextChannel).send({ content: msgContent, embeds });
-        }
+      const embeds: EmbedBuilder[] = [];
+      if (wm.embedEnabled) {
+        const msgEmbed = new EmbedBuilder().setColor(wm.embedColor || cfg.embedColor);
+        let embedHasContent = false;
+        if (wm.embedTitle)       { msgEmbed.setTitle(fillWelcomeVariables(wm.embedTitle, fakeMember));               embedHasContent = true; }
+        if (wm.embedDescription) { msgEmbed.setDescription(fillWelcomeVariables(wm.embedDescription, fakeMember));   embedHasContent = true; }
+        if (wm.embedFooter)      { msgEmbed.setFooter({ text: fillWelcomeVariables(wm.embedFooter, fakeMember) });   embedHasContent = true; }
+        if (wm.embedThumbnail)   { msgEmbed.setThumbnail(wm.embedThumbnail);                                         embedHasContent = true; }
+        if (wm.embedImage)       { msgEmbed.setImage(wm.embedImage);                                                 embedHasContent = true; }
+        if (wm.embedTimestamp)   { msgEmbed.setTimestamp();                                                           embedHasContent = true; }
+        if (embedHasContent) embeds.push(msgEmbed);
       }
+
+      await (channel as TextChannel).send({ content: msgContent, files: [cardFile], embeds });
 
       await interaction.editReply({
         content: `✅ Test sent to <#${cfg.channelId}>!\n\n_Using your avatar and name as a stand-in for a new member. Nothing was saved._`,

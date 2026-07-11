@@ -8,7 +8,7 @@ import {
   type PartialGuildMember,
   type TextChannel,
 } from 'discord.js';
-import { getWelcomeConfig, getGoodbyeConfig, type WelcomeConfig } from './welcome-store';
+import { getWelcomeConfig, getGoodbyeConfig } from './welcome-store';
 import { renderWelcomeCard } from './welcome-card-renderer';
 import { logger } from '../../utils/logger';
 
@@ -33,53 +33,13 @@ export function fillWelcomeVariables(template: string, member: GuildMember | Par
     .replace(/\{time\}/g,        now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
 }
 
-function pickRandom<T>(arr: T[]): T | undefined {
-  if (arr.length === 0) return undefined;
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-/**
- * Send the configured welcome message directly below the card image.
- * A no-op if neither plain content nor an embed has been configured.
- */
-async function sendWelcomeMessage(
-  channel: TextChannel,
-  cfg: WelcomeConfig,
-  member: GuildMember | PartialGuildMember,
-): Promise<void> {
-  const wm = cfg.welcomeMessage;
-  if (!wm) return;
-
-  const hasContent = wm.content?.trim().length > 0;
-  const hasEmbed   = wm.embedEnabled;
-  if (!hasContent && !hasEmbed) return;
-
-  const content = hasContent ? fillWelcomeVariables(wm.content, member) : undefined;
-  const embeds: EmbedBuilder[] = [];
-
-  if (hasEmbed) {
-    const embed = new EmbedBuilder().setColor(wm.embedColor || cfg.embedColor);
-    let embedHasContent = false;
-    if (wm.embedTitle)       { embed.setTitle(fillWelcomeVariables(wm.embedTitle, member));                              embedHasContent = true; }
-    if (wm.embedDescription) { embed.setDescription(fillWelcomeVariables(wm.embedDescription, member));                 embedHasContent = true; }
-    if (wm.embedFooter)      { embed.setFooter({ text: fillWelcomeVariables(wm.embedFooter, member) });                 embedHasContent = true; }
-    if (wm.embedThumbnail)   { embed.setThumbnail(wm.embedThumbnail);                                                   embedHasContent = true; }
-    if (wm.embedImage)       { embed.setImage(wm.embedImage);                                                           embedHasContent = true; }
-    if (wm.embedTimestamp)   { embed.setTimestamp();                                                                     embedHasContent = true; }
-    if (embedHasContent) embeds.push(embed);
-  }
-
-  if (!content && embeds.length === 0) return;
-  await channel.send({ content, embeds }).catch(err => logger.error('Welcome message send failed', err));
-}
-
 export class WelcomeService {
   async handleJoin(member: GuildMember): Promise<void> {
     const cfg = await getWelcomeConfig(member.guild.id);
 
-    // Auto-role assignment runs independently of the welcome message toggle —
-    // admins may want new members to receive a role on join without a welcome
-    // message being enabled at all.
+    // Auto-role assignment runs independently of the welcome toggle —
+    // admins may want new members to receive a role on join without a
+    // welcome message being enabled at all.
     if (cfg.autoRoleIds.length > 0) {
       await member.roles.add(cfg.autoRoleIds).catch(err => logger.error('Auto-role assignment failed', err));
     }
@@ -92,21 +52,40 @@ export class WelcomeService {
       }
 
       const send = async () => {
-        // ── Channel post (card embed + welcome message) ─────────────────────
-        // Channel delivery is best-effort: a missing/invalid channel never
-        // blocks DM delivery below.
+        // ── Channel post ─────────────────────────────────────────────────────
+        // Best-effort: a missing/invalid channel never blocks DM delivery.
         if (cfg.channelId) {
           const channel = await member.guild.channels.fetch(cfg.channelId).catch(() => null);
           if (channel?.isTextBased()) {
-            // ── Social buttons (shared by card and fallback sends) ──────────
+            const wm = cfg.welcomeMessage;
+
+            // Welcome text (filled placeholders from the configured message)
+            const content = wm.content?.trim()
+              ? fillWelcomeVariables(wm.content, member)
+              : undefined;
+
+            // Optional embed sent in the same message
+            const embeds: EmbedBuilder[] = [];
+            if (wm.embedEnabled) {
+              const embed = new EmbedBuilder().setColor(wm.embedColor || cfg.embedColor);
+              let embedHasContent = false;
+              if (wm.embedTitle)       { embed.setTitle(fillWelcomeVariables(wm.embedTitle, member));                embedHasContent = true; }
+              if (wm.embedDescription) { embed.setDescription(fillWelcomeVariables(wm.embedDescription, member));   embedHasContent = true; }
+              if (wm.embedFooter)      { embed.setFooter({ text: fillWelcomeVariables(wm.embedFooter, member) });   embedHasContent = true; }
+              if (wm.embedThumbnail)   { embed.setThumbnail(wm.embedThumbnail);                                     embedHasContent = true; }
+              if (wm.embedImage)       { embed.setImage(wm.embedImage);                                             embedHasContent = true; }
+              if (wm.embedTimestamp)   { embed.setTimestamp();                                                       embedHasContent = true; }
+              if (embedHasContent) embeds.push(embed);
+            }
+
+            // Social buttons
             const components = cfg.buttons.length
               ? [new ActionRowBuilder<ButtonBuilder>().addComponents(
                   cfg.buttons.map(b => new ButtonBuilder().setLabel(b.label).setURL(b.url).setStyle(ButtonStyle.Link).setEmoji(b.emoji ?? '🔗')),
                 )]
               : [];
 
-            // ── Card image — plain attachment, no embed ─────────────────────
-            // Sent only when a background has been configured in the Card Designer.
+            // ── ONE message: card image (plain attachment) + welcome text ─────
             if (cfg.card.backgroundImage) {
               try {
                 const png = await renderWelcomeCard({
@@ -117,26 +96,25 @@ export class WelcomeService {
                   memberCount: member.guild.memberCount,
                 });
                 const cardFile = new AttachmentBuilder(png, { name: 'welcome-card.png' });
-                await (channel as TextChannel).send({ files: [cardFile], components })
-                  .catch(err => logger.error('Welcome card send failed', err));
+                await (channel as TextChannel)
+                  .send({ content, files: [cardFile], embeds, components })
+                  .catch(err => logger.error('Welcome send failed', err));
               } catch (err) {
-                logger.error('Welcome card render failed', err);
-                // Render failure — still deliver any social buttons
-                if (components.length) {
-                  await (channel as TextChannel).send({ components }).catch(() => {});
+                logger.error('Welcome card render failed — sending text only', err);
+                if (content || embeds.length || components.length) {
+                  await (channel as TextChannel).send({ content, embeds, components }).catch(() => {});
                 }
               }
-            } else if (components.length) {
-              // No card configured yet — send buttons standalone so they still appear
-              await (channel as TextChannel).send({ components }).catch(() => {});
+            } else if (content || embeds.length || components.length) {
+              // No card configured yet — send welcome message on its own
+              await (channel as TextChannel)
+                .send({ content, embeds, components })
+                .catch(err => logger.error('Welcome message send failed', err));
             }
-
-            // ── Welcome message (sent directly below the card) ──────────────
-            await sendWelcomeMessage(channel as TextChannel, cfg, member);
           }
         }
 
-        // ── DM — independent of channel delivery ────────────────────────────
+        // ── DM — independent of channel delivery ─────────────────────────────
         if (cfg.dmEnabled && cfg.dmMessage) {
           await member.send(fillWelcomeVariables(cfg.dmMessage, member)).catch(() => {});
         }
@@ -154,13 +132,15 @@ export class WelcomeService {
     if (!cfg.enabled) return;
 
     try {
-      const template = pickRandom(cfg.messages) ?? '';
+      const messages: string[] = cfg.messages ?? [];
+      const template = messages[Math.floor(Math.random() * messages.length)] ?? '';
       const text = fillWelcomeVariables(template, member);
 
       if (cfg.channelId) {
         const channel = await member.guild.channels.fetch(cfg.channelId).catch(() => null);
         if (channel?.isTextBased()) {
-          const embed = new EmbedBuilder().setColor(cfg.embedColor).setDescription(text);
+          const embed = new EmbedBuilder().setColor(cfg.embedColor);
+          if (text) embed.setDescription(text);
           if (cfg.embedTitle) embed.setTitle(fillWelcomeVariables(cfg.embedTitle, member));
           if (cfg.image) embed.setImage(cfg.image);
           await (channel as TextChannel).send({ embeds: [embed] }).catch(err => logger.error('Goodbye message send failed', err));

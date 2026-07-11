@@ -231,7 +231,7 @@
       "id": "panel_1783747543306_kk73l",
       "guildId": "1213437502078062674",
       "createdAt": 1783747543306,
-      "updatedAt": 1783772873241,
+      "updatedAt": 1783807467498,
       "messageId": "1525458188948865098",
       "openCategory": "1521582368484491384",
       "closedCategory": "1521582953283719349",
@@ -239,11 +239,7 @@
       "adminRoles": [
         "1216032049794777160"
       ],
-      "logChannelId": "1524534739845775582",
-      "selectMenu": {
-        "placeholder": "Select a ticket type…",
-        "options": []
-      }
+      "logChannelId": "1524534739845775582"
     },
     {
       "additionalButtons": [],
