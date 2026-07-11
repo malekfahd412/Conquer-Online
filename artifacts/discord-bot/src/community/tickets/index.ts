@@ -14,10 +14,10 @@ import {
   ButtonStyle,
   ComponentType,
   AttachmentBuilder,
+  ButtonInteraction,
+  ChatInputCommandInteraction,
   type ActionRow,
   type ButtonComponent,
-  type ButtonInteraction,
-  type ChatInputCommandInteraction,
   type Client,
   type Guild,
   type Message,
@@ -384,7 +384,8 @@ class TicketSystem {
     return memberRoleIds.some(id => staffRoleIds.has(id));
   }
 
-  private async claim(interaction: ButtonInteraction, guild: Guild, ticketId: string, claim: boolean): Promise<void> {
+  /** Shared by the legacy `tk:claim:`/`tk:unclaim:` buttons and `/ticket claim`/`/ticket unclaim` — identical logic either way. */
+  private async claim(interaction: ButtonInteraction | ChatInputCommandInteraction, guild: Guild, ticketId: string, claim: boolean): Promise<void> {
     const ticket = await ticketEngine.getById(ticketId);
     if (!ticket) {
       await interaction.reply({ content: '❌ Ticket not found.', ephemeral: true });
@@ -407,6 +408,9 @@ class TicketSystem {
         await interaction.reply({ content: `❌ This ticket has already been claimed by <@${ticket.claimedBy}>.`, ephemeral: true });
         return;
       }
+    } else if (!ticket.claimedBy) {
+      await interaction.reply({ content: '❌ This ticket is not currently claimed.', ephemeral: true });
+      return;
     }
 
     const updated = await ticketEngine.claim(guild, cfg, ticketId, interaction.user.id, claim);
@@ -417,16 +421,27 @@ class TicketSystem {
     }
 
     await interaction.reply({ content: claim ? `🙋 ${interaction.user} claimed this ticket.` : `↩️ ${interaction.user} unclaimed this ticket.` });
-    if (interaction.message) await this.applyClaimHeaderUpdate(interaction.message, claim ? interaction.user.id : undefined);
+
+    // Buttons carry their own message to patch in place; slash callers have no message,
+    // so locate the ticket's header (works for both legacy claim-button headers and the
+    // newer Close-only headers) and sync it the same way.
+    const message = interaction instanceof ButtonInteraction ? interaction.message : await this.findTicketHeaderMessage(guild, ticket);
+    if (message) await this.applyClaimHeaderUpdate(message, claim ? interaction.user.id : undefined);
   }
 
-  /** Locates a ticket's header message (the one carrying its `tk:claim:<id>` button) so non-button callers (e.g. `/ticket unclaim`) can sync it too. */
-  private async findClaimHeaderMessage(guild: Guild, ticket: TicketRecord): Promise<Message | undefined> {
+  /**
+   * Locates a ticket's header message so both button and slash callers can sync its
+   * "Claimed by" state. Prefers a message still carrying a `tk:claim:<id>` button
+   * (legacy headers, posted before the member header was simplified to Close-only);
+   * falls back to the very first message ever sent in the channel, which is always
+   * the welcome header regardless of which buttons it carries.
+   */
+  private async findTicketHeaderMessage(guild: Guild, ticket: TicketRecord): Promise<Message | undefined> {
     const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
     if (!channel?.isTextBased()) return undefined;
     try {
-      const messages = await (channel as TextChannel).messages.fetch({ limit: 50 });
-      return messages.find(m =>
+      const recent = await (channel as TextChannel).messages.fetch({ limit: 50 });
+      const withClaimButton = recent.find(m =>
         m.components.some(row =>
           row.type === ComponentType.ActionRow &&
           (row as ActionRow<MessageActionRowComponent>).components.some(
@@ -434,6 +449,10 @@ class TicketSystem {
           ),
         ),
       );
+      if (withClaimButton) return withClaimButton;
+
+      const oldest = await (channel as TextChannel).messages.fetch({ after: '0', limit: 1 });
+      return oldest.first();
     } catch (err) {
       logger.warning('[TICKETS] Failed to locate ticket header message for claim sync', err);
       return undefined;
@@ -467,10 +486,14 @@ class TicketSystem {
     }
   }
 
-  private async closeTicket(interaction: ButtonInteraction, guild: Guild, ticketId: string): Promise<void> {
+  private async closeTicket(interaction: ButtonInteraction | ChatInputCommandInteraction, guild: Guild, ticketId: string): Promise<void> {
     const ticket = await ticketEngine.getById(ticketId);
     if (!ticket) {
       await interaction.reply({ content: '❌ Ticket not found.', ephemeral: true });
+      return;
+    }
+    if (ticket.status === 'closed') {
+      await interaction.reply({ content: '❌ This ticket is already closed.', ephemeral: true });
       return;
     }
     const rawPanel = await panelManager.get(ticket.panelId);
@@ -479,7 +502,9 @@ class TicketSystem {
       return;
     }
     const cfg = resolveTicketType(rawPanel, ticket.ticketType);
-    await interaction.deferUpdate();
+    const isButton = interaction instanceof ButtonInteraction;
+    if (isButton) await interaction.deferUpdate();
+    else await interaction.deferReply();
     await ticketEngine.close(guild, cfg, ticket, interaction.user.id, interaction.user.tag);
 
     const embed = new EmbedBuilder().setColor(0xed4245).setDescription(`🔒 Ticket closed by ${interaction.user}.`);
@@ -489,22 +514,41 @@ class TicketSystem {
       new ButtonBuilder().setCustomId(`tk:transcript:${ticket.id}`).setLabel('Transcript').setStyle(ButtonStyle.Secondary).setEmoji('📄'),
     );
     await interaction.editReply({ embeds: [embed], components: [row] }).catch(() => {});
-    const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
-    if (channel?.isTextBased()) await channel.send({ embeds: [embed], components: [row] }).catch(() => {});
+    // Buttons additionally broadcast a fresh copy into the channel (the edited reply above
+    // only updates the original welcome message); a slash reply is already a normal visible
+    // channel message, so no second post is needed.
+    if (isButton) {
+      const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
+      if (channel?.isTextBased()) await channel.send({ embeds: [embed], components: [row] }).catch(() => {});
+    }
   }
 
-  private async reopenTicket(interaction: ButtonInteraction, guild: Guild, ticketId: string): Promise<void> {
+  private async reopenTicket(interaction: ButtonInteraction | ChatInputCommandInteraction, guild: Guild, ticketId: string): Promise<void> {
     const ticket = await ticketEngine.getById(ticketId);
     if (!ticket) {
       await interaction.reply({ content: '❌ Ticket not found.', ephemeral: true });
       return;
     }
-    await ticketEngine.reopen(guild, ticket, interaction.user.id);
+    if (ticket.status !== 'closed') {
+      await interaction.reply({ content: '❌ This ticket is not closed.', ephemeral: true });
+      return;
+    }
+    const rawPanel = await panelManager.get(ticket.panelId);
+    if (!rawPanel) {
+      await interaction.reply({ content: '❌ This ticket panel no longer exists.', ephemeral: true });
+      return;
+    }
+    const cfg = resolveTicketType(rawPanel, ticket.ticketType);
+    await ticketEngine.reopen(guild, cfg, ticket, interaction.user.id);
     await interaction.reply({ content: `🔓 Ticket reopened by ${interaction.user}.` });
   }
 
-  private async deleteTicketChannel(interaction: ButtonInteraction, guild: Guild, ticketId: string): Promise<void> {
+  private async deleteTicketChannel(interaction: ButtonInteraction | ChatInputCommandInteraction, guild: Guild, ticketId: string): Promise<void> {
     const ticket = await ticketEngine.getById(ticketId);
+    if (ticket && ticket.status !== 'closed') {
+      await interaction.reply({ content: '❌ Close this ticket before deleting it.', ephemeral: true });
+      return;
+    }
     await interaction.reply({ content: '🗑️ Deleting ticket channel in 5 seconds...' });
     setTimeout(async () => {
       const channel = await guild.channels.fetch(interaction.channelId).catch(() => null);
@@ -513,7 +557,7 @@ class TicketSystem {
     if (ticket) await ticketEngine.delete(ticket, interaction.user.id);
   }
 
-  private async sendTranscript(interaction: ButtonInteraction, guild: Guild, ticketId: string): Promise<void> {
+  private async sendTranscript(interaction: ButtonInteraction | ChatInputCommandInteraction, guild: Guild, ticketId: string): Promise<void> {
     const ticket = await ticketEngine.getById(ticketId);
     if (!ticket) {
       await interaction.reply({ content: '❌ Ticket not found.', ephemeral: true });
@@ -532,11 +576,15 @@ class TicketSystem {
   }
 
   /**
-   * `/ticket` slash command — add, remove, rename, unclaim, priority, info.
-   * Only works inside an active ticket channel, and calls the exact same engine
-   * methods (and, for staff-gated subcommands, the exact same `isStaffMember`
-   * check) as the equivalent `tk:*` buttons — no permission or business logic
-   * is duplicated here.
+   * `/ticket` slash command — the full staff control surface: claim, unclaim, lock,
+   * unlock, rename, add, remove, priority, transcript, close, reopen, delete (plus the
+   * bonus read-only `info`). Only works inside an active ticket channel, and every
+   * subcommand calls the exact same engine methods (and, where the equivalent `tk:*`
+   * button already exists, the exact same handler) as the buttons — no business logic
+   * is duplicated here. Staff-only subcommands are gated with `isStaffMember`; `unclaim`
+   * and `transcript` deliberately mirror their buttons' lack of a gate for `unclaim`'s
+   * unclaim-half (see `claim()`), while `transcript` is gated here since it's listed
+   * under Staff Controls even though its legacy button predates that distinction.
    */
   async handleSlashCommand(interaction: ChatInputCommandInteraction, guild: Guild): Promise<void> {
     try {
@@ -554,6 +602,13 @@ class TicketSystem {
       const member = interaction.member instanceof GuildMember ? interaction.member : null;
       const sub = interaction.options.getSubcommand(true);
 
+      // Every subcommand below is a "Staff Control" per the spec — gate them all here
+      // except `info` (read-only) and `unclaim` (mirrors the ungated button; see `claim()`).
+      if (sub !== 'info' && sub !== 'unclaim' && !this.isStaffMember(cfg, member)) {
+        await interaction.reply({ content: '❌ You are not allowed to manage this ticket.', ephemeral: true });
+        return;
+      }
+
       switch (sub) {
         case 'add':
           await this.slashAddUser(interaction, guild, cfg, ticket, member);
@@ -564,11 +619,32 @@ class TicketSystem {
         case 'rename':
           await this.slashRenameTicket(interaction, guild, cfg, ticket, member);
           break;
+        case 'claim':
+          await this.claim(interaction, guild, ticket.id, true);
+          break;
         case 'unclaim':
-          await this.slashUnclaim(interaction, guild, cfg, ticket);
+          await this.claim(interaction, guild, ticket.id, false);
+          break;
+        case 'lock':
+          await this.slashLock(interaction, guild, cfg, ticket);
+          break;
+        case 'unlock':
+          await this.slashUnlock(interaction, guild, cfg, ticket);
           break;
         case 'priority':
           await this.slashSetPriority(interaction, guild, cfg, ticket, member);
+          break;
+        case 'transcript':
+          await this.sendTranscript(interaction, guild, ticket.id);
+          break;
+        case 'close':
+          await this.closeTicket(interaction, guild, ticket.id);
+          break;
+        case 'reopen':
+          await this.reopenTicket(interaction, guild, ticket.id);
+          break;
+        case 'delete':
+          await this.deleteTicketChannel(interaction, guild, ticket.id);
           break;
         case 'info':
           await this.slashTicketInfo(interaction, rawPanel, ticket);
@@ -629,17 +705,22 @@ class TicketSystem {
     }
   }
 
-  private async slashUnclaim(interaction: ChatInputCommandInteraction, guild: Guild, cfg: TicketPanel, ticket: TicketRecord): Promise<void> {
-    if (!ticket.claimedBy) {
-      await interaction.reply({ content: '❌ This ticket is not currently claimed.', ephemeral: true });
+  private async slashLock(interaction: ChatInputCommandInteraction, guild: Guild, cfg: TicketPanel, ticket: TicketRecord): Promise<void> {
+    if (ticket.status !== 'open') {
+      await interaction.reply({ content: `❌ This ticket is not open (current status: ${ticket.status}).`, ephemeral: true });
       return;
     }
-    // Mirrors the button's unclaim path exactly (see `claim(interaction, guild, ticketId, false)`):
-    // no extra staff gate beyond being inside the ticket channel, by design.
-    await ticketEngine.claim(guild, cfg, ticket.id, interaction.user.id, false);
-    await interaction.reply({ content: `↩️ ${interaction.user} unclaimed this ticket.` });
-    const header = await this.findClaimHeaderMessage(guild, ticket);
-    if (header) await this.applyClaimHeaderUpdate(header, undefined);
+    await ticketEngine.lock(guild, cfg, ticket, interaction.user.tag);
+    await interaction.reply({ content: `🔒 ${interaction.user} locked this ticket — only staff can send messages until it's unlocked.` });
+  }
+
+  private async slashUnlock(interaction: ChatInputCommandInteraction, guild: Guild, cfg: TicketPanel, ticket: TicketRecord): Promise<void> {
+    if (ticket.status !== 'locked') {
+      await interaction.reply({ content: `❌ This ticket is not locked (current status: ${ticket.status}).`, ephemeral: true });
+      return;
+    }
+    await ticketEngine.unlock(guild, cfg, ticket, interaction.user.tag);
+    await interaction.reply({ content: `🔓 ${interaction.user} unlocked this ticket.` });
   }
 
   private async slashSetPriority(interaction: ChatInputCommandInteraction, guild: Guild, cfg: TicketPanel, ticket: TicketRecord, member: GuildMember | null): Promise<void> {

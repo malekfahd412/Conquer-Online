@@ -22,3 +22,12 @@ Replaced a single-file legacy ticket service (`discord/tickets/*`) with 10 focus
 Discord panel messages already posted keep their buttons working only if the `tk:*` custom ID scheme is preserved exactly (`tk:open:<panelId>:<ticketType>`, `tk:claim:`, `tk:close:`, etc.). New interaction types (select menus, modals) were added as new prefixes (`tk:select:`, `tk:modal:`) rather than changing existing ones.
 
 **Why:** existing Discord messages can't be edited retroactively to point at new custom IDs — breaking the scheme orphans every already-posted panel.
+
+**How to apply when *removing* a button from new messages (not the scheme):** keep the button's interaction-router case wired even after you stop rendering that button on newly-created messages — old already-posted messages still carry the old component and would show "This interaction failed" if the handler were removed. Only drop the router case once you're sure no live message can still reference it.
+
+## Legacy panels missing newer optional fields crash unguarded reads
+Fields added to `TicketPanel`/`TicketClaimBehaviourConfig` etc. after a panel was created can be `undefined` on old panels even through `resolveTicketType`, if the read site doesn't go through `normalizePanel()` (or optional-chain) first. `permission-engine.ts` already normalizes defensively in some functions; `ticket-engine.ts`'s `claim()` didn't, and crashed live on `cfg.claimBehaviour.hideFromOtherStaffOnClaim` for an old panel.
+
+**Why:** `resolveTicketType`'s override-merge only falls back to `panel.<field>`, which is itself `undefined` for panels created before that field existed — there's no normalization step in that path.
+
+**How to apply:** when adding a new optional/defaulted field to `TicketPanel`, either normalize at every read site (`cfg.field?.subfield`) or route through `normalizePanel()` before reading, don't assume `resolveTicketType` already guarantees a default.

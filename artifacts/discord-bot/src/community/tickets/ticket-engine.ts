@@ -186,10 +186,12 @@ export class TicketEngine {
       embed.addFields(extraAnswerFields.slice(0, 25));
     }
 
+    // Member-facing header: only Close is offered here. Claim and Transcript are still
+    // fully supported (buttons on already-posted legacy tickets keep working, and staff
+    // get both via `/ticket claim` / `/ticket transcript`) — they're just no longer
+    // rendered on new welcome messages so members see a single, unambiguous action.
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder().setCustomId(`tk:claim:${ticket.id}`).setLabel('Claim').setStyle(ButtonStyle.Primary).setEmoji('🙋'),
-      new ButtonBuilder().setCustomId(`tk:close:${ticket.id}`).setLabel('Close').setStyle(ButtonStyle.Danger).setEmoji('🔒'),
-      new ButtonBuilder().setCustomId(`tk:transcript:${ticket.id}`).setLabel('Transcript').setStyle(ButtonStyle.Secondary).setEmoji('📄'),
+      new ButtonBuilder().setCustomId(`tk:close:${ticket.id}`).setLabel('Close Ticket').setStyle(ButtonStyle.Danger).setEmoji('🔒'),
     );
 
     const pingRoles = cfg.pingRoles.map(id => `<@&${id}>`).join(' ');
@@ -227,7 +229,9 @@ export class TicketEngine {
         userId,
         responseMs: ticket.firstStaffReplyAt ? undefined : Date.now() - ticket.createdAt,
       });
-      if (channel?.isTextBased() && cfg.claimBehaviour.hideFromOtherStaffOnClaim && !cfg.claimBehaviour.keepVisible) {
+      // Defensive: legacy panels created before `claimBehaviour` existed may not carry it even
+      // after `resolveTicketType` (same guard `permissionEngine` already applies via `normalizePanel`).
+      if (channel?.isTextBased() && cfg.claimBehaviour?.hideFromOtherStaffOnClaim && !cfg.claimBehaviour?.keepVisible) {
         await permissionEngine.hideFromOtherStaff(channel as TextChannel, cfg, userId);
       }
     } else {
@@ -324,12 +328,47 @@ export class TicketEngine {
     return updated;
   }
 
-  async reopen(guild: Guild, ticket: TicketRecord, reopenedByUserId: string): Promise<void> {
+  /**
+   * `cfg` must be the ticket-type-resolved config (see `resolveTicketType`) so the channel
+   * moves back to this ticket type's own `openCategory` (per-button/select-option overrides
+   * respected), not just the panel-wide default. Undoes exactly what `close()` changed —
+   * the opener's send-message lock and the category move — leaving any claim-related
+   * overwrites untouched, since `close()` never touches those either.
+   */
+  async reopen(guild: Guild, cfg: TicketPanel, ticket: TicketRecord, reopenedByUserId: string): Promise<void> {
     await this.update(ticket.id, { status: 'open', closedAt: undefined, closedBy: undefined, lastActivityAt: Date.now() });
     const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
-    if (channel?.isTextBased()) await permissionEngine.unlockForReopen(channel as TextChannel, ticket.openerId);
+    if (channel?.isTextBased()) {
+      await permissionEngine.unlockForReopen(channel as TextChannel, ticket.openerId);
+      await categoryEngine.moveToOpen(channel as TextChannel, cfg);
+    }
     await automationEngine.touchActivity(ticket.id, ticket.channelId);
     await statisticsEngine.record({ type: 'reopened', guildId: guild.id, panelId: ticket.panelId, ticketId: ticket.id, userId: reopenedByUserId });
+    await this.logAction(guild, cfg, `🔓 Ticket **#${ticket.number}** reopened by <@${reopenedByUserId}>`);
+  }
+
+  /**
+   * Locks a ticket in place (`/ticket lock`) — denies the opener `SendMessages` without
+   * closing the ticket or moving its category, reusing the exact overwrite change `close()`
+   * already applies via `permissionEngine.lockForClose`. Only valid while `status === 'open'`;
+   * callers should check that themselves so they can show a clear "not open" error.
+   */
+  async lock(guild: Guild, cfg: TicketPanel, ticket: TicketRecord, actorTag: string): Promise<TicketRecord | undefined> {
+    const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
+    if (channel?.isTextBased()) await permissionEngine.lockForClose(channel as TextChannel, ticket.openerId);
+    const updated = await this.update(ticket.id, { status: 'locked', lastActivityAt: Date.now() });
+    await this.logAction(guild, cfg, `🔒 Ticket **#${ticket.number}** locked by ${actorTag}`);
+    return updated;
+  }
+
+  /** Reverses `lock()` (`/ticket unlock`). Only valid while `status === 'locked'`. */
+  async unlock(guild: Guild, cfg: TicketPanel, ticket: TicketRecord, actorTag: string): Promise<TicketRecord | undefined> {
+    const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
+    if (channel?.isTextBased()) await permissionEngine.unlockForReopen(channel as TextChannel, ticket.openerId);
+    const updated = await this.update(ticket.id, { status: 'open', lastActivityAt: Date.now() });
+    await automationEngine.touchActivity(ticket.id, ticket.channelId);
+    await this.logAction(guild, cfg, `🔓 Ticket **#${ticket.number}** unlocked by ${actorTag}`);
+    return updated;
   }
 
   async delete(ticket: TicketRecord, deletedByUserId: string): Promise<void> {

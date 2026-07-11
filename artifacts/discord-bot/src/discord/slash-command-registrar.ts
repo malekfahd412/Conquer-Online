@@ -145,6 +145,41 @@ const TICKET_COMMAND = {
   description: 'Manage the ticket in this channel',
   options: [
     {
+      name: 'claim',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Claim this ticket',
+    },
+    {
+      name: 'unclaim',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Release the current claim on this ticket',
+    },
+    {
+      name: 'lock',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Lock this ticket so only staff can send messages',
+    },
+    {
+      name: 'unlock',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Unlock a previously locked ticket',
+    },
+    {
+      name: 'rename',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Rename this ticket channel',
+      options: [
+        {
+          name: 'name',
+          type: ApplicationCommandOptionType.String,
+          description: 'New channel name',
+          required: true,
+          min_length: 1,
+          max_length: 90,
+        },
+      ],
+    },
+    {
       name: 'add',
       type: ApplicationCommandOptionType.Subcommand,
       description: 'Add a user to this ticket',
@@ -171,26 +206,6 @@ const TICKET_COMMAND = {
       ],
     },
     {
-      name: 'rename',
-      type: ApplicationCommandOptionType.Subcommand,
-      description: 'Rename this ticket channel',
-      options: [
-        {
-          name: 'name',
-          type: ApplicationCommandOptionType.String,
-          description: 'New channel name',
-          required: true,
-          min_length: 1,
-          max_length: 90,
-        },
-      ],
-    },
-    {
-      name: 'unclaim',
-      type: ApplicationCommandOptionType.Subcommand,
-      description: 'Release the current claim on this ticket',
-    },
-    {
       name: 'priority',
       type: ApplicationCommandOptionType.Subcommand,
       description: "Set this ticket's priority",
@@ -208,6 +223,26 @@ const TICKET_COMMAND = {
           ],
         },
       ],
+    },
+    {
+      name: 'transcript',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Generate and attach a transcript of this ticket',
+    },
+    {
+      name: 'close',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Close this ticket',
+    },
+    {
+      name: 'reopen',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Reopen a closed ticket',
+    },
+    {
+      name: 'delete',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Permanently delete this ticket channel',
     },
     {
       name: 'info',

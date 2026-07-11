@@ -271,6 +271,30 @@
       "ticketId": "ticket_1783761512931_18o09",
       "userId": "522507355233976321",
       "timestamp": 1783761513243
+    },
+    {
+      "type": "claimed",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783761512931_18o09",
+      "userId": "727578927593291796",
+      "timestamp": 1783761597959
+    },
+    {
+      "type": "closed",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783761512931_18o09",
+      "userId": "522507355233976321",
+      "timestamp": 1783761751679
+    },
+    {
+      "type": "reopened",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783761512931_18o09",
+      "userId": "522507355233976321",
+      "timestamp": 1783761761017
     }
   ]
 }

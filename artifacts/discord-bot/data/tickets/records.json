@@ -255,10 +255,12 @@
       "priority": "normal",
       "answers": {},
       "createdAt": 1783761513239,
-      "lastActivityAt": 1783761513239,
+      "lastActivityAt": 1783761760817,
       "participantIds": [
         "522507355233976321"
-      ]
+      ],
+      "claimedBy": "727578927593291796",
+      "firstStaffReplyAt": 1783761597957
     }
   ],
   "counters": {

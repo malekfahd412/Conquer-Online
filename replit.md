@@ -69,14 +69,21 @@ A Discord bot that serves as a live server status dashboard **and** an AI-powere
 | `/voice leave` | Leave the voice channel |
 | `/voice status` | Show voice session status |
 | `/voice personality <type>` | Change voice personality (friendly/professional/gaming/funny/assistant) |
+| `/ticket claim` | Claim the current ticket (staff only) |
+| `/ticket unclaim` | Release the current claim on this ticket |
+| `/ticket lock` | Lock the ticket so only staff can send messages, without closing it (staff only) |
+| `/ticket unlock` | Reverse `/ticket lock` (staff only) |
+| `/ticket rename <name>` | Rename the current ticket's channel (staff only) |
 | `/ticket add <user>` | Add a user to the current ticket (staff only) |
 | `/ticket remove <user>` | Remove a user from the current ticket (staff only, not the opener) |
-| `/ticket rename <name>` | Rename the current ticket's channel (staff only) |
-| `/ticket unclaim` | Release the current claim on this ticket |
 | `/ticket priority <low\|normal\|high\|urgent>` | Set the current ticket's priority (staff only) |
+| `/ticket transcript` | Generate and attach an HTML transcript of the current ticket (staff only) |
+| `/ticket close` | Close the current ticket (staff only) |
+| `/ticket reopen` | Reopen a closed ticket — moves it back to its type's Open Category (staff only) |
+| `/ticket delete` | Permanently delete a closed ticket's channel (staff only) |
 | `/ticket info` | Show ticket details (opener, claim, priority, participants) — ephemeral |
 
-`/ticket` subcommands only work inside an active ticket channel and share the exact same Ticket System Pro engine methods and staff-role permission check used by the ticket buttons (see Ticket System Pro section below) — no separate permission or business logic.
+`/ticket` subcommands only work inside an active ticket channel and share the exact same Ticket System Pro engine methods used by the legacy `tk:*` buttons — no separate business logic. All subcommands are staff-only (`isStaffMember`) except `info` (read-only) and `unclaim` (mirrors the ungated legacy button). New tickets' welcome message now shows only a "🔒 Close Ticket" button — Claim and Transcript moved to slash commands, though their `tk:claim:`/`tk:transcript:` buttons still work on any ticket opened before this change.
 
 ## Voice AI
 
