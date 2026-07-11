@@ -1,6 +1,6 @@
 import type { Guild } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from './tool.interface';
-import { deletePanel, getPanel } from '../../discord/tickets/ticket-store';
+import { ticketSystem } from '../../community/tickets';
 
 export class DeleteTicketPanelTool implements ITool {
   readonly definition: ToolDefinition = {
@@ -18,9 +18,9 @@ export class DeleteTicketPanelTool implements ITool {
 
   async execute(params: Record<string, unknown>, guild: Guild): Promise<ToolExecuteResult> {
     const panelId = String(params['panelId'] ?? '');
-    const panel = await getPanel(panelId);
+    const panel = await ticketSystem.panels.get(panelId);
     if (!panel || panel.guildId !== guild.id) return { success: false, message: `Panel "${panelId}" not found` };
-    await deletePanel(panelId);
+    await ticketSystem.panels.delete(panelId);
     return { success: true, message: `🗑️ Ticket panel \`${panelId}\` deleted.` };
   }
 }

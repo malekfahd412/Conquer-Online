@@ -1,0 +1,28 @@
+{
+  "tickets": [
+    {
+      "id": "ticket_1783734389468_qby9u",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783734386766_zq52h",
+      "ticketType": "support",
+      "channelId": "1525317325333598271",
+      "openerId": "727578927593291796",
+      "claimedBy": "727578927593291796",
+      "status": "closed",
+      "number": 1,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783734389468,
+      "closedAt": 1783734466514,
+      "closedBy": "727578927593291796",
+      "firstStaffReplyAt": 1783734440684,
+      "lastActivityAt": 1783734466514,
+      "participantIds": [
+        "727578927593291796"
+      ]
+    }
+  ],
+  "counters": {
+    "1213437502078062674": 1
+  }
+}

@@ -120,6 +120,7 @@ The bot supports real-time voice conversations similar to Gemini Live.
     - `memory/` — ConversationMemory, LongTermMemory, MemoryManager, WorkspaceMemory
     - `tools/` — 37 Discord action tools
   - `discord/` — Discord client, message manager, embed/button builders
+  - `community/tickets/` — Ticket System Pro: 10 engines (naming, category, permission, question, transcript, automation, statistics, template, panel, ticket) behind a single `ticketSystem` facade in `index.ts`; storage is per-engine JSON files under `data/tickets/` (`panels.json`, `records.json`, `templates.json`, `statistics.json`, `automation.json`, `transcripts.json`, `settings.json`)
   - `providers/` — data source abstraction (MSSQL, API, mock)
 
 ## Architecture decisions
@@ -130,6 +131,7 @@ The bot supports real-time voice conversations similar to Gemini Live.
 - **Workspaces**: named sessions that persist to disk and can be resumed later — ideal for multi-session projects like "Ticket System Setup"
 - **Sequential status update loop**: next status update only starts after the current one finishes — prevents race conditions and duplicate embeds
 - **Observer is additive**: guild event monitoring only logs to the configured log channel; it never blocks or affects the AI pipeline
+- **Ticket System Pro (July 11, 2026)**: replaced the old single-file ticket service/store with 10 focused engines under `community/tickets/`, orchestrated by a `ticketSystem` facade. The legacy flat `data/tickets.json` is migrated once (idempotent, tracked in `settings.json.migratedFromLegacy`) into the new per-engine JSON files and left in place untouched as a passive backup. The `tk:*` custom ID scheme is unchanged, so panel messages already posted in Discord kept working without edits.
 
 ## Product
 

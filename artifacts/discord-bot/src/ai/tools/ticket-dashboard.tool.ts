@@ -1,6 +1,6 @@
 import type { Guild } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from './tool.interface';
-import { ticketService } from '../../discord/tickets/ticket.service';
+import { ticketSystem } from '../../community/tickets';
 
 export class TicketDashboardTool implements ITool {
   readonly definition: ToolDefinition = {
@@ -12,7 +12,7 @@ export class TicketDashboardTool implements ITool {
   };
 
   async execute(_params: Record<string, unknown>, guild: Guild): Promise<ToolExecuteResult> {
-    const stats = await ticketService.dashboardStats(guild.id);
+    const stats = await ticketSystem.tickets.dashboardStats(guild.id);
     const avgMinutes = (stats.avgResponseMs / 60000).toFixed(1);
     const leaderboard = stats.leaderboard.length
       ? stats.leaderboard.map(([userId, count], i) => `${i + 1}. <@${userId}> — ${count} claimed`).join('\n')

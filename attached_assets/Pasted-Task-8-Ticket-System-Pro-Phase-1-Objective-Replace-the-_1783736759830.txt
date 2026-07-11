@@ -1,0 +1,283 @@
+Task 8 — Ticket System Pro (Phase 1)
+
+Objective
+
+Replace the current simple ticket implementation with a production-grade Ticket Engine that will become the foundation of the entire Community Management Suite.
+
+This is NOT a redesign.
+
+This is an architectural migration.
+
+====================================================
+
+DO NOT
+
+====================================================
+
+Do NOT build placeholders.
+
+Do NOT stub anything.
+
+Do NOT simplify.
+
+Do NOT remove existing features.
+
+Do NOT break compatibility with existing ticket panels.
+
+Everything must continue working while the new engine is introduced.
+
+====================================================
+
+Architecture
+
+====================================================
+
+Create a new module:
+
+src/community/tickets/
+
+The system must be split into independent engines.
+
+TicketEngine
+Responsible for creating, opening, closing, deleting, reopening tickets.
+
+PanelManager
+Responsible for ticket panel definitions.
+
+PermissionEngine
+Responsible for permission overwrites.
+
+QuestionEngine
+Responsible for modal questions.
+
+TranscriptEngine
+Responsible for transcript generation.
+
+AutomationEngine
+Responsible for lifecycle automation.
+
+StatisticsEngine
+Responsible for analytics.
+
+NamingEngine
+Responsible for ticket names.
+
+CategoryEngine
+Responsible for category routing.
+
+TemplateEngine
+Responsible for reusable templates.
+
+Every engine must expose a clean API.
+
+No engine may directly modify another engine's storage.
+
+====================================================
+
+Storage
+
+====================================================
+
+Replace the current flat JSON layout.
+
+Create:
+
+data/tickets/
+
+panels.json
+
+templates.json
+
+statistics.json
+
+automation.json
+
+transcripts.json
+
+settings.json
+
+Each panel stores only its own configuration.
+
+No duplicated values.
+
+====================================================
+
+Ticket Panel Model
+
+====================================================
+
+Every panel must support:
+
+id
+
+name
+
+description
+
+channelId
+
+embed
+
+button
+
+selectMenu
+
+permissions
+
+supportRoles
+
+managerRoles
+
+pingRoles
+
+allowedRoles
+
+blockedRoles
+
+allowedUsers
+
+blockedUsers
+
+openCategory
+
+closedCategory
+
+archiveCategory
+
+namingScheme
+
+ticketLimit
+
+cooldown
+
+priority
+
+modal
+
+transcript
+
+automation
+
+statistics
+
+createdAt
+
+updatedAt
+
+enabled
+
+====================================================
+
+Naming Engine
+
+====================================================
+
+Support variables:
+
+{user}
+
+{username}
+
+{userid}
+
+{displayname}
+
+{ticket}
+
+{counter}
+
+{date}
+
+{time}
+
+{year}
+
+{month}
+
+{day}
+
+{random}
+
+Examples:
+
+ticket-{counter}
+
+support-{username}
+
+report-{user}
+
+purchase-{counter}
+
+====================================================
+
+Panel Manager
+
+====================================================
+
+Allow unlimited ticket panels.
+
+Support:
+
+create
+
+edit
+
+duplicate
+
+delete
+
+archive
+
+enable
+
+disable
+
+publish
+
+preview
+
+list
+
+====================================================
+
+Migration
+
+====================================================
+
+Automatically migrate all existing ticket panels to the new format.
+
+Nothing should be lost.
+
+====================================================
+
+Requirements
+
+====================================================
+
+Zero TypeScript errors.
+
+Zero TODOs.
+
+Zero placeholders.
+
+Zero breaking changes.
+
+====================================================
+
+Return
+
+====================================================
+
+Return ONLY:
+
+Files created
+
+Files modified
+
+Migration completed
+
+Architecture summary
+
+Build status
+
+Runtime status

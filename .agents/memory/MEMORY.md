@@ -1,3 +1,4 @@
 - [Discord AI OS architecture](discord-ai-os.md) — multi-provider AI bot with plan preview, workspace memory, and 239 tools; key design decisions documented.
 - [Discord bot workflow restart zombie process](discord-bot-workflow-restart-zombie.md) — restart can leave old tsx process alive; duplicate gateway logins cause misleading "Unknown interaction" errors that look like code bugs.
 - [Control Center duplicate custom_id fix](cc-duplicate-id-fix.md) — pagination buttons must use raw unclamped page numbers as IDs; clamping collapses both to same value on single-page categories.
+- [Ticket System Pro architecture](ticket-system-pro.md) — 10-engine ticket system under community/tickets/; migration pattern and tk:* custom ID stability rules.

@@ -1,7 +1,7 @@
 import type { Guild } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from './tool.interface';
-import { createPanel } from '../../discord/tickets/ticket-store';
-import { ticketService } from '../../discord/tickets/ticket.service';
+import { ticketSystem } from '../../community/tickets';
+import { defaultPanelFields, defaultEmbed, defaultButton } from '../../community/tickets/panel-defaults';
 
 export class CreateTicketPanelTool implements ITool {
   readonly definition: ToolDefinition = {
@@ -20,7 +20,7 @@ export class CreateTicketPanelTool implements ITool {
         transcriptChannel: { type: 'string', description: 'Channel to post closed-ticket transcripts (optional)' },
         logChannel: { type: 'string', description: 'Channel to post ticket open/close logs (optional)' },
         maxTicketsPerUser: { type: 'number', description: 'Max simultaneously open tickets per user (default 1)' },
-        namingFormat: { type: 'string', description: 'Ticket channel naming format, supports {number} {username} {type} (default: ticket-{number})' },
+        namingFormat: { type: 'string', description: 'Ticket channel naming format, supports {counter} {username} {userid} {displayname} {date} {time} (default: ticket-{counter})' },
       },
       required: ['channel', 'title', 'description', 'buttonLabel', 'ticketType'],
     },
@@ -34,15 +34,13 @@ export class CreateTicketPanelTool implements ITool {
     const channel = channels.find(c => c && (c.id === channelQuery || c.name.toLowerCase() === channelQuery));
     if (!channel) return { success: false, message: `Channel "${params['channel']}" not found` };
 
-    let categoryId: string | undefined;
+    let openCategory: string | undefined;
     if (params['category']) {
-      const catQuery = String(params['category']).toLowerCase();
-      const cat = channels.find(c => c && (c.id === catQuery || c.name.toLowerCase() === catQuery) && c.type === 4);
-      categoryId = cat?.id;
+      openCategory = await ticketSystem.categories.resolveCategoryId(guild, String(params['category']));
     }
 
     const roles = await guild.roles.fetch();
-    const supportRoleIds = String(params['supportRoles'] ?? '')
+    const supportRoles = String(params['supportRoles'] ?? '')
       .split(',').map(s => s.trim()).filter(Boolean)
       .map(q => roles.find(r => r.id === q || r.name.toLowerCase() === q.toLowerCase())?.id)
       .filter((id): id is string => !!id);
@@ -58,31 +56,28 @@ export class CreateTicketPanelTool implements ITool {
       logChannelId = channels.find(c => c && (c.id === q || c.name.toLowerCase() === q))?.id;
     }
 
-    const panel = await createPanel({
-      guildId: guild.id,
-      channelId: channel.id,
-      title: String(params['title']),
+    const panel = await ticketSystem.panels.create(guild.id, {
+      name: String(params['title']),
       description: String(params['description']),
-      color: 0x5865f2,
-      buttons: [{ label: String(params['buttonLabel']), style: 'Primary', ticketType: String(params['ticketType']) }],
-      categoryId,
-      supportRoleIds,
-      allowedRoleIds: [],
-      blockedRoleIds: [],
-      maxTicketsPerUser: Number(params['maxTicketsPerUser'] ?? 1),
-      namingFormat: String(params['namingFormat'] ?? 'ticket-{number}'),
-      transcriptChannelId,
+      channelId: channel.id,
+      embed: defaultEmbed(String(params['title']), String(params['description'])),
+      button: defaultButton(String(params['buttonLabel']), String(params['ticketType'])),
+      ...defaultPanelFields(),
+      openCategory,
+      supportRoles,
+      managerRoles: supportRoles,
+      pingRoles: supportRoles,
+      transcript: { enabled: !!transcriptChannelId, channelId: transcriptChannelId, formats: ['html'], dmUser: false },
       logChannelId,
-      autoClose: false,
-      autoDelete: false,
-      inactiveTimeoutMinutes: 0,
+      ticketLimit: Number(params['maxTicketsPerUser'] ?? 1),
+      namingScheme: String(params['namingFormat'] ?? 'ticket-{counter}'),
     });
 
-    await ticketService.postPanel(guild, panel);
+    await ticketSystem.panels.publish(guild, panel);
 
     return {
       success: true,
-      message: `🎫 **Ticket panel created** in <#${channel.id}>\n• Panel ID: \`${panel.id}\`\n• Type: ${params['ticketType']}\n• Support roles: ${supportRoleIds.length}\n• Max per user: ${panel.maxTicketsPerUser}`,
+      message: `🎫 **Ticket panel created** in <#${channel.id}>\n• Panel ID: \`${panel.id}\`\n• Type: ${params['ticketType']}\n• Support roles: ${supportRoles.length}\n• Max per user: ${panel.ticketLimit}`,
     };
   }
 }

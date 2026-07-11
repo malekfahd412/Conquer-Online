@@ -14,7 +14,7 @@ import type { ConversationMessage, ToolCall, ToolResult } from './types';
 import { ResponseDeliveryService } from '../discord/response-delivery.service';
 import { ControlCenterService } from '../discord/control-center';
 import { runStartupAudit, runCCRenderAudit } from '../discord/control-center/cc-test';
-import { ticketService } from '../discord/tickets/ticket.service';
+import { ticketSystem } from '../community/tickets';
 import { verificationService } from '../discord/verification/verification.service';
 import { applicationService } from '../discord/applications/application.service';
 import { PermissionManager } from './permission-manager';
@@ -107,6 +107,8 @@ export class AIService {
   }
 
   start(client: Client): void {
+    ticketSystem.init(client).catch(err => logger.error('[TICKETS] Ticket System Pro failed to initialize', err));
+
     client.on('messageCreate', message => {
       this.onMessage(message, client).catch(error => {
         logger.error('AI message handler error', error);
@@ -190,8 +192,24 @@ export class AIService {
       // ── Ticket system interactions (tk:* custom IDs) ───────────────────────
       if (interaction.isButton() && interaction.customId.startsWith('tk:')) {
         if (interaction.guild) {
-          ticketService.handleInteraction(interaction, interaction.guild).catch(err =>
+          ticketSystem.handleInteraction(interaction, interaction.guild).catch(err =>
             logger.error('Ticket interaction error', err),
+          );
+        }
+        return;
+      }
+      if (interaction.isModalSubmit() && interaction.customId.startsWith('tk:modal:')) {
+        if (interaction.guild) {
+          ticketSystem.handleModal(interaction, interaction.guild).catch(err =>
+            logger.error('Ticket modal error', err),
+          );
+        }
+        return;
+      }
+      if (interaction.isStringSelectMenu() && interaction.customId.startsWith('tk:select:')) {
+        if (interaction.guild) {
+          ticketSystem.handleSelectMenu(interaction, interaction.guild).catch(err =>
+            logger.error('Ticket select menu error', err),
           );
         }
         return;
