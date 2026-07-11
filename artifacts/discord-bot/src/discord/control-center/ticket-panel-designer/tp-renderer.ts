@@ -10,7 +10,7 @@ import {
   TextInputStyle,
 } from 'discord.js';
 import type { TicketPanel, TicketTemplate, TicketButtonConfig, TicketSelectMenuOption, TicketForm, FormQuestion, QuestionType, TicketEntryRef } from '../../../community/tickets/types';
-import { QUESTION_TYPE_META, QUESTION_TYPES, getEntry, entryLabel, resolveTicketType, parseEntryRef } from '../../../community/tickets/types';
+import { QUESTION_TYPE_META, QUESTION_TYPES, getEntry, entryLabel, resolveTicketType, parseEntryRef, DEFAULT_MEMBER_PERMS, DEFAULT_STAFF_PERMS, DEFAULT_CLAIM_BEHAVIOUR } from '../../../community/tickets/types';
 import { FORM_TEMPLATES } from '../../../community/tickets/form-templates';
 import { buildPDMain } from './tp-permission-designer';
 import type { TicketDashboard } from '../../../community/tickets/statistics-engine';
@@ -411,6 +411,16 @@ export function buildTTMain(panel: TicketPanel, ref: TicketEntryRef): CCPayload 
   const cfg = resolveTicketType(panel, entry.ticketType);
   const overrideCount = entry.overrides ? Object.keys(entry.overrides).length : 0;
 
+  // `resolveTicketType()` does not normalize the panel — every override object it
+  // returns is still optional (older panels predate the Permission Designer fields).
+  // Never read cfg.memberPerms / cfg.staffPerms / cfg.visibility / cfg.claimBehaviour
+  // directly; merge with defaults first so a legacy/un-normalized panel can't crash the render.
+  const memberPerms    = { ...DEFAULT_MEMBER_PERMS, ...(cfg.memberPerms ?? {}) };
+  const staffPerms     = { ...DEFAULT_STAFF_PERMS, ...(cfg.staffPerms ?? {}) };
+  const visibility     = cfg.visibility ?? 'private';
+  const claimBehaviour = { ...DEFAULT_CLAIM_BEHAVIOUR, ...(cfg.claimBehaviour ?? {}) };
+  const adminRoles     = cfg.adminRoles ?? [];
+
   const embed = verifyBuilder(FILE, fn, 'tt main embed', () =>
     new EmbedBuilder()
       .setColor(color)
@@ -418,13 +428,15 @@ export function buildTTMain(panel: TicketPanel, ref: TicketEntryRef): CCPayload 
       .setDescription(`Ticket type key: \`${entry.ticketType}\`\n${overrideCount > 0 ? `🏷️ **${overrideCount} field(s)** overridden for this type.` : '_No overrides set — this type currently inherits every panel default._'}`)
       .addFields(
         { name: '📁 Open / Closed / Archive', value: `${cfg.openCategory ? `<#${cfg.openCategory}>` : '_(none)_'} → ${cfg.closedCategory ? `<#${cfg.closedCategory}>` : '_(none)_'} → ${cfg.archiveCategory ? `<#${cfg.archiveCategory}>` : '_(none)_'}`, inline: false },
-        { name: '👥 Support / Manager / Admin roles', value: `${cfg.supportRoles.length} / ${cfg.managerRoles.length} / ${cfg.adminRoles.length}`, inline: true },
+        { name: '👥 Support / Manager / Admin roles', value: `${cfg.supportRoles.length} / ${cfg.managerRoles.length} / ${adminRoles.length}`, inline: true },
         { name: '🎯 Priority', value: cfg.priority, inline: true },
-        { name: '🔒 Visibility', value: cfg.visibility, inline: true },
+        { name: '🔒 Visibility', value: visibility, inline: true },
         { name: '🎫 Ticket Limit', value: String(cfg.ticketLimit), inline: true },
         { name: '⏱ Cooldown', value: `${cfg.cooldown}s`, inline: true },
-        { name: '🙈 Hide on Claim', value: cfg.claimBehaviour.hideFromOtherStaffOnClaim ? 'Enabled' : 'Disabled', inline: true },
+        { name: '🙈 Hide on Claim', value: claimBehaviour.hideFromOtherStaffOnClaim ? 'Enabled' : 'Disabled', inline: true },
         { name: '📄 Transcript', value: cfg.transcript.enabled ? 'Enabled' : 'Disabled', inline: true },
+        { name: '👤 Member Perms (View/Send)', value: `${memberPerms.viewChannel ? '✅' : '❌'} / ${memberPerms.sendMessages ? '✅' : '❌'}`, inline: true },
+        { name: '🛠 Staff Perms (Manage Msgs)', value: staffPerms.manageMessages ? '✅' : '❌', inline: true },
       )
       .setFooter({ text: 'Editing individual settings from this hub is coming soon — use "Clear Overrides" to reset this type to panel defaults.' }),
   );
