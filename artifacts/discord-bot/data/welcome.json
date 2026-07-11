@@ -35,7 +35,7 @@
         "fontFamily": "Poppins"
       },
       "welcomeMessage": {
-        "content": "𝑊𝐸𝐿𝐶𝑂𝑀𝐸 𝑇𝑂 {server}\n{memberCount} {user}\n𝐷𝑜𝑛'𝑡 𝐹𝑜𝑟𝑔𝑒𝑡 𝑇𝑜 𝐶ℎ𝑒𝑐𝑘 𝑇ℎ𝑒 𝑅𝑢𝑙𝑒𝑠 <#1216064140393578716>\n\n𝐴𝑙𝑠𝑜 𝐶ℎ𝑒𝑐𝑘 <#1521595067348029571>\n\n𝐆𝐎𝐎𝐃 𝐋𝐔𝐂𝐊 & 𝐇𝐀𝐕𝐄 𝐅𝐔𝐍 🥰",
+        "content": "𝑊𝐸𝐿𝐶𝑂𝑀𝐸 𝑇𝑂 {server}\n{user}\n𝐷𝑜𝑛'𝑡 𝐹𝑜𝑟𝑔𝑒𝑡 𝑇𝑜 𝐶ℎ𝑒𝑐𝑘 𝑇ℎ𝑒 𝑅𝑢𝑙𝑒𝑠 <#1216064140393578716>\n\n𝐴𝑙𝑠𝑜 𝐶ℎ𝑒𝑐𝑘 <#1521595067348029571>\n\n𝐆𝐎𝐎𝐃 𝐋𝐔𝐂𝐊 & 𝐇𝐀𝐕𝐄 𝐅𝐔𝐍 🥰",
         "embedEnabled": true,
         "embedTitle": "",
         "embedDescription": "",

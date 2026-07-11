@@ -502,13 +502,8 @@ export class WelcomeCardDesigner {
       });
       const cardFile = new AttachmentBuilder(png, { name: 'welcome-card.png' });
 
-      const cardEmbed = new EmbedBuilder().setColor(cfg.embedColor);
-      const cardText = fillWelcomeVariables(cfg.messages[0] ?? '', fakeMember);
-      if (cardText) cardEmbed.setDescription(cardText);
-      if (cfg.embedTitle) cardEmbed.setTitle(fillWelcomeVariables(cfg.embedTitle, fakeMember));
-      cardEmbed.setImage('attachment://welcome-card.png');
-
-      await (channel as TextChannel).send({ embeds: [cardEmbed], files: [cardFile] });
+      // Card image sent as a plain attachment — no embed wrapper
+      await (channel as TextChannel).send({ files: [cardFile] });
 
       // 2) Send the welcome message below it
       const wm = cfg.welcomeMessage;

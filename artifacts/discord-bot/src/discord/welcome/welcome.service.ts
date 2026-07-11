@@ -98,18 +98,15 @@ export class WelcomeService {
         if (cfg.channelId) {
           const channel = await member.guild.channels.fetch(cfg.channelId).catch(() => null);
           if (channel?.isTextBased()) {
-            // ── Card embed (existing behaviour, unchanged) ──────────────────
-            const template = pickRandom(cfg.messages) ?? '';
-            const text = fillWelcomeVariables(template, member);
+            // ── Social buttons (shared by card and fallback sends) ──────────
+            const components = cfg.buttons.length
+              ? [new ActionRowBuilder<ButtonBuilder>().addComponents(
+                  cfg.buttons.map(b => new ButtonBuilder().setLabel(b.label).setURL(b.url).setStyle(ButtonStyle.Link).setEmoji(b.emoji ?? '🔗')),
+                )]
+              : [];
 
-            const embed = new EmbedBuilder().setColor(cfg.embedColor);
-            if (text) embed.setDescription(text);
-            if (cfg.embedTitle) embed.setTitle(fillWelcomeVariables(cfg.embedTitle, member));
-
-            // ProBot-style dynamic welcome card: only used once an admin has uploaded
-            // a background via the Welcome Card Designer. Until then, behavior is
-            // byte-for-byte identical to before (cfg.image + avatar thumbnail).
-            let files: AttachmentBuilder[] = [];
+            // ── Card image — plain attachment, no embed ─────────────────────
+            // Sent only when a background has been configured in the Card Designer.
             if (cfg.card.backgroundImage) {
               try {
                 const png = await renderWelcomeCard({
@@ -119,29 +116,22 @@ export class WelcomeService {
                   serverName: member.guild.name,
                   memberCount: member.guild.memberCount,
                 });
-                const attachment = new AttachmentBuilder(png, { name: 'welcome-card.png' });
-                files = [attachment];
-                embed.setImage('attachment://welcome-card.png');
+                const cardFile = new AttachmentBuilder(png, { name: 'welcome-card.png' });
+                await (channel as TextChannel).send({ files: [cardFile], components })
+                  .catch(err => logger.error('Welcome card send failed', err));
               } catch (err) {
-                logger.error('Welcome card render failed — falling back to classic image', err);
-                if (cfg.image) embed.setImage(cfg.image);
-                embed.setThumbnail(member.user.displayAvatarURL());
+                logger.error('Welcome card render failed', err);
+                // Render failure — still deliver any social buttons
+                if (components.length) {
+                  await (channel as TextChannel).send({ components }).catch(() => {});
+                }
               }
-            } else {
-              if (cfg.image) embed.setImage(cfg.image);
-              embed.setThumbnail(member.user.displayAvatarURL());
+            } else if (components.length) {
+              // No card configured yet — send buttons standalone so they still appear
+              await (channel as TextChannel).send({ components }).catch(() => {});
             }
 
-            const components = cfg.buttons.length
-              ? [new ActionRowBuilder<ButtonBuilder>().addComponents(
-                  cfg.buttons.map(b => new ButtonBuilder().setLabel(b.label).setURL(b.url).setStyle(ButtonStyle.Link).setEmoji(b.emoji ?? '🔗')),
-                )]
-              : [];
-
-            await (channel as TextChannel).send({ embeds: [embed], components, files })
-              .catch(err => logger.error('Welcome card send failed', err));
-
-            // ── Welcome message (new: sent directly below the card) ─────────
+            // ── Welcome message (sent directly below the card) ──────────────
             await sendWelcomeMessage(channel as TextChannel, cfg, member);
           }
         }
