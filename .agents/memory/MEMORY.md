@@ -8,3 +8,4 @@
 - [Per-button ticket category override](ticket-button-category-override.md) — each ticket button/select-option can set its own Discord category, overriding the panel default; follow resolveEntry* lookup pattern.
 - [Ticket Type resolved-config wiring](ticket-type-resolved-config-wiring.md) — engines take `cfg` from resolveTicketType(), never raw panel; claim-behaviour enforcement was a documented-but-unwired stub, now fixed.
 - [Ticket Type Designer unrouted IDs](ticket-type-designer-unrouted-ids.md) — "This interaction failed" with no stack trace often means no router branch exists for that custom_id prefix at all; check the router before the handler.
+- [Verification reset on leave/rejoin](verification-leave-rejoin-reset.md) — clear a member's verification attempts on guildMemberRemove so rejoining doesn't hit a stale "already verified" block.

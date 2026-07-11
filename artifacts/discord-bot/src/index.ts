@@ -12,6 +12,7 @@ import { GuildObserver } from './ai/observer/guild-observer';
 import { registerSlashCommands } from './discord/slash-command-registrar';
 import { welcomeService } from './discord/welcome/welcome.service';
 import { serverLogService } from './discord/logging/server-log.service';
+import { verificationService } from './discord/verification/verification.service';
 
 const RETRY_CONNECT_INTERVAL_MS = 15_000;
 
@@ -83,6 +84,7 @@ async function main(): Promise<void> {
   client.on('guildMemberRemove', member => {
     welcomeService.handleLeave(member).catch(err => logger.error('Goodbye handler error', err));
     serverLogService.onMemberLeave(member).catch(err => logger.error('Member leave log error', err));
+    verificationService.handleMemberLeave(member).catch(err => logger.error('Verification leave-reset error', err));
   });
 
   client.on('messageDelete', message => {

@@ -142,3 +142,17 @@ export async function getAttempts(guildId: string, status?: VerificationStatus):
   const data = await load();
   return data.attempts.filter(a => a.guildId === guildId && (!status || a.status === status));
 }
+
+/**
+ * Removes all verification attempts for a user in a guild (across all panels).
+ * Called when a member leaves the server, so that if they rejoin later they
+ * are treated as unverified again instead of being blocked by a stale
+ * "already verified" record.
+ */
+export async function clearAttemptsForUser(guildId: string, userId: string): Promise<number> {
+  const data = await load();
+  const before = data.attempts.length;
+  data.attempts = data.attempts.filter(a => !(a.guildId === guildId && a.userId === userId));
+  await save(data);
+  return before - data.attempts.length;
+}

@@ -18,9 +18,11 @@ import {
   incrementFail,
   getAttempt,
   getAttempts,
+  clearAttemptsForUser,
   type VerificationPanelConfig,
 } from './verification-store';
 import { logger } from '../../utils/logger';
+import type { GuildMember, PartialGuildMember } from 'discord.js';
 
 const EMOJI_SET = ['🍎', '🍌', '🍇', '🍉', '🍒', '🍋', '🍓', '🥝'];
 
@@ -331,6 +333,19 @@ export class VerificationService {
       } else {
         await interaction.reply({ content: '❌ An error occurred during verification.', ephemeral: true }).catch(() => {});
       }
+    }
+  }
+
+  /**
+   * Clears any verification record for a member who leaves the guild, so
+   * that if they rejoin later they are treated as unverified again instead
+   * of being told "You are already verified." While they remain a member,
+   * re-verification stays blocked as before.
+   */
+  async handleMemberLeave(member: GuildMember | PartialGuildMember): Promise<void> {
+    const cleared = await clearAttemptsForUser(member.guild.id, member.id);
+    if (cleared > 0) {
+      logger.info(`[Verification] Cleared ${cleared} verification record(s) for ${member.id} after leaving ${member.guild.id}`);
     }
   }
 
