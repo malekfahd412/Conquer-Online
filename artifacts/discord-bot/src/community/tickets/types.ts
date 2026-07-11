@@ -224,6 +224,7 @@ export interface TicketAutomationConfig {
   autoDeleteAfterCloseMinutes: number; // 0 = disabled
   cooldownSeconds: number; // 0 = disabled
   reminderMinutes: number; // 0 = disabled — nudges staff if unclaimed
+  ageWarnMinutes: number; // 0 = disabled — pings support roles when ticket is quiet for this long (fires once per inactive period, before auto-close)
 }
 
 export interface TicketStatisticsConfig {
@@ -346,6 +347,8 @@ export interface TicketPanel {
   archiveCategory?: string;
   /** Channel that open/close/claim actions are logged to. */
   logChannelId?: string;
+  /** If set, a weekly stats summary embed is auto-posted here every Monday. */
+  statsChannelId?: string;
 
   namingScheme: string;
   ticketLimit: number;
@@ -395,6 +398,13 @@ export function normalizePanel(panel: TicketPanel): TicketPanel {
     visibility:        p.visibility     ?? 'private',
     claimBehaviour:    p.claimBehaviour ?? { ...DEFAULT_CLAIM_BEHAVIOUR },
     forms:             p.forms          ?? [],
+    automation: {
+      autoCloseInactivityMinutes:  panel.automation?.autoCloseInactivityMinutes  ?? 0,
+      autoDeleteAfterCloseMinutes: panel.automation?.autoDeleteAfterCloseMinutes ?? 0,
+      cooldownSeconds:             panel.automation?.cooldownSeconds             ?? 0,
+      reminderMinutes:             panel.automation?.reminderMinutes             ?? 0,
+      ageWarnMinutes:              (panel.automation as any)?.ageWarnMinutes     ?? 0,
+    },
     button:            migrateEntryOverrides(panel.button),
     additionalButtons: (panel.additionalButtons ?? []).map(migrateEntryOverrides),
     selectMenu: panel.selectMenu
@@ -671,6 +681,8 @@ export interface AutomationActivityEntry {
   ticketId: string;
   channelId: string;
   lastActivityAt: number;
+  /** Timestamp of the last age-warning ping sent for this ticket; cleared when new activity arrives so it can re-warn on the next inactive period. */
+  warnedAt?: number;
 }
 
 export interface AutomationLogEntry {

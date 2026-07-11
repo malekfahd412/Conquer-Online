@@ -69,6 +69,9 @@ class TicketSystem {
   private client?: Client;
   private sweepHandle?: NodeJS.Timeout;
   private flowSweepHandle?: NodeJS.Timeout;
+  private weeklyStatsHandle?: NodeJS.Timeout;
+  /** Tracks the last time a weekly stats embed was posted per panel, so we never double-post. */
+  private readonly lastWeeklyPost = new Map<string, number>();
   /** In-memory state for multi-form chains (a form's `nextRules` can route to another form before a ticket is created). */
   private readonly pendingFlows = new Map<string, PendingFormFlow>();
 
@@ -84,7 +87,8 @@ class TicketSystem {
       transcriptEngine.ensureFile(),
       answerEngine.ensureFile(),
     ]);
-    this.sweepHandle = automationEngine.createInactivitySweeper(ticketId => this.autoCloseIfInactive(ticketId));
+    this.sweepHandle = automationEngine.createInactivitySweeper(ticketId => this.runTicketAutomation(ticketId));
+    this.weeklyStatsHandle = setInterval(() => this.runWeeklyStatsCheck().catch(err => logger.warning('[TICKETS] Weekly stats check failed', err)), 60 * 60_000);
     this.flowSweepHandle = setInterval(() => {
       const cutoff = Date.now() - FLOW_TTL_MS;
       for (const [id, flow] of this.pendingFlows) {
@@ -97,6 +101,7 @@ class TicketSystem {
   shutdown(): void {
     if (this.sweepHandle) clearInterval(this.sweepHandle);
     if (this.flowSweepHandle) clearInterval(this.flowSweepHandle);
+    if (this.weeklyStatsHandle) clearInterval(this.weeklyStatsHandle);
   }
 
   /** Which TicketForm (if any) a given ticket-opening button/select-option starts. Falls back to the legacy `modal` when unset. */
@@ -105,7 +110,7 @@ class TicketSystem {
     return ref ? getEntry(panel, ref)?.formId : undefined;
   }
 
-  private async autoCloseIfInactive(ticketId: string): Promise<void> {
+  private async runTicketAutomation(ticketId: string): Promise<void> {
     if (!this.client) return;
     const ticket = await ticketEngine.getById(ticketId);
     if (!ticket || ticket.status !== 'open') {
@@ -115,8 +120,30 @@ class TicketSystem {
     const rawPanel = await panelManager.get(ticket.panelId);
     if (!rawPanel) return;
     const cfg = resolveTicketType(rawPanel, ticket.ticketType);
-    if (cfg.automation.autoCloseInactivityMinutes <= 0) return;
 
+    // ── Age warning — ping support roles once when ticket goes quiet ──────────
+    const ageWarnMinutes = cfg.automation.ageWarnMinutes ?? 0;
+    if (ageWarnMinutes > 0) {
+      const needsWarn = await automationEngine.getTicketsNeedingAgeWarn(ageWarnMinutes);
+      if (needsWarn.includes(ticketId)) {
+        const guild = await this.client.guilds.fetch(ticket.guildId).catch(() => null);
+        if (guild) {
+          const ch = await guild.channels.fetch(ticket.channelId).catch(() => null) as TextChannel | null;
+          if (ch) {
+            const pings = cfg.supportRoles.map(id => `<@&${id}>`).join(' ');
+            const hoursText = ageWarnMinutes >= 60 ? `${Math.round(ageWarnMinutes / 60)}h` : `${ageWarnMinutes}m`;
+            await ch.send({
+              content: pings ? `${pings} ⚠️ This ticket has had no activity for **${hoursText}** and may need attention.` : `⚠️ This ticket has had no activity for **${hoursText}** and may need attention.`,
+            }).catch(() => {});
+            await automationEngine.markWarned(ticketId);
+            logger.info(`[TICKETS] Age warning sent for ticket #${ticket.number} (inactive ${hoursText})`);
+          }
+        }
+      }
+    }
+
+    // ── Auto-close on inactivity ──────────────────────────────────────────────
+    if (cfg.automation.autoCloseInactivityMinutes <= 0) return;
     const inactiveIds = await automationEngine.getInactiveTicketIds(cfg.automation.autoCloseInactivityMinutes);
     if (!inactiveIds.includes(ticketId)) return;
 
@@ -126,6 +153,52 @@ class TicketSystem {
     await ticketEngine.close(guild, cfg, ticket, this.client.user?.id ?? 'automation', 'inactivity auto-close');
     await automationEngine.logAction(ticketId, 'auto-close');
     logger.info(`[TICKETS] Auto-closed inactive ticket #${ticket.number} (panel ${cfg.id}, type ${ticket.ticketType})`);
+  }
+
+  private async runWeeklyStatsCheck(): Promise<void> {
+    if (!this.client) return;
+    const now = new Date();
+    if (now.getUTCDay() !== 1) return; // 1 = Monday
+    const sinceMs = Date.now() - 7 * 24 * 60 * 60_000;
+
+    const panels = await panelManager.getAll();
+    for (const panel of panels) {
+      if (!panel.statsChannelId) continue;
+      const lastPost = this.lastWeeklyPost.get(panel.id) ?? 0;
+      if (Date.now() - lastPost < 5 * 24 * 60 * 60_000) continue; // already posted this week
+
+      try {
+        const guild = await this.client.guilds.fetch(panel.guildId).catch(() => null);
+        if (!guild) continue;
+        const ch = await guild.channels.fetch(panel.statsChannelId).catch(() => null) as TextChannel | null;
+        if (!ch) continue;
+
+        const stats = await statisticsEngine.getWeeklyStats(panel.guildId, sinceMs, panel.id);
+        const fmtTime = (ms: number) => ms > 0 ? (ms < 60_000 ? `${Math.round(ms / 1000)}s` : `${Math.round(ms / 60_000)}m`) : '_N/A_';
+        const topStaffLines = stats.topStaff.length
+          ? stats.topStaff.map(([id, n], i) => `${i + 1}. <@${id}> — ${n} claim${n !== 1 ? 's' : ''}`).join('\n')
+          : '_No claims this week_';
+
+        const embed = new EmbedBuilder()
+          .setColor(panel.embed.color)
+          .setTitle(`📊 Weekly Stats — ${panel.name}`)
+          .setDescription(`Summary for the 7 days ending <t:${Math.floor(Date.now() / 1000)}:D>`)
+          .addFields(
+            { name: '🎫 Opened', value: String(stats.opened), inline: true },
+            { name: '✅ Closed', value: String(stats.closed), inline: true },
+            { name: '⏱ Avg First Response', value: fmtTime(stats.avgResponseMs), inline: true },
+            { name: '🏆 Top Staff (by claims)', value: topStaffLines, inline: false },
+          )
+          .setFooter({ text: `Panel: ${panel.name} • Auto-posted every Monday` })
+          .setTimestamp();
+
+        await ch.send({ embeds: [embed] });
+        this.lastWeeklyPost.set(panel.id, Date.now());
+        logger.info(`[TICKETS] Weekly stats posted for panel "${panel.name}" → #${panel.statsChannelId}`);
+      } catch (err) {
+        logger.warning(`[TICKETS] Failed to post weekly stats for panel ${panel.id}`, err);
+      }
+    }
   }
 
   /** Full panel-open flow shared by button clicks and select-menu selections. */

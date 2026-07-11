@@ -62,6 +62,30 @@ export class StatisticsEngine {
     const events = await this.eventsFor(guildId, panelId);
     return events.filter(e => e.type === type).length;
   }
+
+  /** Returns stats for a rolling time window (e.g. last 7 days). Used for the weekly summary post. */
+  async getWeeklyStats(guildId: string, sinceMs: number, panelId?: string): Promise<{
+    opened: number;
+    closed: number;
+    avgResponseMs: number;
+    topStaff: [string, number][];
+  }> {
+    const events = (await this.eventsFor(guildId, panelId)).filter(e => e.timestamp >= sinceMs);
+    const opened = new Set(events.filter(e => e.type === 'opened').map(e => e.ticketId)).size;
+    const closed = new Set(events.filter(e => e.type === 'closed').map(e => e.ticketId)).size;
+    const responseTimes = events
+      .filter((e): e is StatisticsEvent & { responseMs: number } => e.type === 'claimed' && e.responseMs !== undefined)
+      .map(e => e.responseMs);
+    const avgResponseMs = responseTimes.length
+      ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+      : 0;
+    const claimCounts = new Map<string, number>();
+    for (const e of events) {
+      if (e.type === 'claimed') claimCounts.set(e.userId, (claimCounts.get(e.userId) ?? 0) + 1);
+    }
+    const topStaff = Array.from(claimCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    return { opened, closed, avgResponseMs, topStaff };
+  }
 }
 
 export const statisticsEngine = new StatisticsEngine();

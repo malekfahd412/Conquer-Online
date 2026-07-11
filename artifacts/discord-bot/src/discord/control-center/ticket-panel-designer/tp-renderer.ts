@@ -801,6 +801,7 @@ export function buildAutomationSection(panel: TicketPanel): CCPayload {
         { name: '🗑 Auto-delete after close', value: a.autoDeleteAfterCloseMinutes > 0 ? `${a.autoDeleteAfterCloseMinutes}m` : '🔴 Off', inline: true },
         { name: '⏱ Cooldown',                value: a.cooldownSeconds > 0 ? `${a.cooldownSeconds}s` : '🔴 Off',           inline: true },
         { name: '🔔 Staff Reminder',          value: a.reminderMinutes > 0 ? `${a.reminderMinutes}m` : '🔴 Off',           inline: true },
+        { name: '⚠️ Age Warning',             value: (a.ageWarnMinutes ?? 0) > 0 ? `${a.ageWarnMinutes}m` : '🔴 Off',     inline: true },
       )
       .setFooter({ text: 'Set any value to 0 to disable that automation' }),
   );
@@ -1350,10 +1351,11 @@ export function buildEditAutomationModal(panel: TicketPanel): ModalBuilder {
     .setCustomId(TP.modal(panel.id, 'automation'))
     .setTitle('Automation')
     .addComponents(
-      row(ti('autoCloseInactivityMinutes',  'Auto-close after (minutes)', TextInputStyle.Short, String(a.autoCloseInactivityMinutes), '0 = off', true, 6)),
+      row(ti('autoCloseInactivityMinutes',  'Auto-close after (minutes)',   TextInputStyle.Short, String(a.autoCloseInactivityMinutes),  '0 = off', true, 6)),
       row(ti('autoDeleteAfterCloseMinutes', 'Auto-delete after close (min)', TextInputStyle.Short, String(a.autoDeleteAfterCloseMinutes), '0 = off', true, 6)),
-      row(ti('cooldownSeconds',             'Cooldown (seconds)',           TextInputStyle.Short, String(a.cooldownSeconds),             '0 = off', true, 6)),
-      row(ti('reminderMinutes',             'Staff reminder (minutes)',     TextInputStyle.Short, String(a.reminderMinutes),             '0 = off', true, 6)),
+      row(ti('cooldownSeconds',             'Cooldown (seconds)',            TextInputStyle.Short, String(a.cooldownSeconds),             '0 = off', true, 6)),
+      row(ti('reminderMinutes',             'Staff reminder (minutes)',      TextInputStyle.Short, String(a.reminderMinutes),             '0 = off', true, 6)),
+      row(ti('ageWarnMinutes',              'Age warning (minutes)',         TextInputStyle.Short, String(a.ageWarnMinutes ?? 0),         'Pings support roles once when a ticket is quiet this long. 0 = off', true, 6)),
     );
 }
 
@@ -1393,9 +1395,10 @@ export function buildEditAccessRolesModal(panel: TicketPanel): ModalBuilder {
 export function buildEditLogChannelModal(panel: TicketPanel): ModalBuilder {
   return new ModalBuilder()
     .setCustomId(TP.modal(panel.id, 'logchannel'))
-    .setTitle('Log Channel')
+    .setTitle('Channels')
     .addComponents(
-      row(ti('logChannelId', 'Log Channel ID', TextInputStyle.Short, panel.logChannelId || '', 'Channel where ticket actions are logged', false, 20)),
+      row(ti('logChannelId',   'Log Channel ID',         TextInputStyle.Short, panel.logChannelId   || '', 'Channel where ticket actions are logged', false, 20)),
+      row(ti('statsChannelId', 'Weekly Stats Channel ID', TextInputStyle.Short, panel.statsChannelId || '', 'Posts a stats summary here every Monday. Leave blank to disable', false, 20)),
     );
 }
 

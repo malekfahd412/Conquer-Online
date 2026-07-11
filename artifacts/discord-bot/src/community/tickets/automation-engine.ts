@@ -48,8 +48,12 @@ export class AutomationEngine {
   async touchActivity(ticketId: string, channelId: string): Promise<void> {
     await store.mutate(data => {
       const existing = data.activity.find(a => a.ticketId === ticketId);
-      if (existing) existing.lastActivityAt = Date.now();
-      else data.activity.push({ ticketId, channelId, lastActivityAt: Date.now() });
+      if (existing) {
+        existing.lastActivityAt = Date.now();
+        delete existing.warnedAt; // reset so age-warning can fire again next inactive period
+      } else {
+        data.activity.push({ ticketId, channelId, lastActivityAt: Date.now() });
+      }
     });
   }
 
@@ -64,6 +68,24 @@ export class AutomationEngine {
     const data = await store.read();
     const cutoff = Date.now() - thresholdMinutes * 60_000;
     return data.activity.filter(a => a.lastActivityAt < cutoff).map(a => a.ticketId);
+  }
+
+  /** Returns ticket IDs that have been inactive for at least `minutes` and haven't been warned yet. */
+  async getTicketsNeedingAgeWarn(minutes: number): Promise<string[]> {
+    if (minutes <= 0) return [];
+    const data = await store.read();
+    const cutoff = Date.now() - minutes * 60_000;
+    return data.activity
+      .filter(a => a.lastActivityAt < cutoff && !a.warnedAt)
+      .map(a => a.ticketId);
+  }
+
+  /** Marks a ticket as warned so the age-warning doesn't fire again until there's new activity. */
+  async markWarned(ticketId: string): Promise<void> {
+    await store.mutate(data => {
+      const entry = data.activity.find(a => a.ticketId === ticketId);
+      if (entry) entry.warnedAt = Date.now();
+    });
   }
 
   async logAction(ticketId: string, action: AutomationLogEntry['action']): Promise<void> {

@@ -1307,7 +1307,7 @@ export class TicketPanelDesigner {
       modal: { enabled: false, questions: [] },
       forms: [],
       transcript: { enabled: false, formats: ['html'], dmUser: false },
-      automation: { autoCloseInactivityMinutes: 0, autoDeleteAfterCloseMinutes: 0, cooldownSeconds: 0, reminderMinutes: 0 },
+      automation: { autoCloseInactivityMinutes: 0, autoDeleteAfterCloseMinutes: 0, cooldownSeconds: 0, reminderMinutes: 0, ageWarnMinutes: 0 },
       statistics: { trackResponseTime: true, trackClaims: true },
       enabled: true,
     });
@@ -1388,6 +1388,7 @@ export class TicketPanelDesigner {
               autoDeleteAfterCloseMinutes: parseIntSafe(getField(interaction, 'autoDeleteAfterCloseMinutes', true), 0, 43200, 0),
               cooldownSeconds:             parseIntSafe(getField(interaction, 'cooldownSeconds', true), 0, 86400, 0),
               reminderMinutes:             parseIntSafe(getField(interaction, 'reminderMinutes', true), 0, 10080, 0),
+              ageWarnMinutes:              parseIntSafe(getField(interaction, 'ageWarnMinutes', true), 0, 43200, 0),
             },
           };
           sectionKey = 'automation';
@@ -1425,8 +1426,9 @@ export class TicketPanelDesigner {
           break;
         }
         case 'logchannel': {
-          const logChannelId = getField(interaction, 'logChannelId', false);
-          patch = { logChannelId: logChannelId || undefined };
+          const logChannelId   = getField(interaction, 'logChannelId',   false);
+          const statsChannelId = getField(interaction, 'statsChannelId', false);
+          patch = { logChannelId: logChannelId || undefined, statsChannelId: statsChannelId || undefined };
           sectionKey = 'permissions';
           break;
         }
@@ -1942,8 +1944,9 @@ export class TicketPanelDesigner {
           break;
         }
         case 'logchannel': {
-          const logChannelId = getField(interaction, 'logChannelId', false);
-          patch = { logChannelId: logChannelId || undefined };
+          const logChannelId   = getField(interaction, 'logChannelId',   false);
+          const statsChannelId = getField(interaction, 'statsChannelId', false);
+          patch = { logChannelId: logChannelId || undefined, statsChannelId: statsChannelId || undefined };
           break;
         }
         default:

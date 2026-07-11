@@ -152,6 +152,12 @@ export class PanelManager {
     return data.panels.filter(p => p.guildId === guildId && (opts.includeArchived || !p.archivedAt));
   }
 
+  /** Returns all panels across all guilds — used by the weekly stats scheduler. */
+  async getAll(): Promise<TicketPanel[]> {
+    const data = await store.read();
+    return data.panels;
+  }
+
   /** Direct access for the migration runner only — bypasses id generation to preserve legacy IDs. */
   async importRaw(panels: TicketPanel[]): Promise<void> {
     await store.mutate(data => {
