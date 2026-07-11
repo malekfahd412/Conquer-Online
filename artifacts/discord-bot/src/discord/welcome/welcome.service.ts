@@ -3,11 +3,13 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  AttachmentBuilder,
   type GuildMember,
   type PartialGuildMember,
   type TextChannel,
 } from 'discord.js';
 import { getWelcomeConfig, getGoodbyeConfig } from './welcome-store';
+import { renderWelcomeCard } from './welcome-card-renderer';
 import { logger } from '../../utils/logger';
 
 function fillVariables(template: string, member: GuildMember | PartialGuildMember): string {
@@ -50,14 +52,39 @@ export class WelcomeService {
           if (channel?.isTextBased()) {
             const embed = new EmbedBuilder().setColor(cfg.embedColor).setDescription(text);
             if (cfg.embedTitle) embed.setTitle(fillVariables(cfg.embedTitle, member));
-            if (cfg.image) embed.setImage(cfg.image);
-            embed.setThumbnail(member.user.displayAvatarURL());
+
+            // ProBot-style dynamic welcome card: only used once an admin has uploaded
+            // a background via the Welcome Card Designer. Until then, behavior is
+            // byte-for-byte identical to before (cfg.image + avatar thumbnail).
+            let files: AttachmentBuilder[] = [];
+            if (cfg.card.backgroundImage) {
+              try {
+                const png = await renderWelcomeCard({
+                  card: cfg.card,
+                  avatarUrl: member.user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true }),
+                  displayName: member.displayName,
+                  serverName: member.guild.name,
+                  memberCount: member.guild.memberCount,
+                });
+                const attachment = new AttachmentBuilder(png, { name: 'welcome-card.png' });
+                files = [attachment];
+                embed.setImage('attachment://welcome-card.png');
+              } catch (err) {
+                logger.error('Welcome card render failed — falling back to classic image', err);
+                if (cfg.image) embed.setImage(cfg.image);
+                embed.setThumbnail(member.user.displayAvatarURL());
+              }
+            } else {
+              if (cfg.image) embed.setImage(cfg.image);
+              embed.setThumbnail(member.user.displayAvatarURL());
+            }
+
             const components = cfg.buttons.length
               ? [new ActionRowBuilder<ButtonBuilder>().addComponents(
                   cfg.buttons.map(b => new ButtonBuilder().setLabel(b.label).setURL(b.url).setStyle(ButtonStyle.Link).setEmoji(b.emoji ?? '🔗')),
                 )]
               : [];
-            await (channel as TextChannel).send({ embeds: [embed], components }).catch(err => logger.error('Welcome message send failed', err));
+            await (channel as TextChannel).send({ embeds: [embed], components, files }).catch(err => logger.error('Welcome message send failed', err));
           }
         }
 

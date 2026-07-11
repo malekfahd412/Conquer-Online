@@ -261,6 +261,10 @@ export class ControlCenterService {
             .setLabel('🎭 Set Auto-Role')
             .setCustomId(CC.WELCOME_AUTOROLE)
             .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setLabel('🖼️ Welcome Card Designer')
+            .setCustomId('wc:home')
+            .setStyle(ButtonStyle.Primary),
         ),
       );
     }

@@ -55,20 +55,23 @@
       "id": "vpanel_1783759164164_zoxq8",
       "createdAt": 1783759164164,
       "messageId": "1525421238858551298"
+    },
+    {
+      "guildId": "1213437502078062674",
+      "channelId": "1521595067348029571",
+      "title": "🛡️ Verification Center",
+      "description": "Welcome to **Mufasa Conquer**!\n\nBefore accessing the server, you must complete the verification process.\n\nClick the button below to verify your account and gain access to all server channels.\n\n### After verification you'll receive:\n✅ Full server access\n✅ Community channels\n✅ Events & announcements\n✅ Support & tickets\n\n> This verification helps protect the server from spam, bots, and fake accounts.",
+      "color": 5763719,
+      "method": "button",
+      "verifiedRoleId": "1213437502078062680",
+      "minAccountAgeDays": 0,
+      "cooldownSeconds": 30,
+      "id": "vpanel_1783794066464_5lx88",
+      "createdAt": 1783794066464,
+      "messageId": "1525567629861847193"
     }
   ],
   "attempts": [
-    {
-      "guildId": "1213437502078062674",
-      "panelId": "vpanel_1783733987335_9dcz1",
-      "userId": "723982702625423430",
-      "status": "verified",
-      "method": "button",
-      "id": "vattempt_1783734185759_s6l9x",
-      "createdAt": 1783734185759,
-      "lastAttemptAt": 1783734185759,
-      "failCount": 0
-    },
     {
       "guildId": "1213437502078062674",
       "panelId": "vpanel_1783733987335_9dcz1",
@@ -105,23 +108,23 @@
     {
       "guildId": "1213437502078062674",
       "panelId": "vpanel_1783759164164_zoxq8",
-      "userId": "723982702625423430",
-      "status": "verified",
-      "method": "button",
-      "id": "vattempt_1783767419974_fqj5k",
-      "createdAt": 1783767419974,
-      "lastAttemptAt": 1783767419974,
-      "failCount": 0
-    },
-    {
-      "guildId": "1213437502078062674",
-      "panelId": "vpanel_1783759164164_zoxq8",
       "userId": "1407085985166135336",
       "status": "verified",
       "method": "button",
       "id": "vattempt_1783773984179_2zlwz",
       "createdAt": 1783773984179,
       "lastAttemptAt": 1783773984179,
+      "failCount": 0
+    },
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "vpanel_1783794066464_5lx88",
+      "userId": "723982702625423430",
+      "status": "verified",
+      "method": "button",
+      "id": "vattempt_1783794106102_5lx0z",
+      "createdAt": 1783794106102,
+      "lastAttemptAt": 1783794106102,
       "failCount": 0
     }
   ]

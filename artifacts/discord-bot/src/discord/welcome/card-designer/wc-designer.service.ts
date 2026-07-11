@@ -1,0 +1,348 @@
+import {
+  AttachmentBuilder,
+  MessageFlags,
+  type Guild,
+  type GuildMember,
+  type ButtonInteraction,
+  type StringSelectMenuInteraction,
+  type ModalSubmitInteraction,
+  type Interaction,
+} from 'discord.js';
+import type { PermissionManager } from '../../../ai/permission-manager';
+import { getWelcomeConfig, setWelcomeCardConfig, type WelcomeCardConfig } from '../welcome-store';
+import { renderWelcomeCard, saveBackgroundImage, FONT_FAMILIES } from '../welcome-card-renderer';
+import {
+  buildWCHome,
+  buildWCBorder,
+  buildWCFeedback,
+  buildAvatarModal,
+  buildBorderModal,
+  buildUsernamePosModal,
+  buildServerNamePosModal,
+  buildMemberCountPosModal,
+  buildStyleModal,
+} from './wc-ui';
+import { WC } from './wc-ids';
+import { logger } from '../../../utils/logger';
+
+type NavInteraction = ButtonInteraction | StringSelectMenuInteraction;
+
+const UNKNOWN_INTERACTION  = 10062;
+const ALREADY_ACKNOWLEDGED = 40060;
+
+function isStale(err: unknown): boolean {
+  if (err && typeof err === 'object' && 'code' in err) {
+    const code = (err as { code: unknown }).code;
+    return code === UNKNOWN_INTERACTION || code === ALREADY_ACKNOWLEDGED;
+  }
+  return false;
+}
+
+function getField(interaction: ModalSubmitInteraction, key: string): string {
+  try {
+    return interaction.fields.getTextInputValue(key).trim();
+  } catch {
+    return '';
+  }
+}
+
+function parseIntSafe(raw: string, min: number, max: number, fallback: number): number {
+  const n = parseInt(raw.trim(), 10);
+  if (isNaN(n)) return fallback;
+  return Math.max(min, Math.min(max, n));
+}
+
+function parseHexColor(raw: string, fallback: string): string {
+  const clean = raw.trim();
+  return /^#[0-9a-fA-F]{6}$/.test(clean) ? clean.toUpperCase() : (/^[0-9a-fA-F]{6}$/.test(clean) ? `#${clean.toUpperCase()}` : fallback);
+}
+
+const ALLOWED_IMAGE_TYPES: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+};
+
+export class WelcomeCardDesigner {
+  constructor(private readonly permissionManager: PermissionManager) {}
+
+  async handleInteraction(
+    interaction: ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction,
+    guild: Guild,
+  ): Promise<void> {
+    if (!this.isAdmin(interaction)) {
+      if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: '❌ Admin access required.', flags: MessageFlags.Ephemeral });
+      }
+      return;
+    }
+
+    try {
+      if (interaction.isButton()) {
+        await this.routeButton(interaction, guild);
+      } else if (interaction.isStringSelectMenu()) {
+        await this.routeSelectMenu(interaction, guild);
+      } else if (interaction.isModalSubmit()) {
+        await this.routeModal(interaction, guild);
+      }
+    } catch (err) {
+      if (isStale(err)) {
+        logger.info('[WCD] Stale interaction dropped');
+        return;
+      }
+      logger.error('[WCD] Interaction error', err);
+      await this.safeError(interaction, err);
+    }
+  }
+
+  // ── Buttons ────────────────────────────────────────────────────────────────
+
+  private async routeButton(interaction: ButtonInteraction, guild: Guild): Promise<void> {
+    const id = interaction.customId;
+    const cfg = await getWelcomeConfig(guild.id);
+
+    switch (id) {
+      case WC.HOME:
+        await this.nav(interaction, buildWCHome(cfg));
+        return;
+      case WC.BORDER:
+        await this.nav(interaction, buildWCBorder(cfg));
+        return;
+      case WC.BORDER_TOGGLE: {
+        const updated = await setWelcomeCardConfig(guild.id, { avatarBorderEnabled: !cfg.card.avatarBorderEnabled });
+        await this.nav(interaction, buildWCBorder(updated));
+        return;
+      }
+      case WC.AVATAR:
+        await interaction.showModal(buildAvatarModal(cfg.card));
+        return;
+      case WC.BORDER_EDIT:
+        await interaction.showModal(buildBorderModal(cfg.card));
+        return;
+      case WC.TEXT_USERNAME:
+        await interaction.showModal(buildUsernamePosModal(cfg.card));
+        return;
+      case WC.TEXT_SERVER:
+        await interaction.showModal(buildServerNamePosModal(cfg.card));
+        return;
+      case WC.TEXT_MEMBERS:
+        await interaction.showModal(buildMemberCountPosModal(cfg.card));
+        return;
+      case WC.STYLE:
+        await interaction.showModal(buildStyleModal(cfg.card));
+        return;
+      case WC.BG_UPLOAD:
+        await this.handleBgUpload(interaction, guild);
+        return;
+      case WC.PREVIEW:
+        await this.handlePreview(interaction, guild);
+        return;
+      default:
+        await this.nav(interaction, buildWCFeedback(false, `Unknown action: \`${id}\``));
+    }
+  }
+
+  // ── Select menus ─────────────────────────────────────────────────────────────
+
+  private async routeSelectMenu(interaction: StringSelectMenuInteraction, guild: Guild): Promise<void> {
+    if (interaction.customId !== WC.FONT_SELECT) return;
+    const family = interaction.values[0];
+    if (!FONT_FAMILIES.includes(family as (typeof FONT_FAMILIES)[number])) {
+      await this.nav(interaction, buildWCFeedback(false, `Unknown font family: \`${family}\``));
+      return;
+    }
+    const updated = await setWelcomeCardConfig(guild.id, { fontFamily: family });
+    await this.nav(interaction, buildWCHome(updated));
+  }
+
+  // ── Modals ───────────────────────────────────────────────────────────────────
+
+  private async routeModal(interaction: ModalSubmitInteraction, guild: Guild): Promise<void> {
+    const id = interaction.customId;
+    const cfg = await getWelcomeConfig(guild.id);
+
+    let patch: Partial<WelcomeCardConfig> = {};
+
+    switch (id) {
+      case WC.AVATAR_M: {
+        patch = {
+          avatarX: parseIntSafe(getField(interaction, 'avatarX'), 0, 4000, cfg.card.avatarX),
+          avatarY: parseIntSafe(getField(interaction, 'avatarY'), 0, 4000, cfg.card.avatarY),
+          avatarSize: parseIntSafe(getField(interaction, 'avatarSize'), 8, 2000, cfg.card.avatarSize),
+        };
+        break;
+      }
+      case WC.BORDER_M: {
+        patch = {
+          avatarBorderWidth: parseIntSafe(getField(interaction, 'borderWidth'), 0, 100, cfg.card.avatarBorderWidth),
+          avatarBorderColor: parseHexColor(getField(interaction, 'borderColor'), cfg.card.avatarBorderColor),
+        };
+        break;
+      }
+      case WC.TEXT_USERNAME_M: {
+        patch = {
+          usernameX: parseIntSafe(getField(interaction, 'x'), 0, 4000, cfg.card.usernameX),
+          usernameY: parseIntSafe(getField(interaction, 'y'), 0, 4000, cfg.card.usernameY),
+        };
+        break;
+      }
+      case WC.TEXT_SERVER_M: {
+        patch = {
+          serverNameX: parseIntSafe(getField(interaction, 'x'), 0, 4000, cfg.card.serverNameX),
+          serverNameY: parseIntSafe(getField(interaction, 'y'), 0, 4000, cfg.card.serverNameY),
+        };
+        break;
+      }
+      case WC.TEXT_MEMBERS_M: {
+        patch = {
+          memberCountX: parseIntSafe(getField(interaction, 'x'), 0, 4000, cfg.card.memberCountX),
+          memberCountY: parseIntSafe(getField(interaction, 'y'), 0, 4000, cfg.card.memberCountY),
+        };
+        break;
+      }
+      case WC.STYLE_M: {
+        patch = {
+          fontSize: parseIntSafe(getField(interaction, 'fontSize'), 8, 200, cfg.card.fontSize),
+          textColor: parseHexColor(getField(interaction, 'textColor'), cfg.card.textColor),
+        };
+        break;
+      }
+      default:
+        await interaction.reply({ ...buildWCFeedback(false, `Unknown modal: \`${id}\``), flags: MessageFlags.Ephemeral });
+        return;
+    }
+
+    const updated = await setWelcomeCardConfig(guild.id, patch);
+    await interaction.reply({ ...buildWCHome(updated), flags: MessageFlags.Ephemeral });
+  }
+
+  // ── Background upload flow ──────────────────────────────────────────────────
+
+  private async handleBgUpload(interaction: ButtonInteraction, guild: Guild): Promise<void> {
+    await interaction.reply({
+      content: '📤 Send the background image as an attachment **in this channel** within 60 seconds (PNG, JPEG or WebP).',
+      flags: MessageFlags.Ephemeral,
+    });
+
+    const channel = interaction.channel;
+    if (!channel || !('awaitMessages' in channel)) {
+      await interaction.followUp({ content: '❌ This channel does not support message collection.', flags: MessageFlags.Ephemeral });
+      return;
+    }
+
+    let collected;
+    try {
+      collected = await channel.awaitMessages({
+        filter: m => m.author.id === interaction.user.id && m.attachments.size > 0,
+        max: 1,
+        time: 60_000,
+      });
+    } catch {
+      collected = null;
+    }
+
+    const message = collected?.first();
+    if (!message) {
+      await interaction.followUp({ content: '⌛ Upload timed out — no changes made.', flags: MessageFlags.Ephemeral });
+      return;
+    }
+
+    const attachment = message.attachments.first();
+    const ext = attachment ? ALLOWED_IMAGE_TYPES[attachment.contentType ?? ''] : undefined;
+    if (!attachment || !ext) {
+      await interaction.followUp({ content: '❌ That attachment is not a supported image type (PNG, JPEG, WebP).', flags: MessageFlags.Ephemeral });
+      return;
+    }
+
+    try {
+      const res = await fetch(attachment.url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buffer = Buffer.from(await res.arrayBuffer());
+      const relPath = await saveBackgroundImage(guild.id, buffer, ext);
+      const updated = await setWelcomeCardConfig(guild.id, { backgroundImage: relPath });
+
+      await message.delete().catch(() => {});
+
+      const png = await renderWelcomeCard({
+        card: updated.card,
+        avatarUrl: interaction.user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true }),
+        displayName: (interaction.member as GuildMember)?.displayName ?? interaction.user.username,
+        serverName: guild.name,
+        memberCount: guild.memberCount,
+      });
+      const previewFile = new AttachmentBuilder(png, { name: 'welcome-card-preview.png' });
+
+      await interaction.followUp({
+        content: '✅ Background saved and the welcome card is now enabled. Here is a live preview:',
+        files: [previewFile],
+        flags: MessageFlags.Ephemeral,
+      });
+    } catch (err) {
+      logger.error('[WCD] Background upload failed', err);
+      await interaction.followUp({ content: `❌ Failed to save background image: ${err instanceof Error ? err.message : String(err)}`, flags: MessageFlags.Ephemeral });
+    }
+  }
+
+  // ── Live preview ─────────────────────────────────────────────────────────────
+
+  private async handlePreview(interaction: ButtonInteraction, guild: Guild): Promise<void> {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const cfg = await getWelcomeConfig(guild.id);
+
+    try {
+      const png = await renderWelcomeCard({
+        card: cfg.card,
+        avatarUrl: interaction.user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true }),
+        displayName: (interaction.member as GuildMember)?.displayName ?? interaction.user.username,
+        serverName: guild.name,
+        memberCount: guild.memberCount,
+      });
+      const file = new AttachmentBuilder(png, { name: 'welcome-card-preview.png' });
+      await interaction.editReply({
+        content: cfg.card.backgroundImage
+          ? '👀 Live preview (using your own avatar and name as a stand-in for a new member):'
+          : '👀 Live preview using the default background — upload one to customize it:',
+        files: [file],
+      });
+    } catch (err) {
+      logger.error('[WCD] Preview render failed', err);
+      await interaction.editReply({ content: `❌ Failed to render preview: ${err instanceof Error ? err.message : String(err)}` });
+    }
+  }
+
+  // ── Nav / error helpers ──────────────────────────────────────────────────────
+
+  private async nav(interaction: NavInteraction, payload: { content: string; embeds: unknown[]; components: unknown[] }): Promise<void> {
+    if (interaction.deferred || interaction.replied) {
+      await interaction.editReply(payload as never);
+    } else {
+      await interaction.update(payload as never);
+    }
+  }
+
+  private async safeError(interaction: Interaction, err: unknown): Promise<void> {
+    if (!interaction.isRepliable()) return;
+    const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
+    try {
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply({ ...buildWCFeedback(false, message) } as never).catch(() => {});
+      } else {
+        await interaction.reply({ ...buildWCFeedback(false, message), flags: MessageFlags.Ephemeral } as never);
+      }
+    } catch (deliveryErr) {
+      if (isStale(deliveryErr)) return;
+      logger.error('[WCD] Failed to deliver error', deliveryErr);
+    }
+  }
+
+  private isAdmin(interaction: Interaction): boolean {
+    if (!interaction.guild) return false;
+    const member = interaction.member;
+    if (!member) return false;
+    try {
+      return this.permissionManager.isAdmin(member as GuildMember);
+    } catch {
+      return false;
+    }
+  }
+}

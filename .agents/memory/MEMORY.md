@@ -9,3 +9,4 @@
 - [Ticket Type resolved-config wiring](ticket-type-resolved-config-wiring.md) — engines take `cfg` from resolveTicketType(), never raw panel; claim-behaviour enforcement was a documented-but-unwired stub, now fixed.
 - [Ticket Type Designer unrouted IDs](ticket-type-designer-unrouted-ids.md) — "This interaction failed" with no stack trace often means no router branch exists for that custom_id prefix at all; check the router before the handler.
 - [Verification reset on leave/rejoin](verification-leave-rejoin-reset.md) — clear a member's verification attempts on guildMemberRemove so rejoining doesn't hit a stale "already verified" block.
+- [Welcome Card system](welcome-card-system.md) — canvas join-image feature toggled by presence of `card.backgroundImage`; coordinate semantics, shared text styling, and local background upload approach.

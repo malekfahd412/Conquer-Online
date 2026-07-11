@@ -14,6 +14,7 @@ import type { ConversationMessage, ToolCall, ToolResult } from './types';
 import { ResponseDeliveryService } from '../discord/response-delivery.service';
 import { ControlCenterService } from '../discord/control-center';
 import { TicketPanelDesigner, isTPInteraction } from '../discord/control-center/ticket-panel-designer';
+import { WelcomeCardDesigner, isWCInteraction } from '../discord/welcome/card-designer';
 import { runStartupAudit, runCCRenderAudit } from '../discord/control-center/cc-test';
 import { ticketSystem } from '../community/tickets';
 import { verificationService } from '../discord/verification/verification.service';
@@ -64,6 +65,7 @@ export class AIService {
   private readonly pendingButtons = new Map<string, PendingButton>();
   private readonly controlCenter: ControlCenterService;
   private readonly ticketPanelDesigner: TicketPanelDesigner;
+  private readonly welcomeCardDesigner: WelcomeCardDesigner;
   private voiceManager: VoiceManager | null = null;
 
   constructor(private readonly config: AIConfig) {
@@ -78,6 +80,7 @@ export class AIService {
     this.verifier = new Verifier();
     this.controlCenter = new ControlCenterService(this.toolRegistry, this.permissionManager);
     this.ticketPanelDesigner = new TicketPanelDesigner(this.permissionManager);
+    this.welcomeCardDesigner = new WelcomeCardDesigner(this.permissionManager);
   }
 
   async initialize(): Promise<void> {
@@ -213,6 +216,20 @@ export class AIService {
         if (interaction.guild) {
           this.ticketPanelDesigner.handleInteraction(interaction, interaction.guild).catch(err =>
             logger.error('Ticket Panel Designer interaction error', err),
+          );
+        }
+        return;
+      }
+
+      // ── Welcome Card Designer interactions (wc:* custom IDs) ───────────────
+      if (
+        (interaction.isButton() && isWCInteraction(interaction.customId)) ||
+        (interaction.isStringSelectMenu() && isWCInteraction(interaction.customId)) ||
+        (interaction.isModalSubmit() && isWCInteraction(interaction.customId))
+      ) {
+        if (interaction.guild) {
+          this.welcomeCardDesigner.handleInteraction(interaction, interaction.guild).catch(err =>
+            logger.error('Welcome Card Designer interaction error', err),
           );
         }
         return;
