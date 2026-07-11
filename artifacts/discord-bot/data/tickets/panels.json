@@ -148,17 +148,32 @@
         {
           "label": "👨🏻‍💼 𝐒𝐔𝐏𝐏𝐎𝐑",
           "style": "Secondary",
-          "ticketType": "Support"
+          "ticketType": "Support",
+          "overrides": {
+            "openCategory": "1521582460788281395",
+            "closedCategory": "1521582996581257508",
+            "archiveCategory": "1525381631437705316"
+          }
         },
         {
           "label": "🆘 𝐒𝐔𝐏𝐏𝐎𝐑𝐓 𝐌𝐀𝐍𝐆𝐄𝐑",
           "style": "Success",
-          "ticketType": "Support Manger"
+          "ticketType": "Support Manger",
+          "overrides": {
+            "openCategory": "1521582519105880328",
+            "closedCategory": "1521583046749323484",
+            "archiveCategory": "1525381631437705316"
+          }
         },
         {
           "label": "🤝 𝐈𝐍𝐓𝐄𝐑𝐕𝐈𝐄𝐖",
           "style": "Danger",
-          "ticketType": "Staff"
+          "ticketType": "Staff",
+          "overrides": {
+            "openCategory": "1524924586209050704",
+            "closedCategory": "1524924862144184371",
+            "archiveCategory": "1525381631437705316"
+          }
         }
       ],
       "permissions": [],
@@ -215,7 +230,7 @@
       "id": "panel_1783747543306_kk73l",
       "guildId": "1213437502078062674",
       "createdAt": 1783747543306,
-      "updatedAt": 1783755510769,
+      "updatedAt": 1783758557395,
       "messageId": "1525387466247372911",
       "openCategory": "1521582368484491384",
       "closedCategory": "1521582953283719349",

@@ -585,7 +585,7 @@ export function buildTTNaming(panel: TicketPanel, ref: TicketEntryRef): CCPayloa
       .setColor(color)
       .setTitle(`📝 Ticket Naming — ${entryLabel(panel, ref)}`)
       .addFields(
-        { name: 'Effective Scheme', value: `\`${cfg.namingScheme}\` ${o.namingScheme !== undefined ? '_(override)_' : '_(inherited from panel)_'}`, inline: false },
+        { name: 'Effective Scheme', value: `\`${cfg.namingScheme}\` ${o.namingScheme !== undefined ? '_(override)_' : '_(default: from button label)_'}`, inline: false },
         { name: '👁 Live Preview',  value: `\`${preview}\``, inline: false },
         { name: '📋 Variables',     value: [
           '`{user}` / `{username}` — opener\'s username',
@@ -598,7 +598,7 @@ export function buildTTNaming(panel: TicketPanel, ref: TicketEntryRef): CCPayloa
           '`{type}` — ticket type from the button/menu',
         ].join('\n'),                                                     inline: false },
       )
-      .setFooter({ text: 'Channel names are lowercase, max 90 chars, dashes only. Leave the field blank in the editor to inherit the panel default.' }),
+      .setFooter({ text: 'Channel names are lowercase, max 90 chars, dashes only. Leave the field blank in the editor to auto-generate from this button\'s label.' }),
   );
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -1254,7 +1254,7 @@ export function buildTTEditNamingModal(panel: TicketPanel, ref: TicketEntryRef):
     .setCustomId(TP.TT.ttModal(panel.id, ref, 'naming'))
     .setTitle('Naming Scheme (this type)')
     .addComponents(
-      row(ti('namingScheme', 'Naming Scheme', TextInputStyle.Short, o.namingScheme || '', 'Blank = inherit panel default, e.g. sales-{counter}', false, 90)),
+      row(ti('namingScheme', 'Naming Scheme', TextInputStyle.Short, o.namingScheme || '', 'Blank = auto from label, e.g. sales-{counter}', false, 90)),
     );
 }
 

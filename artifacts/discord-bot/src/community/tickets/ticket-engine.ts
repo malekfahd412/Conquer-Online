@@ -202,12 +202,18 @@ export class TicketEngine {
 
   /**
    * `cfg` must be the ticket-type-resolved config (see `resolveTicketType`) so `cfg.claimBehaviour`
-   * enforces this ticket type's own hide/override rules. `claimerRoleIds` are the claiming staff
-   * member's Discord role ids, kept visible even when `hideFromOtherStaffOnClaim` is on.
+   * enforces this ticket type's own hide/override rules.
+   *
+   * A ticket can only ever be claimed once: if `claimedBy` is already set, this is a no-op that
+   * returns the ticket unchanged rather than overwriting the existing claim — callers (e.g. the
+   * `tk:claim:` button handler) should check `ticket.claimedBy` themselves first so they can show
+   * a proper "already claimed by X" message instead of silently doing nothing.
    */
-  async claim(guild: Guild, cfg: TicketPanel, ticketId: string, userId: string, claim: boolean, claimerRoleIds: string[] = []): Promise<TicketRecord | undefined> {
+  async claim(guild: Guild, cfg: TicketPanel, ticketId: string, userId: string, claim: boolean): Promise<TicketRecord | undefined> {
     const ticket = await this.getById(ticketId);
     if (!ticket) return undefined;
+    if (claim && ticket.claimedBy) return ticket; // never overwrite an existing claim
+
     const firstReply = ticket.firstStaffReplyAt ?? (claim ? Date.now() : undefined);
     const updated = await this.update(ticketId, { claimedBy: claim ? userId : undefined, firstStaffReplyAt: firstReply });
 
@@ -222,7 +228,7 @@ export class TicketEngine {
         responseMs: ticket.firstStaffReplyAt ? undefined : Date.now() - ticket.createdAt,
       });
       if (channel?.isTextBased() && cfg.claimBehaviour.hideFromOtherStaffOnClaim && !cfg.claimBehaviour.keepVisible) {
-        await permissionEngine.hideFromOtherStaff(channel as TextChannel, cfg, claimerRoleIds);
+        await permissionEngine.hideFromOtherStaff(channel as TextChannel, cfg, userId);
       }
     } else {
       await statisticsEngine.record({ type: 'unclaimed', guildId: ticket.guildId, panelId: ticket.panelId, ticketId: ticket.id, userId });

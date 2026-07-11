@@ -172,9 +172,79 @@
       ],
       "claimedBy": "727578927593291796",
       "firstStaffReplyAt": 1783753106701
+    },
+    {
+      "id": "ticket_1783758585462_1fczv",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Store",
+      "channelId": "1525418811384266775",
+      "openerId": "727578927593291796",
+      "status": "open",
+      "number": 10,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783758587428,
+      "lastActivityAt": 1783758587428,
+      "participantIds": [
+        "727578927593291796"
+      ]
+    },
+    {
+      "id": "ticket_1783758592684_omz3r",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Support",
+      "channelId": "1525418842061275247",
+      "openerId": "727578927593291796",
+      "status": "open",
+      "number": 11,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783758592952,
+      "lastActivityAt": 1783758592952,
+      "participantIds": [
+        "727578927593291796"
+      ]
+    },
+    {
+      "id": "ticket_1783758596018_sk975",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Support Manger",
+      "channelId": "1525418855982301255",
+      "openerId": "727578927593291796",
+      "status": "open",
+      "number": 12,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783758596248,
+      "lastActivityAt": 1783758596248,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "claimedBy": "611333374044536833",
+      "firstStaffReplyAt": 1783758613577
+    },
+    {
+      "id": "ticket_1783758598744_36ijr",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Staff",
+      "channelId": "1525418867407720469",
+      "openerId": "727578927593291796",
+      "status": "open",
+      "number": 13,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783758599056,
+      "lastActivityAt": 1783758599056,
+      "participantIds": [
+        "727578927593291796"
+      ]
     }
   ],
   "counters": {
-    "1213437502078062674": 9
+    "1213437502078062674": 13
   }
 }

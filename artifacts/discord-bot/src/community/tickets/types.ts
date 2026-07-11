@@ -467,6 +467,20 @@ export interface ResolvedTicketConfig extends TicketPanel {
 }
 
 /**
+ * Slugifies a button/select-option label into a lowercase, hyphen-separated
+ * channel-name prefix, e.g. "Report Player" -> "report-player". Falls back to
+ * "ticket" if the label has no usable characters (e.g. an emoji-only label).
+ */
+export function slugifyTicketTypeLabel(label: string): string {
+  const slug = label
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug.slice(0, 40) || 'ticket';
+}
+
+/**
  * Merges `panel` with the overrides owned by the ticket type matching `ticketType`.
  * Every engine already reads plain `TicketPanel` fields — pass the result of this
  * function into ticket-engine/category-engine/permission-engine/transcript-engine/
@@ -477,8 +491,13 @@ export interface ResolvedTicketConfig extends TicketPanel {
 export function resolveTicketType(panel: TicketPanel, ticketType: string): ResolvedTicketConfig {
   const ref = entryRefForTicketType(panel, ticketType);
   const entry = ref ? getEntry(panel, ref) : undefined;
+  // The channel-naming default is no longer the generic panel-wide scheme — each
+  // ticket type names its own channels from its button/option label (e.g. "Report
+  // Player" -> "report-player-{counter}") unless it has its own explicit override.
+  const defaultNamingScheme = entry ? `${slugifyTicketTypeLabel(entry.label)}-{counter}` : panel.namingScheme;
+
   const o = entry?.overrides;
-  if (!o) return { ...panel, resolvedFor: ref };
+  if (!o) return { ...panel, namingScheme: defaultNamingScheme, resolvedFor: ref };
 
   return {
     ...panel,
@@ -503,7 +522,7 @@ export function resolveTicketType(panel: TicketPanel, ticketType: string): Resol
     visibility:     o.visibility     ?? panel.visibility,
     claimBehaviour: o.claimBehaviour ?? panel.claimBehaviour,
 
-    namingScheme: o.namingScheme ?? panel.namingScheme,
+    namingScheme: o.namingScheme ?? defaultNamingScheme,
     ticketLimit:  o.ticketLimit  ?? panel.ticketLimit,
     cooldown:     o.cooldown     ?? panel.cooldown,
     priority:     o.priority     ?? panel.priority,

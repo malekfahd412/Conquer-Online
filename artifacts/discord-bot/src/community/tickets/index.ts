@@ -12,10 +12,14 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ComponentType,
   AttachmentBuilder,
+  type ActionRow,
+  type ButtonComponent,
   type ButtonInteraction,
   type Client,
   type Guild,
+  type MessageActionRowComponent,
   type ModalSubmitInteraction,
   type StringSelectMenuInteraction,
 } from 'discord.js';
@@ -379,9 +383,59 @@ class TicketSystem {
     }
     const cfg = resolveTicketType(rawPanel, ticket.ticketType);
     const member = interaction.member instanceof GuildMember ? interaction.member : null;
-    const claimerRoleIds = member ? Array.from(member.roles.cache.keys()) : [];
-    await ticketEngine.claim(guild, cfg, ticketId, interaction.user.id, claim, claimerRoleIds);
+
+    if (claim) {
+      const staffRoleIds = new Set([...cfg.supportRoles, ...cfg.managerRoles, ...cfg.adminRoles]);
+      const memberRoleIds = member ? Array.from(member.roles.cache.keys()) : [];
+      const isStaff = memberRoleIds.some(id => staffRoleIds.has(id));
+      if (!isStaff) {
+        await interaction.reply({ content: '❌ You are not allowed to claim this ticket.', ephemeral: true });
+        return;
+      }
+      if (ticket.claimedBy) {
+        await interaction.reply({ content: `❌ This ticket has already been claimed by <@${ticket.claimedBy}>.`, ephemeral: true });
+        return;
+      }
+    }
+
+    const updated = await ticketEngine.claim(guild, cfg, ticketId, interaction.user.id, claim);
+    if (claim && updated?.claimedBy !== interaction.user.id) {
+      // Lost a race with another staff member's claim between the check above and here.
+      await interaction.reply({ content: `❌ This ticket has already been claimed by <@${updated?.claimedBy}>.`, ephemeral: true });
+      return;
+    }
+
     await interaction.reply({ content: claim ? `🙋 ${interaction.user} claimed this ticket.` : `↩️ ${interaction.user} unclaimed this ticket.` });
+    await this.updateClaimHeader(interaction, claim ? interaction.user.id : undefined);
+  }
+
+  /** Updates the original ticket header message (embed field + Claim button state) to reflect the current claim status. */
+  private async updateClaimHeader(interaction: ButtonInteraction, claimedBy: string | undefined): Promise<void> {
+    const message = interaction.message;
+    if (!message) return;
+    try {
+      const sourceEmbed = message.embeds[0];
+      const embed = sourceEmbed ? EmbedBuilder.from(sourceEmbed) : new EmbedBuilder();
+      const existingFields = sourceEmbed?.fields?.filter(f => f.name !== 'Claimed by') ?? [];
+      embed.setFields(claimedBy ? [...existingFields, { name: 'Claimed by', value: `<@${claimedBy}>` }] : existingFields);
+
+      const rows = message.components
+        .filter((row): row is ActionRow<MessageActionRowComponent> => row.type === ComponentType.ActionRow)
+        .map(row => {
+          const buttons = row.components.map(component => {
+            const built = ButtonBuilder.from(component as ButtonComponent);
+            if ((component as ButtonComponent).customId?.startsWith('tk:claim:')) {
+              built.setDisabled(!!claimedBy).setLabel(claimedBy ? 'Claimed' : 'Claim').setEmoji(claimedBy ? '✅' : '🙋');
+            }
+            return built;
+          });
+          return new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
+        });
+
+      await message.edit({ embeds: [embed], components: rows });
+    } catch (err) {
+      logger.warning('[TICKETS] Failed to update ticket header after claim change', err);
+    }
   }
 
   private async closeTicket(interaction: ButtonInteraction, guild: Guild, ticketId: string): Promise<void> {

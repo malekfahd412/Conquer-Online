@@ -185,23 +185,36 @@ export class PermissionEngine {
   }
 
   /**
-   * Removes support/manager/admin role overwrites for a claimed ticket (hideFromOtherStaffOnClaim).
-   * `cfg` should be the ticket-type-resolved config so `claimBehaviour`, `supportRoles`,
-   * `managerRoles` and `adminRoles` reflect this specific ticket type. Roles kept visible:
-   * the claiming staff member's own roles, plus managerRoles/adminRoles when
+   * Removes support/manager/admin role overwrites for a claimed ticket (hideFromOtherStaffOnClaim),
+   * then grants the claiming staff member a personal overwrite so they keep access even though
+   * their role's overwrite may have just been hidden. `cfg` should be the ticket-type-resolved
+   * config so `claimBehaviour`, `supportRoles`, `managerRoles` and `adminRoles` reflect this
+   * specific ticket type. Roles kept visible for everyone: managerRoles/adminRoles when
    * `cfg.claimBehaviour.managerOverride` / `adminOverride` are enabled.
+   *
+   * Deliberately hides by ROLE and re-grants by the individual claimer's USER id — hiding was
+   * previously keyed off the claimer's role ids, which kept the whole role (every other member
+   * holding it) visible whenever the claimer happened to hold a role being hidden.
    */
-  async hideFromOtherStaff(channel: TextChannel, cfg: TicketPanel, claimedByRoleIds: string[]): Promise<void> {
+  async hideFromOtherStaff(channel: TextChannel, cfg: TicketPanel, claimerId: string): Promise<void> {
     const p = normalizePanel(cfg);
-    const keepVisible = new Set(claimedByRoleIds);
-    if (p.claimBehaviour.managerOverride) for (const id of p.managerRoles) keepVisible.add(id);
-    if (p.claimBehaviour.adminOverride) for (const id of p.adminRoles) keepVisible.add(id);
+    const keepVisibleRoles = new Set<string>();
+    if (p.claimBehaviour.managerOverride) for (const id of p.managerRoles) keepVisibleRoles.add(id);
+    if (p.claimBehaviour.adminOverride) for (const id of p.adminRoles) keepVisibleRoles.add(id);
 
     const allStaffRoles = [...new Set([...p.supportRoles, ...p.managerRoles, ...p.adminRoles])];
-    const toHide = allStaffRoles.filter(id => !keepVisible.has(id));
+    const toHide = allStaffRoles.filter(id => !keepVisibleRoles.has(id));
     for (const roleId of toHide) {
       await channel.permissionOverwrites.edit(roleId, { ViewChannel: false }).catch(() => {});
     }
+
+    // Always keep the claiming staff member personally able to see and work the ticket,
+    // even though the support role granting them access may have just been hidden above.
+    await channel.permissionOverwrites.edit(claimerId, {
+      ViewChannel: true,
+      SendMessages: true,
+      ReadMessageHistory: true,
+    }).catch(() => {});
   }
 
   /** Restores support/manager/admin role overwrites when a ticket is unclaimed. `cfg` should be the ticket-type-resolved config. */

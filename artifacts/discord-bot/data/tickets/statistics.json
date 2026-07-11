@@ -223,6 +223,46 @@
       "ticketId": "ticket_1783753042632_3hfcd",
       "userId": "727578927593291796",
       "timestamp": 1783753658221
+    },
+    {
+      "type": "opened",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783758585462_1fczv",
+      "userId": "727578927593291796",
+      "timestamp": 1783758587432
+    },
+    {
+      "type": "opened",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783758592684_omz3r",
+      "userId": "727578927593291796",
+      "timestamp": 1783758592955
+    },
+    {
+      "type": "opened",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783758596018_sk975",
+      "userId": "727578927593291796",
+      "timestamp": 1783758596250
+    },
+    {
+      "type": "opened",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783758598744_36ijr",
+      "userId": "727578927593291796",
+      "timestamp": 1783758599058
+    },
+    {
+      "type": "claimed",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketId": "ticket_1783758596018_sk975",
+      "userId": "611333374044536833",
+      "timestamp": 1783758613579
     }
   ]
 }

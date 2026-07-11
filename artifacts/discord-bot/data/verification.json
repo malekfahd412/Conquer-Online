@@ -41,6 +41,20 @@
       "id": "vpanel_1783752332406_fjle8",
       "createdAt": 1783752332406,
       "messageId": "1525392584405549248"
+    },
+    {
+      "guildId": "1213437502078062674",
+      "channelId": "1521595067348029571",
+      "title": "☑️ Verification Required",
+      "description": "To gain access to `` Mufasa Conquer `` you need to prove you are a human by completing verification. Click the button below to get started!",
+      "color": 5763719,
+      "method": "button",
+      "verifiedRoleId": "1213437502078062680",
+      "minAccountAgeDays": 0,
+      "cooldownSeconds": 30,
+      "id": "vpanel_1783759164164_zoxq8",
+      "createdAt": 1783759164164,
+      "messageId": "1525421238858551298"
     }
   ],
   "attempts": [
@@ -75,6 +89,17 @@
       "id": "vattempt_1783752240220_ilmhp",
       "createdAt": 1783752240220,
       "lastAttemptAt": 1783752240220,
+      "failCount": 0
+    },
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "vpanel_1783759164164_zoxq8",
+      "userId": "727578927593291796",
+      "status": "verified",
+      "method": "button",
+      "id": "vattempt_1783759172838_8tpj8",
+      "createdAt": 1783759172838,
+      "lastAttemptAt": 1783759172838,
       "failCount": 0
     }
   ]
