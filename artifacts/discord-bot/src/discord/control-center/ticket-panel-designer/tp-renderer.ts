@@ -9,7 +9,7 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from 'discord.js';
-import type { TicketPanel, TicketTemplate, TicketButtonConfig, TicketSelectMenuOption, TicketModalQuestion, TicketForm, FormQuestion, QuestionType } from '../../../community/tickets/types';
+import type { TicketPanel, TicketTemplate, TicketButtonConfig, TicketSelectMenuOption, TicketForm, FormQuestion, QuestionType } from '../../../community/tickets/types';
 import { QUESTION_TYPE_META, QUESTION_TYPES } from '../../../community/tickets/types';
 import { FORM_TEMPLATES } from '../../../community/tickets/form-templates';
 import { buildPDMain } from './tp-permission-designer';
@@ -376,91 +376,6 @@ export function buildSmOptionDetail(panel: TicketPanel, idx: number): CCPayload 
 
 export function buildPermissionsSection(panel: TicketPanel): CCPayload {
   return buildPDMain(panel);
-}
-
-// ── Questions Section ───────────────────────────────────────────────────────
-
-export function buildQuestionsSection(panel: TicketPanel): CCPayload {
-  const fn = 'buildQuestionsSection';
-  const color = checkColor(FILE, fn, 'color', 0x5865f2);
-  const qs = panel.modal.questions;
-
-  const qText = qs.length === 0
-    ? '_No questions configured. Enable modal and add questions to prompt users when opening a ticket._'
-    : qs.map((q, i) => `${i + 1}. **${truncate(q.label, 60)}** (${q.style}, ${q.required ? 'required' : 'optional'})`).join('\n');
-
-  const embed = verifyBuilder(FILE, fn, 'questions embed', () =>
-    new EmbedBuilder()
-      .setColor(color)
-      .setTitle('❓ Ticket Questions')
-      .addFields(
-        { name: '📋 Modal Enabled', value: panel.modal.enabled ? '🟢 Yes' : '🔴 No', inline: true },
-        { name: `Questions (${qs.length}/5)`, value: truncate(qText, 1024), inline: false },
-      )
-      .setFooter({ text: 'Discord modals support up to 5 questions' }),
-  );
-
-  const components: CCPayload['components'] = [];
-  const row0 = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    btn('➕ Add Question',          TP.qAdd(panel.id),                   ButtonStyle.Primary, qs.length >= 5),
-    btn(panel.modal.enabled ? '🔴 Disable Modal' : '🟢 Enable Modal',
-        TP.toggle(panel.id, 'modalenabled'), ButtonStyle.Secondary),
-    dashBtn(panel.id),
-    homeBtn(),
-  );
-  components.push(row0);
-
-  if (qs.length > 0) {
-    const select = new StringSelectMenuBuilder()
-      .setCustomId(TP.qSel(panel.id))
-      .setPlaceholder('Select a question to edit or remove...')
-      .addOptions(
-        qs.slice(0, 5).map((q, i) =>
-          new StringSelectMenuOptionBuilder()
-            .setLabel(truncate(q.label, 100))
-            .setDescription(truncate(`${q.style} · ${q.required ? 'required' : 'optional'}${q.placeholder ? ` · ${q.placeholder}` : ''}`, 100))
-            .setValue(String(i)),
-        ),
-      );
-    components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select));
-  }
-
-  const payload: CCPayload = { content: '', embeds: [embed], components };
-  assertUniqueCustomIds('buildQuestionsSection', payload);
-  return payload;
-}
-
-// ── Question Detail ─────────────────────────────────────────────────────────
-
-export function buildQuestionDetail(panel: TicketPanel, idx: number): CCPayload {
-  const fn = 'buildQuestionDetail';
-  const q = panel.modal.questions[idx];
-  const color = checkColor(FILE, fn, 'color', 0x5865f2);
-
-  const embed = verifyBuilder(FILE, fn, 'q detail embed', () =>
-    new EmbedBuilder()
-      .setColor(color)
-      .setTitle(`❓ Question #${idx + 1}`)
-      .addFields(
-        { name: 'ID',          value: `\`${q?.id || 'unknown'}\``,               inline: true  },
-        { name: 'Label',       value: truncate(q?.label || '_(missing)_', 256),   inline: true  },
-        { name: 'Style',       value: q?.style === 'paragraph' ? 'Paragraph' : 'Short', inline: true },
-        { name: 'Required',    value: q?.required ? '✅ Yes' : '❌ No',           inline: true  },
-        { name: 'Placeholder', value: truncate(q?.placeholder || '_(none)_', 256), inline: false },
-        { name: 'Length',      value: `Min: ${q?.minLength ?? 0} · Max: ${q?.maxLength ?? 1000}`, inline: true },
-      ),
-  );
-
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    btn('✏️ Edit',     TP.qEdit(panel.id, idx),          ButtonStyle.Primary),
-    btn('🗑 Remove',   TP.qRm(panel.id, idx),             ButtonStyle.Danger),
-    btn('← Questions', TP.section(panel.id, 'questions'), ButtonStyle.Secondary),
-    homeBtn(),
-  );
-
-  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
-  assertUniqueCustomIds('buildQuestionDetail', payload);
-  return payload;
 }
 
 // ── Categories Section ──────────────────────────────────────────────────────
@@ -1180,20 +1095,6 @@ export function buildSmPlaceholderModal(panel: TicketPanel): ModalBuilder {
     .setTitle('Select Menu Placeholder')
     .addComponents(
       row(ti('placeholder', 'Placeholder Text', TextInputStyle.Short, panel.selectMenu?.placeholder || '', 'e.g. Select a ticket type…', false, 150)),
-    );
-}
-
-export function buildQuestionModal(_panelId: string, existingQ: TicketModalQuestion | null, customIdSuffix: string): ModalBuilder {
-  const isEdit = existingQ !== null;
-  return new ModalBuilder()
-    .setCustomId(customIdSuffix)
-    .setTitle(isEdit ? 'Edit Question' : 'Add Question')
-    .addComponents(
-      row(ti('id',          'Question ID (unique key)', TextInputStyle.Short, existingQ?.id          || '', 'e.g. reason (no spaces)',  true, 50)),
-      row(ti('label',       'Question Label',            TextInputStyle.Short, existingQ?.label       || '', 'e.g. Describe your issue', true, 45)),
-      row(ti('style',       'Style',                     TextInputStyle.Short, existingQ?.style       || 'short', 'short or paragraph',   true, 9)),
-      row(ti('placeholder', 'Placeholder',               TextInputStyle.Short, existingQ?.placeholder || '', 'Hint text (optional)',    false, 100)),
-      row(ti('required',    'Required (true/false)',      TextInputStyle.Short, String(existingQ?.required ?? true), 'true or false', true, 5)),
     );
 }
 

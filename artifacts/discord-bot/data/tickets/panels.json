@@ -144,18 +144,38 @@
       "updatedAt": 1783747508072
     },
     {
-      "additionalButtons": [],
+      "additionalButtons": [
+        {
+          "label": "👨🏻‍💼 𝐒𝐔𝐏𝐏𝐎𝐑",
+          "style": "Secondary",
+          "ticketType": "Support"
+        },
+        {
+          "label": "🆘 𝐒𝐔𝐏𝐏𝐎𝐑𝐓 𝐌𝐀𝐍𝐆𝐄𝐑",
+          "style": "Success",
+          "ticketType": "Support Manger"
+        },
+        {
+          "label": "🤝 𝐈𝐍𝐓𝐄𝐑𝐕𝐈𝐄𝐖",
+          "style": "Danger",
+          "ticketType": "Staff"
+        }
+      ],
       "permissions": [],
-      "supportRoles": [],
-      "managerRoles": [],
+      "supportRoles": [
+        "1213437502078062681"
+      ],
+      "managerRoles": [
+        "1521585525801095219"
+      ],
       "pingRoles": [],
       "allowedRoles": [],
       "blockedRoles": [],
       "allowedUsers": [],
       "blockedUsers": [],
       "namingScheme": "support-{counter}",
-      "ticketLimit": 1,
-      "cooldown": 0,
+      "ticketLimit": 50,
+      "cooldown": 5,
       "priority": "normal",
       "modal": {
         "enabled": false,
@@ -169,33 +189,41 @@
         "dmUser": false
       },
       "automation": {
-        "autoCloseInactivityMinutes": 0,
+        "autoCloseInactivityMinutes": 1440,
         "autoDeleteAfterCloseMinutes": 0,
-        "cooldownSeconds": 0,
-        "reminderMinutes": 0
+        "cooldownSeconds": 3,
+        "reminderMinutes": 5
       },
       "statistics": {
         "trackResponseTime": true,
         "trackClaims": true
       },
       "enabled": true,
-      "name": "Support",
-      "description": "General player support requests.",
+      "name": "𝐌𝐔𝐅𝐀𝐒𝐀® 𝐂♡𝐍𝐐𝐔𝐄𝐑",
+      "description": "🏪 𝐒𝐓𝐎𝐑𝐄: لشراء اي شئ داخل اللعبه  👨🏻‍💼 𝐒𝐔𝐏𝐏𝐎𝐑𝐓: للشكاوى من الاعضاء وبعضها او عندك مشكله في اللعبه او الديسكورد  🆘 𝐒𝐔𝐏𝐏𝐎𝐑𝐓 𝐌𝐀𝐍𝐆𝐄𝐑: للشكاوى من الادارة فقط او اعدت التحقيق  🤝 𝐈𝐍𝐓𝐄𝐑𝐕𝐈𝐄𝐖: للتقد",
       "embed": {
-        "title": "🎫 Support",
-        "description": "Click below to open a support ticket.",
-        "color": 5793266
+        "title": "🎫 𝐌𝐔𝐅𝐀𝐒𝐀® 𝐂♡𝐍𝐐𝐔𝐄𝐑",
+        "description": "🏪 𝐒𝐓𝐎𝐑𝐄:\nلشراء اي شئ داخل اللعبه\n\n👨🏻‍💼 𝐒𝐔𝐏𝐏𝐎𝐑𝐓:\nللشكاوى من الاعضاء وبعضها او عندك مشكله في اللعبه او الديسكورد\n\n🆘 𝐒𝐔𝐏𝐏𝐎𝐑𝐓 𝐌𝐀𝐍𝐆𝐄𝐑:\nللشكاوى من الادارة فقط او اعدت التحقيق\n\n🤝 𝐈𝐍𝐓𝐄𝐑𝐕𝐈𝐄𝐖:\nللتقدم على الادارة",
+        "color": 1047920
       },
       "button": {
-        "label": "Open Support",
+        "label": "🏪 𝐒𝐓𝐎𝐑𝐄",
         "style": "Primary",
-        "ticketType": "Support"
+        "ticketType": "Store"
       },
-      "channelId": "1213437502388703260",
+      "channelId": "1215672085569863742",
       "id": "panel_1783747543306_kk73l",
       "guildId": "1213437502078062674",
       "createdAt": 1783747543306,
-      "updatedAt": 1783747543306
+      "updatedAt": 1783751112475,
+      "messageId": "1525387466247372911",
+      "openCategory": "1521582460788281395",
+      "closedCategory": "1521582996581257508",
+      "archiveCategory": "1525381631437705316",
+      "adminRoles": [
+        "1216032049794777160"
+      ],
+      "logChannelId": "1524534739845775582"
     },
     {
       "additionalButtons": [],

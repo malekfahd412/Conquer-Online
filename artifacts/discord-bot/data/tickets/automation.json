@@ -1,5 +1,23 @@
 {
-  "cooldowns": [],
-  "activity": [],
+  "cooldowns": [
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "userId": "727578927593291796",
+      "lastClosedAt": 1783751130029
+    }
+  ],
+  "activity": [
+    {
+      "ticketId": "ticket_1783750492033_1r8sb",
+      "channelId": "1525384865313329224",
+      "lastActivityAt": 1783750492255
+    },
+    {
+      "ticketId": "ticket_1783751121640_tbypb",
+      "channelId": "1525387506059841616",
+      "lastActivityAt": 1783751121866
+    }
+  ],
   "log": []
 }

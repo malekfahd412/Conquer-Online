@@ -20,7 +20,7 @@ import { buildFormFromTemplate, type FormTemplateKey } from '../../../community/
 import { questionEngine, MAX_QUESTIONS_PER_FORM } from '../../../community/tickets/question-engine';
 import { genId } from '../../../community/tickets/store';
 import type { PermissionManager } from '../../../ai/permission-manager';
-import type { TicketPanel, TicketButtonConfig, TicketSelectMenuOption, TicketModalQuestion, TicketPriority, TicketMemberPermConfig, TicketStaffPermConfig, TicketClaimBehaviourConfig, TicketVisibilityMode, TicketForm, FormQuestion, FormNextRule, QuestionType } from '../../../community/tickets/types';
+import type { TicketPanel, TicketButtonConfig, TicketSelectMenuOption, TicketPriority, TicketMemberPermConfig, TicketStaffPermConfig, TicketClaimBehaviourConfig, TicketVisibilityMode, TicketForm, FormQuestion, FormNextRule, QuestionType } from '../../../community/tickets/types';
 import { normalizePanel, DEFAULT_MEMBER_PERMS, DEFAULT_STAFF_PERMS, DEFAULT_CLAIM_BEHAVIOUR, QUESTION_TYPES } from '../../../community/tickets/types';
 import {
   buildPDMain,
@@ -44,7 +44,6 @@ import {
   buildAppearanceSection,
   buildButtonSection,
   buildPermissionsSection,
-  buildQuestionsSection,
   buildCategoriesSection,
   buildNamingSection,
   buildLifecycleSection,
@@ -56,7 +55,6 @@ import {
   buildDeleteConfirm,
   buildExtraButtonDetail,
   buildSmOptionDetail,
-  buildQuestionDetail,
   buildFeedback,
   buildTemplateGallery,
   buildTemplateDetail,
@@ -80,7 +78,6 @@ import {
   buildExtraButtonModal,
   buildSmOptionModal,
   buildSmPlaceholderModal,
-  buildQuestionModal,
   buildPublishChannelModal,
   buildFormBuilderMain,
   buildFormNewGallery,
@@ -318,32 +315,6 @@ export class TicketPanelDesigner {
       await this.handleSmOptRemove(interaction, guild, parts[3], parseInt(parts[4], 10));
       return;
     }
-    // Question section
-    if (id.startsWith('tp:q:add:')) {
-      const panelId = id.slice('tp:q:add:'.length);
-      await interaction.showModal(buildQuestionModal(panelId, null, TP.qAddM(panelId)));
-      return;
-    }
-    if (id.startsWith('tp:q:detail:')) {
-      const parts = id.split(':');
-      await this.navQDetail(interaction, guild, parts[3], parseInt(parts[4], 10));
-      return;
-    }
-    if (id.startsWith('tp:q:edit:')) {
-      const parts = id.split(':');
-      const panelId = parts[3];
-      const idx     = parseInt(parts[4], 10);
-      const panel = await panelManager.get(panelId);
-      const existing = panel?.modal.questions[idx] ?? null;
-      await interaction.showModal(buildQuestionModal(panelId, existing, TP.qEditM(panelId, idx)));
-      return;
-    }
-    if (id.startsWith('tp:q:rm:')) {
-      const parts = id.split(':');
-      await this.handleQRemove(interaction, guild, parts[3], parseInt(parts[4], 10));
-      return;
-    }
-
     // ── Form Builder (tp:frm:*) ──────────────────────────────────────────────
     if (id.startsWith('tp:frm:')) {
       await this.routeFRMButton(interaction, guild, id);
@@ -468,6 +439,160 @@ export class TicketPanelDesigner {
     await this.nav(interaction, buildPDMain(panel));
   }
 
+  // ── Form Builder (tp:frm:*) button routing ──────────────────────────────────
+
+  private async routeFRMButton(interaction: ButtonInteraction, guild: Guild, id: string): Promise<void> {
+    if (id.startsWith('tp:frm:new:use:')) {
+      const rest = id.slice('tp:frm:new:use:'.length);
+      const colon = rest.indexOf(':');
+      const panelId = rest.slice(0, colon);
+      const tplKey = rest.slice(colon + 1) as FormTemplateKey;
+      await this.handleFrmNewUse(interaction, guild, panelId, tplKey);
+      return;
+    }
+    if (id.startsWith('tp:frm:new:')) {
+      await this.navFrmNewGallery(interaction, guild, id.slice('tp:frm:new:'.length));
+      return;
+    }
+    if (id.startsWith('tp:frm:detail:')) {
+      const [panelId, formId] = id.slice('tp:frm:detail:'.length).split(':');
+      await this.navFrmDetail(interaction, guild, panelId, formId);
+      return;
+    }
+    if (id.startsWith('tp:frm:rename:')) {
+      const [panelId, formId] = id.slice('tp:frm:rename:'.length).split(':');
+      const panel = await panelManager.get(panelId);
+      const form = panel?.forms?.find(f => f.id === formId);
+      if (!panel || panel.guildId !== guild.id || !form) { await this.navPanelList(interaction, guild, 0); return; }
+      await interaction.showModal(buildFormRenameModal(panel, form));
+      return;
+    }
+    if (id.startsWith('tp:frm:dup:')) {
+      const [panelId, formId] = id.slice('tp:frm:dup:'.length).split(':');
+      await this.handleFrmDuplicate(interaction, guild, panelId, formId);
+      return;
+    }
+    if (id.startsWith('tp:frm:del:yes:')) {
+      const [panelId, formId] = id.slice('tp:frm:del:yes:'.length).split(':');
+      await this.handleFrmDeleteConfirmed(interaction, guild, panelId, formId);
+      return;
+    }
+    if (id.startsWith('tp:frm:del:')) {
+      const [panelId, formId] = id.slice('tp:frm:del:'.length).split(':');
+      await this.navFrmDeleteConfirm(interaction, guild, panelId, formId);
+      return;
+    }
+    if (id.startsWith('tp:frm:preview:')) {
+      const [panelId, formId] = id.slice('tp:frm:preview:'.length).split(':');
+      await this.handleFrmPreview(interaction, guild, panelId, formId);
+      return;
+    }
+    if (id.startsWith('tp:frm:export:')) {
+      const [panelId, formId] = id.slice('tp:frm:export:'.length).split(':');
+      await this.handleFrmExport(interaction, guild, panelId, formId);
+      return;
+    }
+    if (id.startsWith('tp:frm:import:')) {
+      const panelId = id.slice('tp:frm:import:'.length);
+      const panel = await panelManager.get(panelId);
+      if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+      await interaction.showModal(buildFormImportModal(panel));
+      return;
+    }
+    if (id.startsWith('tp:frm:assign:')) {
+      const [panelId, formId] = id.slice('tp:frm:assign:'.length).split(':');
+      await this.navFrmAssign(interaction, guild, panelId, formId);
+      return;
+    }
+    if (id.startsWith('tp:frm:chain:set:')) {
+      const [panelId, formId] = id.slice('tp:frm:chain:set:'.length).split(':');
+      const panel = await panelManager.get(panelId);
+      const form = panel?.forms?.find(f => f.id === formId);
+      if (!panel || panel.guildId !== guild.id || !form) { await this.navPanelList(interaction, guild, 0); return; }
+      await interaction.showModal(buildFormChainModal(panel, form));
+      return;
+    }
+    if (id.startsWith('tp:frm:chain:')) {
+      const [panelId, formId] = id.slice('tp:frm:chain:'.length).split(':');
+      await this.navFrmChain(interaction, guild, panelId, formId);
+      return;
+    }
+    if (id.startsWith('tp:frm:q:add:')) {
+      const [panelId, formId] = id.slice('tp:frm:q:add:'.length).split(':');
+      await this.navFrmQAddTypePicker(interaction, guild, panelId, formId);
+      return;
+    }
+    if (id.startsWith('tp:frm:q:detail:')) {
+      const [panelId, formId, idxStr] = id.slice('tp:frm:q:detail:'.length).split(':');
+      await this.navFrmQDetail(interaction, guild, panelId, formId, parseInt(idxStr, 10));
+      return;
+    }
+    if (id.startsWith('tp:frm:q:basic:')) {
+      const [panelId, formId, idxStr] = id.slice('tp:frm:q:basic:'.length).split(':');
+      const idx = parseInt(idxStr, 10);
+      const panel = await panelManager.get(panelId);
+      const form = panel?.forms?.find(f => f.id === formId);
+      const q = form?.questions[idx];
+      if (!panel || panel.guildId !== guild.id || !form || !q) { await this.navPanelList(interaction, guild, 0); return; }
+      await interaction.showModal(buildQBasicModal(panelId, formId, idx, q));
+      return;
+    }
+    if (id.startsWith('tp:frm:q:len:')) {
+      const [panelId, formId, idxStr] = id.slice('tp:frm:q:len:'.length).split(':');
+      const idx = parseInt(idxStr, 10);
+      const panel = await panelManager.get(panelId);
+      const form = panel?.forms?.find(f => f.id === formId);
+      const q = form?.questions[idx];
+      if (!panel || panel.guildId !== guild.id || !form || !q) { await this.navPanelList(interaction, guild, 0); return; }
+      await interaction.showModal(buildQLenModal(panelId, formId, idx, q));
+      return;
+    }
+    if (id.startsWith('tp:frm:q:val:')) {
+      const [panelId, formId, idxStr] = id.slice('tp:frm:q:val:'.length).split(':');
+      const idx = parseInt(idxStr, 10);
+      const panel = await panelManager.get(panelId);
+      const form = panel?.forms?.find(f => f.id === formId);
+      const q = form?.questions[idx];
+      if (!panel || panel.guildId !== guild.id || !form || !q) { await this.navPanelList(interaction, guild, 0); return; }
+      await interaction.showModal(buildQValModal(panelId, formId, idx, q));
+      return;
+    }
+    if (id.startsWith('tp:frm:q:req:')) {
+      const [panelId, formId, idxStr] = id.slice('tp:frm:q:req:'.length).split(':');
+      await this.handleFrmQToggleRequired(interaction, guild, panelId, formId, parseInt(idxStr, 10));
+      return;
+    }
+    if (id.startsWith('tp:frm:q:up:')) {
+      const [panelId, formId, idxStr] = id.slice('tp:frm:q:up:'.length).split(':');
+      await this.handleFrmQMove(interaction, guild, panelId, formId, parseInt(idxStr, 10), -1);
+      return;
+    }
+    if (id.startsWith('tp:frm:q:down:')) {
+      const [panelId, formId, idxStr] = id.slice('tp:frm:q:down:'.length).split(':');
+      await this.handleFrmQMove(interaction, guild, panelId, formId, parseInt(idxStr, 10), 1);
+      return;
+    }
+    if (id.startsWith('tp:frm:q:rm:')) {
+      const [panelId, formId, idxStr] = id.slice('tp:frm:q:rm:'.length).split(':');
+      await this.handleFrmQRemove(interaction, guild, panelId, formId, parseInt(idxStr, 10));
+      return;
+    }
+    if (id.startsWith('tp:frm:qc:clear:')) {
+      const [panelId, formId, idxStr] = id.slice('tp:frm:qc:clear:'.length).split(':');
+      await this.handleFrmQCondClear(interaction, guild, panelId, formId, parseInt(idxStr, 10));
+      return;
+    }
+    if (id.startsWith('tp:frm:qc:')) {
+      const [panelId, formId, idxStr] = id.slice('tp:frm:qc:'.length).split(':');
+      await this.navFrmQCondView(interaction, guild, panelId, formId, parseInt(idxStr, 10));
+      return;
+    }
+
+    // tp:frm:<panelId>  — Form Builder main list (must come last — least specific)
+    const mainPanelId = id.slice('tp:frm:'.length);
+    await this.navSection(interaction, guild, mainPanelId, 'forms');
+  }
+
   // ── Select menu routing ─────────────────────────────────────────────────────
 
   private async routeSelectMenu(interaction: StringSelectMenuInteraction, guild: Guild): Promise<void> {
@@ -491,12 +616,6 @@ export class TicketPanelDesigner {
       await this.navSmOpt(interaction, guild, panelId, parseInt(value, 10));
       return;
     }
-    if (id.startsWith('tp:qs:')) {
-      // Question select — value is idx
-      const panelId = id.slice('tp:qs:'.length);
-      await this.navQDetail(interaction, guild, panelId, parseInt(value, 10));
-      return;
-    }
     if (id.startsWith('tp:tgs:')) {
       // Template gallery select — value is the template ID
       await this.navTemplateDetail(interaction, guild, value);
@@ -505,6 +624,53 @@ export class TicketPanelDesigner {
     // ── Form Builder select menus ──────────────────────────────────────────────
     if (id.startsWith('tp:frm:')) {
       await this.routeFRMSelectMenu(interaction, guild, id);
+      return;
+    }
+  }
+
+  private async routeFRMSelectMenu(interaction: StringSelectMenuInteraction, guild: Guild, id: string): Promise<void> {
+    const value = interaction.values[0];
+
+    if (id.startsWith('tp:frm:q:addtype:')) {
+      const [panelId, formId] = id.slice('tp:frm:q:addtype:'.length).split(':');
+      const panel = await panelManager.get(panelId);
+      const form = panel?.forms?.find(f => f.id === formId);
+      if (!panel || panel.guildId !== guild.id || !form) {
+        await interaction.reply({ content: '❌ Form not found.', flags: MessageFlags.Ephemeral });
+        return;
+      }
+      if (form.questions.length >= MAX_QUESTIONS_PER_FORM) {
+        await interaction.reply({ content: `❌ Maximum ${MAX_QUESTIONS_PER_FORM} questions per form (Discord limit).`, flags: MessageFlags.Ephemeral });
+        return;
+      }
+      await interaction.showModal(buildQAddModal(panelId, formId, value));
+      return;
+    }
+    if (id.startsWith('tp:frm:qc:pick:')) {
+      const [panelId, formId, idxStr] = id.slice('tp:frm:qc:pick:'.length).split(':');
+      const idx = parseInt(idxStr, 10);
+      const panel = await panelManager.get(panelId);
+      const form = panel?.forms?.find(f => f.id === formId);
+      if (!panel || panel.guildId !== guild.id || !form || !form.questions[idx]) {
+        await interaction.reply({ content: '❌ Question not found.', flags: MessageFlags.Ephemeral });
+        return;
+      }
+      await interaction.showModal(buildQCondValueModal(panelId, formId, idx, value));
+      return;
+    }
+    if (id.startsWith('tp:frm:qs:')) {
+      const [panelId, formId] = id.slice('tp:frm:qs:'.length).split(':');
+      await this.navFrmQDetail(interaction, guild, panelId, formId, parseInt(value, 10));
+      return;
+    }
+    if (id.startsWith('tp:frm:fs:')) {
+      const panelId = id.slice('tp:frm:fs:'.length);
+      await this.navFrmDetail(interaction, guild, panelId, value);
+      return;
+    }
+    if (id.startsWith('tp:frm:assignsel:')) {
+      const [panelId, formId] = id.slice('tp:frm:assignsel:'.length).split(':');
+      await this.handleFrmAssignSelect(interaction, guild, panelId, formId, value);
       return;
     }
   }
@@ -549,18 +715,53 @@ export class TicketPanelDesigner {
       await this.handleSmOptEdit(interaction, guild, panelId, idx);
       return;
     }
-    if (id.startsWith('tp:q:add:m:')) {
-      await this.handleQAdd(interaction, guild, id.slice('tp:q:add:m:'.length));
+    // Form Builder modal submits — must be checked before generic tp:modal:
+    if (id.startsWith('tp:frm:rename:m:')) {
+      const [panelId, formId] = id.slice('tp:frm:rename:m:'.length).split(':');
+      await this.handleFrmRenameSubmit(interaction, guild, panelId, formId);
       return;
     }
-    if (id.startsWith('tp:q:edit:m:')) {
-      const rest  = id.slice('tp:q:edit:m:'.length);
-      const colon = rest.lastIndexOf(':');
-      const panelId = rest.slice(0, colon);
-      const idx     = parseInt(rest.slice(colon + 1), 10);
-      await this.handleQEdit(interaction, guild, panelId, idx);
+    if (id.startsWith('tp:frm:chain:m:')) {
+      const [panelId, formId] = id.slice('tp:frm:chain:m:'.length).split(':');
+      await this.handleFrmChainSubmit(interaction, guild, panelId, formId);
       return;
     }
+    if (id.startsWith('tp:frm:import:m:')) {
+      const panelId = id.slice('tp:frm:import:m:'.length);
+      await this.handleFrmImportSubmit(interaction, guild, panelId);
+      return;
+    }
+    if (id.startsWith('tp:frm:q:add:m:')) {
+      const [panelId, formId, type] = id.slice('tp:frm:q:add:m:'.length).split(':');
+      await this.handleFrmQAddSubmit(interaction, guild, panelId, formId, type);
+      return;
+    }
+    if (id.startsWith('tp:frm:q:basic:m:')) {
+      const [panelId, formId, idxStr] = id.slice('tp:frm:q:basic:m:'.length).split(':');
+      await this.handleFrmQBasicSubmit(interaction, guild, panelId, formId, parseInt(idxStr, 10));
+      return;
+    }
+    if (id.startsWith('tp:frm:q:len:m:')) {
+      const [panelId, formId, idxStr] = id.slice('tp:frm:q:len:m:'.length).split(':');
+      await this.handleFrmQLenSubmit(interaction, guild, panelId, formId, parseInt(idxStr, 10));
+      return;
+    }
+    if (id.startsWith('tp:frm:q:val:m:')) {
+      const [panelId, formId, idxStr] = id.slice('tp:frm:q:val:m:'.length).split(':');
+      await this.handleFrmQValSubmit(interaction, guild, panelId, formId, parseInt(idxStr, 10));
+      return;
+    }
+    if (id.startsWith('tp:frm:qc:m:')) {
+      const [panelId, formId, idxStr, srcQId] = id.slice('tp:frm:qc:m:'.length).split(':');
+      await this.handleFrmQCondSubmit(interaction, guild, panelId, formId, parseInt(idxStr, 10), srcQId);
+      return;
+    }
+    if (id.startsWith('tp:frm:prevmodal:')) {
+      const [panelId, formId] = id.slice('tp:frm:prevmodal:'.length).split(':');
+      await this.handleFrmPreviewSubmit(interaction, guild, panelId, formId);
+      return;
+    }
+
     // Permission Designer modal submits — must be checked before generic tp:modal:
     if (id.startsWith('tp:pd:modal:')) {
       const rest    = id.slice('tp:pd:modal:'.length);
@@ -682,15 +883,6 @@ export class TicketPanelDesigner {
       return;
     }
     await this.nav(interaction, buildSmOptionDetail(panel, idx));
-  }
-
-  private async navQDetail(interaction: NavInteraction, guild: Guild, panelId: string, idx: number): Promise<void> {
-    const panel = await panelManager.get(panelId);
-    if (!panel || panel.guildId !== guild.id || !panel.modal.questions[idx]) {
-      await this.navSection(interaction, guild, panelId, 'questions');
-      return;
-    }
-    await this.nav(interaction, buildQuestionDetail(panel, idx));
   }
 
   // ── Toggle handlers ─────────────────────────────────────────────────────────
@@ -1133,79 +1325,6 @@ export class TicketPanelDesigner {
     await this.nav(interaction, buildButtonSection(updated ?? panel));
   }
 
-  // ── Question handlers ───────────────────────────────────────────────────────
-
-  private async handleQAdd(interaction: ModalSubmitInteraction, guild: Guild, panelId: string): Promise<void> {
-    const panel = await panelManager.get(panelId);
-    if (!panel || panel.guildId !== guild.id) {
-      await this.navReply(interaction, buildFeedback(false, 'Panel not found.'));
-      return;
-    }
-    if (panel.modal.questions.length >= 5) {
-      await this.navReply(interaction, buildFeedback(false, 'Maximum 5 questions per modal (Discord limit).', panelId));
-      return;
-    }
-
-    const id          = getField(interaction, 'id',          true);
-    const label       = getField(interaction, 'label',       true);
-    const styleRaw    = getField(interaction, 'style',       true);
-    const placeholder = getField(interaction, 'placeholder', false);
-    const required    = parseBool(getField(interaction, 'required', true));
-
-    const style: TicketModalQuestion['style'] = styleRaw.toLowerCase() === 'paragraph' ? 'paragraph' : 'short';
-
-    if (panel.modal.questions.some(q => q.id === id)) {
-      await this.navReply(interaction, buildFeedback(false, `Question ID "${id}" already exists. Use a unique ID.`, panelId));
-      return;
-    }
-
-    const newQ: TicketModalQuestion = { id, label, style, placeholder: placeholder || undefined, required };
-    const updated = await panelManager.update(panelId, { modal: { ...panel.modal, questions: [...panel.modal.questions, newQ] } });
-
-    if (!updated) {
-      await this.navReply(interaction, buildFeedback(false, 'Failed to add question.', panelId));
-      return;
-    }
-    await this.navReply(interaction, buildQuestionsSection(updated));
-  }
-
-  private async handleQEdit(interaction: ModalSubmitInteraction, guild: Guild, panelId: string, idx: number): Promise<void> {
-    const panel = await panelManager.get(panelId);
-    if (!panel || panel.guildId !== guild.id || !panel.modal.questions[idx]) {
-      await this.navReply(interaction, buildFeedback(false, 'Question not found.', panelId));
-      return;
-    }
-
-    const id          = getField(interaction, 'id',          true);
-    const label       = getField(interaction, 'label',       true);
-    const styleRaw    = getField(interaction, 'style',       true);
-    const placeholder = getField(interaction, 'placeholder', false);
-    const required    = parseBool(getField(interaction, 'required', true));
-
-    const style: TicketModalQuestion['style'] = styleRaw.toLowerCase() === 'paragraph' ? 'paragraph' : 'short';
-
-    const newQs = [...panel.modal.questions];
-    newQs[idx] = { id, label, style, placeholder: placeholder || undefined, required };
-    const updated = await panelManager.update(panelId, { modal: { ...panel.modal, questions: newQs } });
-
-    if (!updated) {
-      await this.navReply(interaction, buildFeedback(false, 'Failed to update question.', panelId));
-      return;
-    }
-    await this.navReply(interaction, buildQuestionsSection(updated));
-  }
-
-  private async handleQRemove(interaction: NavInteraction, guild: Guild, panelId: string, idx: number): Promise<void> {
-    const panel = await panelManager.get(panelId);
-    if (!panel || panel.guildId !== guild.id) {
-      await this.navSection(interaction, guild, panelId, 'questions');
-      return;
-    }
-    const newQs = panel.modal.questions.filter((_, i) => i !== idx);
-    const updated = await panelManager.update(panelId, { modal: { ...panel.modal, questions: newQs } });
-    await this.nav(interaction, buildQuestionsSection(updated ?? panel));
-  }
-
   // ── Publish handlers ────────────────────────────────────────────────────────
 
   private async handlePublish(interaction: ModalSubmitInteraction, guild: Guild, panelId: string): Promise<void> {
@@ -1526,6 +1645,503 @@ export class TicketPanelDesigner {
 
     logger.info(`[TPD] PD updated panel ${panelId} section="${section}"`);
     await this.navReply(interaction, buildPDSupportTeam(updated));
+  }
+
+  // ── Form Builder helpers ─────────────────────────────────────────────────────
+
+  /** Patches a single form inside a panel's `forms` array. Returns undefined if the panel/form doesn't exist or belongs to another guild. */
+  private async updateForm(
+    guildId: string, panelId: string, formId: string, patch: Partial<TicketForm>,
+  ): Promise<{ panel: TicketPanel; form: TicketForm } | undefined> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guildId) return undefined;
+    const idx = panel.forms.findIndex(f => f.id === formId);
+    if (idx === -1) return undefined;
+    const newForm: TicketForm = { ...panel.forms[idx], ...patch, updatedAt: Date.now() };
+    const newForms = [...panel.forms];
+    newForms[idx] = newForm;
+    const updated = await panelManager.update(panelId, { forms: newForms });
+    if (!updated) return undefined;
+    const finalForm = updated.forms.find(f => f.id === formId) ?? newForm;
+    return { panel: updated, form: finalForm };
+  }
+
+  /** Patches a single question inside a form. Returns undefined if the panel/form/question doesn't exist or belongs to another guild. */
+  private async updateQuestion(
+    guildId: string, panelId: string, formId: string, idx: number, patch: Partial<FormQuestion>,
+  ): Promise<{ panel: TicketPanel; form: TicketForm } | undefined> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guildId) return undefined;
+    const form = panel.forms.find(f => f.id === formId);
+    if (!form || !form.questions[idx]) return undefined;
+    const questions = [...form.questions];
+    questions[idx] = { ...questions[idx], ...patch };
+    return this.updateForm(guildId, panelId, formId, { questions });
+  }
+
+  /** Defensively parses/sanitizes a pasted form-export JSON blob into a fresh, collision-free TicketForm. Throws on invalid input. */
+  private parseImportedForm(raw: string): TicketForm {
+    let obj: unknown;
+    try {
+      obj = JSON.parse(raw);
+    } catch {
+      throw new Error('That is not valid JSON.');
+    }
+    if (!obj || typeof obj !== 'object') throw new Error('The JSON must be an object.');
+    const src = obj as Record<string, unknown>;
+    if (!Array.isArray(src.questions)) throw new Error('Missing a "questions" array.');
+    if (src.questions.length === 0) throw new Error('The form must have at least one question.');
+    if (src.questions.length > MAX_QUESTIONS_PER_FORM) {
+      throw new Error(`A form can have at most ${MAX_QUESTIONS_PER_FORM} questions (Discord limit). Trim the JSON and try again.`);
+    }
+
+    const questions: FormQuestion[] = src.questions.map((raw, i) => {
+      if (!raw || typeof raw !== 'object') throw new Error(`Question ${i + 1} is invalid.`);
+      const q = raw as Record<string, unknown>;
+      const type: QuestionType = QUESTION_TYPES.includes(q.type as QuestionType) ? (q.type as QuestionType) : 'short_text';
+      const title = typeof q.title === 'string' && q.title.trim() ? q.title.trim().slice(0, 45) : `Question ${i + 1}`;
+      return {
+        id: genId('q'),
+        type,
+        title,
+        placeholder: typeof q.placeholder === 'string' ? q.placeholder.slice(0, 100) : undefined,
+        description: typeof q.description === 'string' ? q.description.slice(0, 256) : undefined,
+        required: q.required !== false,
+        minLength: typeof q.minLength === 'number' ? q.minLength : undefined,
+        maxLength: typeof q.maxLength === 'number' ? q.maxLength : undefined,
+        defaultValue: typeof q.defaultValue === 'string' ? q.defaultValue.slice(0, 100) : undefined,
+        validationRegex: typeof q.validationRegex === 'string' ? q.validationRegex : undefined,
+        errorMessage: typeof q.errorMessage === 'string' ? q.errorMessage.slice(0, 256) : undefined,
+        // showIf/chaining intentionally dropped on import — cross-form question IDs from the
+        // source panel would not resolve to anything meaningful in the destination panel.
+      };
+    });
+
+    const name = typeof src.name === 'string' && src.name.trim() ? src.name.trim().slice(0, 45) : 'Imported Form';
+    const description = typeof src.description === 'string' ? src.description.slice(0, 256) : undefined;
+    const now = Date.now();
+    return { id: genId('form'), name, description, questions, nextRules: [], defaultNextFormId: undefined, createdAt: now, updatedAt: now };
+  }
+
+  // ── Form Builder nav helpers ─────────────────────────────────────────────────
+
+  private async navFrmNewGallery(interaction: NavInteraction, guild: Guild, panelId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+    await this.nav(interaction, buildFormNewGallery(panel));
+  }
+
+  private async navFrmDetail(interaction: NavInteraction, guild: Guild, panelId: string, formId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form) { await this.navSection(interaction, guild, panelId, 'forms'); return; }
+    await this.nav(interaction, buildFormDetail(panel, form));
+  }
+
+  private async navFrmDeleteConfirm(interaction: NavInteraction, guild: Guild, panelId: string, formId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form) { await this.navSection(interaction, guild, panelId, 'forms'); return; }
+    await this.nav(interaction, buildFormDeleteConfirm(panel, form));
+  }
+
+  private async navFrmAssign(interaction: NavInteraction, guild: Guild, panelId: string, formId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form) { await this.navSection(interaction, guild, panelId, 'forms'); return; }
+    await this.nav(interaction, buildFormAssignView(panel, form));
+  }
+
+  private async navFrmChain(interaction: NavInteraction, guild: Guild, panelId: string, formId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form) { await this.navSection(interaction, guild, panelId, 'forms'); return; }
+    await this.nav(interaction, buildFormChainView(panel, form));
+  }
+
+  private async navFrmQAddTypePicker(interaction: NavInteraction, guild: Guild, panelId: string, formId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form) { await this.navSection(interaction, guild, panelId, 'forms'); return; }
+    if (form.questions.length >= MAX_QUESTIONS_PER_FORM) {
+      await this.nav(interaction, buildFeedback(false, `Maximum ${MAX_QUESTIONS_PER_FORM} questions per form (Discord limit).`, panelId));
+      return;
+    }
+    await this.nav(interaction, buildQAddTypePicker(panel, form));
+  }
+
+  private async navFrmQDetail(interaction: NavInteraction, guild: Guild, panelId: string, formId: string, idx: number): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form || !form.questions[idx]) { await this.navSection(interaction, guild, panelId, 'forms'); return; }
+    await this.nav(interaction, buildQFrmDetail(panel, form, idx));
+  }
+
+  private async navFrmQCondView(interaction: NavInteraction, guild: Guild, panelId: string, formId: string, idx: number): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form || !form.questions[idx]) { await this.navSection(interaction, guild, panelId, 'forms'); return; }
+    await this.nav(interaction, buildQCondView(panel, form, idx));
+  }
+
+  // ── Form Builder mutation handlers (buttons / select menus) ─────────────────
+
+  private async handleFrmNewUse(interaction: NavInteraction, guild: Guild, panelId: string, tplKey: FormTemplateKey): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+    const newForm = buildFormFromTemplate(tplKey);
+    const updated = await panelManager.update(panelId, { forms: [...panel.forms, newForm] });
+    if (!updated) { await this.nav(interaction, buildFeedback(false, 'Failed to create form.', panelId)); return; }
+    logger.info(`[TPD] Created form "${newForm.name}" (${newForm.id}) on panel ${panelId} from template "${tplKey}"`);
+    await this.nav(interaction, buildFormDetail(updated, newForm));
+  }
+
+  private async handleFrmDuplicate(interaction: NavInteraction, guild: Guild, panelId: string, formId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form) { await this.navPanelList(interaction, guild, 0); return; }
+
+    const idMap = new Map<string, string>();
+    const questions = form.questions.map(q => {
+      const newId = genId('q');
+      idMap.set(q.id, newId);
+      return { ...q, id: newId };
+    });
+    const nextRules = form.nextRules.map(r => ({ ...r, questionId: idMap.get(r.questionId) ?? r.questionId }));
+    const now = Date.now();
+    const dup: TicketForm = {
+      id: genId('form'),
+      name: `${form.name} (copy)`,
+      description: form.description,
+      questions,
+      nextRules,
+      defaultNextFormId: form.defaultNextFormId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const updated = await panelManager.update(panelId, { forms: [...panel.forms, dup] });
+    if (!updated) { await this.nav(interaction, buildFeedback(false, 'Failed to duplicate form.', panelId)); return; }
+    logger.info(`[TPD] Duplicated form "${form.name}" -> "${dup.name}" (${dup.id}) on panel ${panelId}`);
+    await this.nav(interaction, buildFormDetail(updated, dup));
+  }
+
+  private async handleFrmDeleteConfirmed(interaction: NavInteraction, guild: Guild, panelId: string, formId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form) { await this.navPanelList(interaction, guild, 0); return; }
+
+    const removedQIds = new Set(form.questions.map(q => q.id));
+    const remainingForms: TicketForm[] = panel.forms
+      .filter(f => f.id !== formId)
+      .map(f => ({
+        ...f,
+        questions: f.questions.map(q => (q.showIf && removedQIds.has(q.showIf.questionId) ? { ...q, showIf: undefined } : q)),
+        nextRules: f.nextRules.filter(r => r.nextFormId !== formId),
+        defaultNextFormId: f.defaultNextFormId === formId ? undefined : f.defaultNextFormId,
+      }));
+
+    const patch: Partial<TicketPanel> = {
+      forms: remainingForms,
+      button: panel.button.formId === formId ? { ...panel.button, formId: undefined } : panel.button,
+      additionalButtons: panel.additionalButtons.map(b => (b.formId === formId ? { ...b, formId: undefined } : b)),
+      selectMenu: panel.selectMenu
+        ? { ...panel.selectMenu, options: panel.selectMenu.options.map(o => (o.formId === formId ? { ...o, formId: undefined } : o)) }
+        : undefined,
+    };
+
+    const updated = await panelManager.update(panelId, patch);
+    logger.info(`[TPD] Deleted form "${form.name}" (${formId}) from panel ${panelId}`);
+    await this.nav(interaction, buildFormBuilderMain(updated ?? panel));
+  }
+
+  private async handleFrmPreview(interaction: ButtonInteraction, guild: Guild, panelId: string, formId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form || form.questions.length === 0) {
+      await interaction.reply({ content: '❌ Form not found or has no questions to preview.', flags: MessageFlags.Ephemeral });
+      return;
+    }
+    await interaction.showModal(questionEngine.buildFormModal(TP.FRM.prevModal(panelId, formId), form, {}));
+  }
+
+  private async handleFrmExport(interaction: ButtonInteraction, guild: Guild, panelId: string, formId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form) {
+      await interaction.reply({ content: '❌ Form not found.', flags: MessageFlags.Ephemeral });
+      return;
+    }
+    const json = JSON.stringify(form, null, 2);
+    const safeName = form.name.replace(/[^a-z0-9_-]+/gi, '_').slice(0, 60) || 'form';
+    const attachment = new AttachmentBuilder(Buffer.from(json, 'utf-8'), { name: `${safeName}.json` });
+    await interaction.reply({ content: `📤 Exported **${form.name.slice(0, 100)}**.`, files: [attachment], flags: MessageFlags.Ephemeral });
+  }
+
+  private async handleFrmAssignSelect(
+    interaction: StringSelectMenuInteraction, guild: Guild, panelId: string, formId: string, value: string,
+  ): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form) { await this.navPanelList(interaction, guild, 0); return; }
+
+    let patch: Partial<TicketPanel> | undefined;
+    if (value === 'primary') {
+      patch = { button: { ...panel.button, formId } };
+    } else if (value.startsWith('extra:')) {
+      const idx = parseInt(value.slice('extra:'.length), 10);
+      if (!panel.additionalButtons[idx]) { await this.nav(interaction, buildFormAssignView(panel, form)); return; }
+      const buttons = [...panel.additionalButtons];
+      buttons[idx] = { ...buttons[idx], formId };
+      patch = { additionalButtons: buttons };
+    } else if (value.startsWith('opt:') && panel.selectMenu) {
+      const idx = parseInt(value.slice('opt:'.length), 10);
+      if (!panel.selectMenu.options[idx]) { await this.nav(interaction, buildFormAssignView(panel, form)); return; }
+      const options = [...panel.selectMenu.options];
+      options[idx] = { ...options[idx], formId };
+      patch = { selectMenu: { ...panel.selectMenu, options } };
+    }
+
+    if (!patch) { await this.nav(interaction, buildFormAssignView(panel, form)); return; }
+    const updated = await panelManager.update(panelId, patch);
+    if (!updated) { await this.nav(interaction, buildFeedback(false, 'Failed to save assignment.', panelId)); return; }
+    const updatedForm = updated.forms.find(f => f.id === formId) ?? form;
+    logger.info(`[TPD] Assigned form "${form.name}" (${formId}) to "${value}" on panel ${panelId}`);
+    await this.nav(interaction, buildFormAssignView(updated, updatedForm));
+  }
+
+  private async handleFrmQToggleRequired(interaction: NavInteraction, guild: Guild, panelId: string, formId: string, idx: number): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form || !form.questions[idx]) { await this.navPanelList(interaction, guild, 0); return; }
+    const result = await this.updateQuestion(guild.id, panelId, formId, idx, { required: !form.questions[idx].required });
+    if (!result) { await this.nav(interaction, buildFeedback(false, 'Question not found.', panelId)); return; }
+    await this.nav(interaction, buildQFrmDetail(result.panel, result.form, idx));
+  }
+
+  private async handleFrmQMove(
+    interaction: NavInteraction, guild: Guild, panelId: string, formId: string, idx: number, dir: -1 | 1,
+  ): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form || !form.questions[idx]) { await this.navPanelList(interaction, guild, 0); return; }
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= form.questions.length) { await this.nav(interaction, buildQFrmDetail(panel, form, idx)); return; }
+    const questions = [...form.questions];
+    [questions[idx], questions[newIdx]] = [questions[newIdx], questions[idx]];
+    const result = await this.updateForm(guild.id, panelId, formId, { questions });
+    if (!result) { await this.nav(interaction, buildFeedback(false, 'Failed to reorder question.', panelId)); return; }
+    await this.nav(interaction, buildQFrmDetail(result.panel, result.form, newIdx));
+  }
+
+  private async handleFrmQRemove(interaction: NavInteraction, guild: Guild, panelId: string, formId: string, idx: number): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form || !form.questions[idx]) { await this.navPanelList(interaction, guild, 0); return; }
+
+    const removedId = form.questions[idx].id;
+    const forms: TicketForm[] = panel.forms.map(f => {
+      const questions = (f.id === formId ? f.questions.filter((_, i) => i !== idx) : f.questions)
+        .map(q => (q.showIf?.questionId === removedId ? { ...q, showIf: undefined } : q));
+      const nextRules = f.id === formId ? f.nextRules.filter(r => r.questionId !== removedId) : f.nextRules;
+      return { ...f, questions, nextRules };
+    });
+
+    const updated = await panelManager.update(panelId, { forms });
+    if (!updated) { await this.nav(interaction, buildFeedback(false, 'Failed to remove question.', panelId)); return; }
+    const updatedForm = updated.forms.find(f => f.id === formId)!;
+    logger.info(`[TPD] Removed question ${idx} from form "${form.name}" (${formId})`);
+    await this.nav(interaction, buildFormDetail(updated, updatedForm));
+  }
+
+  private async handleFrmQCondClear(interaction: NavInteraction, guild: Guild, panelId: string, formId: string, idx: number): Promise<void> {
+    const result = await this.updateQuestion(guild.id, panelId, formId, idx, { showIf: undefined });
+    if (!result) { await this.nav(interaction, buildFeedback(false, 'Question not found.', panelId)); return; }
+    await this.nav(interaction, buildQCondView(result.panel, result.form, idx));
+  }
+
+  // ── Form Builder modal-submit handlers ───────────────────────────────────────
+
+  private async handleFrmRenameSubmit(interaction: ModalSubmitInteraction, guild: Guild, panelId: string, formId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form) { await this.navReply(interaction, buildFeedback(false, 'Form not found.')); return; }
+
+    const name = getField(interaction, 'name', true);
+    const description = getField(interaction, 'description', false);
+
+    const result = await this.updateForm(guild.id, panelId, formId, { name, description: description || undefined });
+    if (!result) { await this.navReply(interaction, buildFeedback(false, 'Failed to rename form.', panelId)); return; }
+    await this.navReply(interaction, buildFormDetail(result.panel, result.form));
+  }
+
+  private async handleFrmChainSubmit(interaction: ModalSubmitInteraction, guild: Guild, panelId: string, formId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form) { await this.navReply(interaction, buildFeedback(false, 'Form not found.')); return; }
+
+    const defaultNextRaw = getField(interaction, 'defaultNextFormId', false);
+    const nextRulesRaw   = getField(interaction, 'nextRulesJson', false);
+
+    try {
+      let defaultNextFormId: string | undefined;
+      if (defaultNextRaw) {
+        if (defaultNextRaw === formId) throw new Error('A form cannot chain to itself.');
+        if (!panel.forms.some(f => f.id === defaultNextRaw)) throw new Error(`Unknown form ID: "${defaultNextRaw}".`);
+        defaultNextFormId = defaultNextRaw;
+      }
+
+      let nextRules: FormNextRule[] = [];
+      if (nextRulesRaw) {
+        let parsed: unknown;
+        try { parsed = JSON.parse(nextRulesRaw); } catch { throw new Error('Conditional rules must be valid JSON.'); }
+        if (!Array.isArray(parsed)) throw new Error('Conditional rules JSON must be an array.');
+        nextRules = parsed.map((raw, i) => {
+          const r = raw as Record<string, unknown>;
+          if (typeof r?.questionId !== 'string' || typeof r?.equals !== 'string' || typeof r?.nextFormId !== 'string') {
+            throw new Error(`Rule ${i + 1} must have "questionId", "equals", and "nextFormId" strings.`);
+          }
+          if (!form.questions.some(q => q.id === r.questionId)) {
+            throw new Error(`Rule ${i + 1}: unknown question ID "${r.questionId}" (must be one of this form's own questions).`);
+          }
+          if (r.nextFormId === formId) throw new Error(`Rule ${i + 1}: a form cannot chain to itself.`);
+          if (!panel.forms.some(f => f.id === r.nextFormId)) throw new Error(`Rule ${i + 1}: unknown next form ID "${r.nextFormId}".`);
+          return { questionId: r.questionId, equals: r.equals, nextFormId: r.nextFormId } as FormNextRule;
+        });
+      }
+
+      const result = await this.updateForm(guild.id, panelId, formId, { defaultNextFormId, nextRules });
+      if (!result) { await this.navReply(interaction, buildFeedback(false, 'Failed to save chaining.', panelId)); return; }
+      await this.navReply(interaction, buildFormChainView(result.panel, result.form));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Invalid input.';
+      await this.navReply(interaction, buildFeedback(false, message, panelId));
+    }
+  }
+
+  private async handleFrmImportSubmit(interaction: ModalSubmitInteraction, guild: Guild, panelId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) { await this.navReply(interaction, buildFeedback(false, 'Panel not found.')); return; }
+
+    const raw = getField(interaction, 'json', true);
+    try {
+      const form = this.parseImportedForm(raw);
+      const updated = await panelManager.update(panelId, { forms: [...panel.forms, form] });
+      if (!updated) throw new Error('Failed to save imported form.');
+      logger.info(`[TPD] Imported form "${form.name}" (${form.id}) into panel ${panelId}`);
+      await this.navReply(interaction, buildFormDetail(updated, form));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Invalid form JSON.';
+      await this.navReply(interaction, buildFeedback(false, message, panelId));
+    }
+  }
+
+  private async handleFrmQAddSubmit(
+    interaction: ModalSubmitInteraction, guild: Guild, panelId: string, formId: string, type: string,
+  ): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form) { await this.navReply(interaction, buildFeedback(false, 'Form not found.')); return; }
+    if (form.questions.length >= MAX_QUESTIONS_PER_FORM) {
+      await this.navReply(interaction, buildFeedback(false, `Maximum ${MAX_QUESTIONS_PER_FORM} questions per form (Discord limit).`, panelId));
+      return;
+    }
+
+    const title        = getField(interaction, 'title', true);
+    const placeholder  = getField(interaction, 'placeholder', false);
+    const defaultValue = getField(interaction, 'defaultValue', false);
+    const description  = getField(interaction, 'description', false);
+    const qType: QuestionType = QUESTION_TYPES.includes(type as QuestionType) ? (type as QuestionType) : 'short_text';
+
+    const newQuestion: FormQuestion = {
+      id: genId('q'),
+      type: qType,
+      title,
+      placeholder: placeholder || undefined,
+      description: description || undefined,
+      defaultValue: defaultValue || undefined,
+      required: true,
+    };
+
+    const newIdx = form.questions.length;
+    const result = await this.updateForm(guild.id, panelId, formId, { questions: [...form.questions, newQuestion] });
+    if (!result) { await this.navReply(interaction, buildFeedback(false, 'Failed to add question.', panelId)); return; }
+    await this.navReply(interaction, buildQFrmDetail(result.panel, result.form, newIdx));
+  }
+
+  private async handleFrmQBasicSubmit(
+    interaction: ModalSubmitInteraction, guild: Guild, panelId: string, formId: string, idx: number,
+  ): Promise<void> {
+    const title        = getField(interaction, 'title', true);
+    const placeholder  = getField(interaction, 'placeholder', false);
+    const defaultValue = getField(interaction, 'defaultValue', false);
+    const description  = getField(interaction, 'description', false);
+
+    const result = await this.updateQuestion(guild.id, panelId, formId, idx, {
+      title, placeholder: placeholder || undefined, defaultValue: defaultValue || undefined, description: description || undefined,
+    });
+    if (!result) { await this.navReply(interaction, buildFeedback(false, 'Question not found.', panelId)); return; }
+    await this.navReply(interaction, buildQFrmDetail(result.panel, result.form, idx));
+  }
+
+  private async handleFrmQLenSubmit(
+    interaction: ModalSubmitInteraction, guild: Guild, panelId: string, formId: string, idx: number,
+  ): Promise<void> {
+    const minRaw = getField(interaction, 'minLength', true);
+    const maxRaw = getField(interaction, 'maxLength', true);
+    const min = parseIntSafe(minRaw, 0, 4000, 0);
+    const max = parseIntSafe(maxRaw, 1, 4000, 1000);
+    if (min > max) {
+      await this.navReply(interaction, buildFeedback(false, 'Minimum length cannot exceed maximum length.', panelId));
+      return;
+    }
+    const result = await this.updateQuestion(guild.id, panelId, formId, idx, { minLength: min, maxLength: max });
+    if (!result) { await this.navReply(interaction, buildFeedback(false, 'Question not found.', panelId)); return; }
+    await this.navReply(interaction, buildQFrmDetail(result.panel, result.form, idx));
+  }
+
+  private async handleFrmQValSubmit(
+    interaction: ModalSubmitInteraction, guild: Guild, panelId: string, formId: string, idx: number,
+  ): Promise<void> {
+    const regex = getField(interaction, 'validationRegex', false);
+    const errorMessage = getField(interaction, 'errorMessage', false);
+    if (regex) {
+      try { new RegExp(regex); } catch {
+        await this.navReply(interaction, buildFeedback(false, `Invalid regular expression: "${regex}"`, panelId));
+        return;
+      }
+    }
+    const result = await this.updateQuestion(guild.id, panelId, formId, idx, {
+      validationRegex: regex || undefined, errorMessage: errorMessage || undefined,
+    });
+    if (!result) { await this.navReply(interaction, buildFeedback(false, 'Question not found.', panelId)); return; }
+    await this.navReply(interaction, buildQFrmDetail(result.panel, result.form, idx));
+  }
+
+  private async handleFrmQCondSubmit(
+    interaction: ModalSubmitInteraction, guild: Guild, panelId: string, formId: string, idx: number, srcQId: string,
+  ): Promise<void> {
+    const equals = getField(interaction, 'equals', true);
+    const result = await this.updateQuestion(guild.id, panelId, formId, idx, { showIf: { questionId: srcQId, equals } });
+    if (!result) { await this.navReply(interaction, buildFeedback(false, 'Question not found.', panelId)); return; }
+    await this.navReply(interaction, buildQCondView(result.panel, result.form, idx));
+  }
+
+  private async handleFrmPreviewSubmit(interaction: ModalSubmitInteraction, guild: Guild, panelId: string, formId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    const form = panel?.forms?.find(f => f.id === formId);
+    if (!panel || panel.guildId !== guild.id || !form) { await this.navReply(interaction, buildFeedback(false, 'Form not found.')); return; }
+
+    const result = questionEngine.validateForm(interaction, form, {});
+    if (!result.ok) {
+      const lines = result.errors.map(e => `❌ **${e.title}**: ${e.message}`).join('\n');
+      await this.navReply(interaction, buildFeedback(false, `Preview validation failed:\n${lines}`, panelId));
+      return;
+    }
+
+    const fields = questionEngine.formatFormAnswersForEmbed([form], result.answers);
+    const lines = fields.length > 0 ? fields.map(f => `**${f.name}:** ${f.value}`).join('\n') : '_No answers provided._';
+    await this.navReply(interaction, buildFeedback(true, `👁 Preview only — nothing was saved.\n\n${lines}`, panelId));
   }
 
   // ── Error helpers ───────────────────────────────────────────────────────────

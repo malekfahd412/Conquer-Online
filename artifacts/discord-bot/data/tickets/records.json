@@ -20,9 +20,100 @@
       "participantIds": [
         "727578927593291796"
       ]
+    },
+    {
+      "id": "ticket_1783749614076_tav4q",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Support",
+      "channelId": "1525381183326781451",
+      "openerId": "727578927593291796",
+      "status": "open",
+      "number": 2,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783749614565,
+      "lastActivityAt": 1783749634344,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "claimedBy": "727578927593291796",
+      "firstStaffReplyAt": 1783749620602
+    },
+    {
+      "id": "ticket_1783749925665_bk2s7",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Support",
+      "channelId": "1525382489709744291",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 3,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783749925965,
+      "lastActivityAt": 1783749925965,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "closedAt": 1783749944894,
+      "closedBy": "727578927593291796"
+    },
+    {
+      "id": "ticket_1783750492033_1r8sb",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Support",
+      "channelId": "1525384865313329224",
+      "openerId": "727578927593291796",
+      "status": "open",
+      "number": 4,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783750492254,
+      "lastActivityAt": 1783750492254,
+      "participantIds": [
+        "727578927593291796"
+      ]
+    },
+    {
+      "id": "ticket_1783751121640_tbypb",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Store",
+      "channelId": "1525387506059841616",
+      "openerId": "727578927593291796",
+      "status": "open",
+      "number": 5,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783751121845,
+      "lastActivityAt": 1783751121845,
+      "participantIds": [
+        "727578927593291796"
+      ]
+    },
+    {
+      "id": "ticket_1783751125457_te875",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783747543306_kk73l",
+      "ticketType": "Support",
+      "channelId": "1525387522270564493",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 6,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783751125741,
+      "lastActivityAt": 1783751125741,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "closedAt": 1783751130028,
+      "closedBy": "727578927593291796"
     }
   ],
   "counters": {
-    "1213437502078062674": 1
+    "1213437502078062674": 6
   }
 }
