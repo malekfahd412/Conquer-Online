@@ -301,7 +301,7 @@ export function buildSearchResults(query: string, tools: ITool[]): CCPayload {
     new EmbedBuilder()
       .setColor(color)
       .setTitle(`🔍 "${query}" — ${tools.length} result${tools.length !== 1 ? 's' : ''}`)
-      .setDescription(tools.length > TOOLS_PER_PAGE ? `Showing first ${TOOLS_PER_PAGE} of ${tools.length} results.` : ''),
+      .setDescription(tools.length > TOOLS_PER_PAGE ? `Showing first ${TOOLS_PER_PAGE} of ${tools.length} results.` : null),
   );
 
   const select = verifyBuilder(FILE, fn, 'search results select', () =>
