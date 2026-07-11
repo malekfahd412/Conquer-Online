@@ -44,9 +44,10 @@ export class TicketEngine {
     await store.ensureFile();
   }
 
-  private async logAction(guild: Guild, panel: TicketPanel, message: string): Promise<void> {
-    if (!panel.logChannelId) return;
-    const ch = await guild.channels.fetch(panel.logChannelId).catch(() => null);
+  /** `cfg` should be the ticket-type-resolved config (see `resolveTicketType`) so `cfg.logChannelId` reflects this ticket type. */
+  private async logAction(guild: Guild, cfg: TicketPanel, message: string): Promise<void> {
+    if (!cfg.logChannelId) return;
+    const ch = await guild.channels.fetch(cfg.logChannelId).catch(() => null);
     if (ch?.isTextBased()) await (ch as TextChannel).send(message).catch(() => {});
   }
 
@@ -94,28 +95,29 @@ export class TicketEngine {
 
   /**
    * Preflight checks before showing a modal or creating a channel.
-   * `panel` should be the ticket-type-resolved config (see `resolveTicketType`)
+   * `cfg` must be the ticket-type-resolved config (see `resolveTicketType`)
    * so ticket limit / cooldown reflect that type's own settings; `ticketType`
    * scopes the open-ticket count and cooldown clock to that specific type.
    */
-  async checkCanOpen(panel: TicketPanel, member: GuildMember | null, userId: string, ticketType: string): Promise<string | null> {
-    if (!panel.enabled) return 'This ticket panel is currently disabled.';
+  async checkCanOpen(cfg: TicketPanel, member: GuildMember | null, userId: string, ticketType: string): Promise<string | null> {
+    if (!cfg.enabled) return 'This ticket panel is currently disabled.';
 
-    const permissionBlock = permissionEngine.canOpen(panel, member, userId);
+    const permissionBlock = permissionEngine.canOpen(cfg, member, userId);
     if (permissionBlock) return permissionBlock;
 
-    const openCount = (await this.getOpenForUser(panel.guildId, userId, panel.id, ticketType)).length;
-    if (openCount >= panel.ticketLimit) return `You already have ${openCount} open ticket(s) of this type (limit: ${panel.ticketLimit}).`;
+    const openCount = (await this.getOpenForUser(cfg.guildId, userId, cfg.id, ticketType)).length;
+    if (openCount >= cfg.ticketLimit) return `You already have ${openCount} open ticket(s) of this type (limit: ${cfg.ticketLimit}).`;
 
-    const cooldownRemaining = await automationEngine.remainingCooldownSeconds(panel, userId, ticketType);
+    const cooldownRemaining = await automationEngine.remainingCooldownSeconds(cfg, userId, ticketType);
     if (cooldownRemaining > 0) return `Please wait ${cooldownRemaining}s before opening another ticket of this type.`;
 
     return null;
   }
 
+  /** `cfg` must be the ticket-type-resolved config (see `resolveTicketType`) so every setting below reflects this specific ticket type. */
   async createChannel(
     guild: Guild,
-    panel: TicketPanel | ResolvedTicketConfig,
+    cfg: TicketPanel | ResolvedTicketConfig,
     opener: { id: string; username: string; displayName: string; tag: string },
     ticketType: string,
     answers: Record<string, string>,
@@ -123,7 +125,7 @@ export class TicketEngine {
   ): Promise<{ ticket: TicketRecord; channel: TextChannel }> {
     const number = await this.nextNumber(guild.id);
     const ticketId = genId('ticket');
-    const name = namingEngine.render(panel.namingScheme, {
+    const name = namingEngine.render(cfg.namingScheme, {
       userId: opener.id,
       username: opener.username,
       displayName: opener.displayName,
@@ -133,24 +135,24 @@ export class TicketEngine {
       now: new Date(),
     });
 
-    const overwrites = permissionEngine.buildOverwrites(guild, panel, opener.id);
+    const overwrites = permissionEngine.buildOverwrites(guild, cfg, opener.id);
     const channel = (await guild.channels.create({
       name,
-      parent: panel.openCategory,
+      parent: cfg.openCategory,
       permissionOverwrites: overwrites,
-      topic: `Ticket for ${opener.tag} • Type: ${ticketType} • Panel: ${panel.id}`,
+      topic: `Ticket for ${opener.tag} • Type: ${ticketType} • Panel: ${cfg.id}`,
     })) as TextChannel;
 
     const ticket: TicketRecord = {
       id: ticketId,
       guildId: guild.id,
-      panelId: panel.id,
+      panelId: cfg.id,
       ticketType,
       channelId: channel.id,
       openerId: opener.id,
       status: 'open',
       number,
-      priority: panel.priority,
+      priority: cfg.priority,
       answers,
       createdAt: Date.now(),
       lastActivityAt: Date.now(),
@@ -162,23 +164,23 @@ export class TicketEngine {
     });
 
     await automationEngine.touchActivity(ticket.id, channel.id);
-    if (panel.statistics.trackClaims || panel.statistics.trackResponseTime) {
-      await statisticsEngine.record({ type: 'opened', guildId: guild.id, panelId: panel.id, ticketId: ticket.id, userId: opener.id });
+    if (cfg.statistics.trackClaims || cfg.statistics.trackResponseTime) {
+      await statisticsEngine.record({ type: 'opened', guildId: guild.id, panelId: cfg.id, ticketId: ticket.id, userId: opener.id });
     }
 
-    const embedOverride = (panel as ResolvedTicketConfig).ticketEmbedOverride;
+    const embedOverride = (cfg as ResolvedTicketConfig).ticketEmbedOverride;
     const embed = new EmbedBuilder()
-      .setColor(embedOverride?.color ?? panel.embed.color)
+      .setColor(embedOverride?.color ?? cfg.embed.color)
       .setTitle(embedOverride?.title || `🎫 ${ticketType} — Ticket #${number}`)
       .setDescription(embedOverride?.description || `Welcome <@${opener.id}>, support will be with you shortly.\n\nUse the buttons below to manage this ticket.`)
-      .setFooter({ text: embedOverride?.footer || `Ticket ID: ${ticket.id} • Priority: ${panel.priority}` });
+      .setFooter({ text: embedOverride?.footer || `Ticket ID: ${ticket.id} • Priority: ${cfg.priority}` });
     if (embedOverride?.thumbnail) embed.setThumbnail(embedOverride.thumbnail);
     if (embedOverride?.banner) embed.setImage(embedOverride.banner);
     if (embedOverride?.author) embed.setAuthor({ name: embedOverride.author });
     if (embedOverride?.showTimestamp) embed.setTimestamp();
 
-    if (panel.modal.enabled && Object.keys(answers).length > 0) {
-      embed.addFields(questionEngine.formatAnswersForEmbed(panel.modal, answers));
+    if (cfg.modal.enabled && Object.keys(answers).length > 0) {
+      embed.addFields(questionEngine.formatAnswersForEmbed(cfg.modal, answers));
     }
     if (extraAnswerFields.length > 0) {
       embed.addFields(extraAnswerFields.slice(0, 25));
@@ -190,19 +192,26 @@ export class TicketEngine {
       new ButtonBuilder().setCustomId(`tk:transcript:${ticket.id}`).setLabel('Transcript').setStyle(ButtonStyle.Secondary).setEmoji('📄'),
     );
 
-    const pingRoles = panel.pingRoles.map(id => `<@&${id}>`).join(' ');
+    const pingRoles = cfg.pingRoles.map(id => `<@&${id}>`).join(' ');
     await channel.send({ content: pingRoles || undefined, embeds: [embed], components: [row] });
 
-    await this.logAction(guild, panel, `🎫 Ticket **#${number}** opened by ${opener.tag} in ${channel} (type: ${ticketType})`);
+    await this.logAction(guild, cfg, `🎫 Ticket **#${number}** opened by ${opener.tag} in ${channel} (type: ${ticketType})`);
 
     return { ticket, channel };
   }
 
-  async claim(_guild: Guild, ticketId: string, userId: string, claim: boolean): Promise<TicketRecord | undefined> {
+  /**
+   * `cfg` must be the ticket-type-resolved config (see `resolveTicketType`) so `cfg.claimBehaviour`
+   * enforces this ticket type's own hide/override rules. `claimerRoleIds` are the claiming staff
+   * member's Discord role ids, kept visible even when `hideFromOtherStaffOnClaim` is on.
+   */
+  async claim(guild: Guild, cfg: TicketPanel, ticketId: string, userId: string, claim: boolean, claimerRoleIds: string[] = []): Promise<TicketRecord | undefined> {
     const ticket = await this.getById(ticketId);
     if (!ticket) return undefined;
     const firstReply = ticket.firstStaffReplyAt ?? (claim ? Date.now() : undefined);
     const updated = await this.update(ticketId, { claimedBy: claim ? userId : undefined, firstStaffReplyAt: firstReply });
+
+    const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
     if (claim) {
       await statisticsEngine.record({
         type: 'claimed',
@@ -212,33 +221,40 @@ export class TicketEngine {
         userId,
         responseMs: ticket.firstStaffReplyAt ? undefined : Date.now() - ticket.createdAt,
       });
+      if (channel?.isTextBased() && cfg.claimBehaviour.hideFromOtherStaffOnClaim && !cfg.claimBehaviour.keepVisible) {
+        await permissionEngine.hideFromOtherStaff(channel as TextChannel, cfg, claimerRoleIds);
+      }
     } else {
       await statisticsEngine.record({ type: 'unclaimed', guildId: ticket.guildId, panelId: ticket.panelId, ticketId: ticket.id, userId });
+      if (channel?.isTextBased()) {
+        await permissionEngine.restoreStaffAccess(channel as TextChannel, guild, cfg, ticket.openerId);
+      }
     }
     await automationEngine.touchActivity(ticketId, ticket.channelId);
     return updated;
   }
 
-  async close(guild: Guild, panel: TicketPanel, ticket: TicketRecord, closedByUserId: string, closedByTag: string): Promise<void> {
+  /** `cfg` must be the ticket-type-resolved config (see `resolveTicketType`) so every setting below reflects this specific ticket type. */
+  async close(guild: Guild, cfg: TicketPanel, ticket: TicketRecord, closedByUserId: string, closedByTag: string): Promise<void> {
     const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
 
     if (channel?.isTextBased()) {
-      await transcriptEngine.deliver(guild, panel, ticket, closedByTag);
+      await transcriptEngine.deliver(guild, cfg, ticket, closedByTag);
       await permissionEngine.lockForClose(channel as TextChannel, ticket.openerId);
-      if (panel.closedCategory) await categoryEngine.moveToClosed(channel as TextChannel, panel);
-      else if (panel.archiveCategory) await categoryEngine.moveToArchive(channel as TextChannel, panel);
+      if (cfg.closedCategory) await categoryEngine.moveToClosed(channel as TextChannel, cfg);
+      else if (cfg.archiveCategory) await categoryEngine.moveToArchive(channel as TextChannel, cfg);
     }
 
     await this.update(ticket.id, { status: 'closed', closedAt: Date.now(), closedBy: closedByUserId });
-    await automationEngine.recordClose(panel, ticket.openerId, ticket.ticketType);
+    await automationEngine.recordClose(cfg, ticket.openerId, ticket.ticketType);
     await automationEngine.clearActivity(ticket.id);
-    await statisticsEngine.record({ type: 'closed', guildId: guild.id, panelId: panel.id, ticketId: ticket.id, userId: closedByUserId });
-    await this.logAction(guild, panel, `🔒 Ticket **#${ticket.number}** closed by ${closedByTag}`);
+    await statisticsEngine.record({ type: 'closed', guildId: guild.id, panelId: cfg.id, ticketId: ticket.id, userId: closedByUserId });
+    await this.logAction(guild, cfg, `🔒 Ticket **#${ticket.number}** closed by ${closedByTag}`);
 
-    if (panel.automation.autoDeleteAfterCloseMinutes > 0 && channel) {
+    if (cfg.automation.autoDeleteAfterCloseMinutes > 0 && channel) {
       setTimeout(() => {
         channel.delete().catch(err => logger.warning(`[TICKETS] Auto-delete failed for ${channel.id}`, err));
-      }, panel.automation.autoDeleteAfterCloseMinutes * 60_000);
+      }, cfg.automation.autoDeleteAfterCloseMinutes * 60_000);
     }
   }
 

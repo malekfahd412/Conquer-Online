@@ -22,25 +22,26 @@ export class AutomationEngine {
 
   /**
    * Returns null when the user may open a ticket, or the number of seconds remaining.
-   * `ticketType` scopes the cooldown clock — each ticket type on a panel tracks its
-   * own cooldown independently, using `panel.cooldown` as the (possibly per-type
-   * resolved) duration.
+   * `cfg` must be the ticket-type-resolved config (see `resolveTicketType`) so `cfg.cooldown`
+   * reflects this specific ticket type's own setting; `ticketType` scopes the cooldown
+   * clock so each ticket type on a panel tracks its own cooldown independently.
    */
-  async remainingCooldownSeconds(panel: TicketPanel, userId: string, ticketType: string): Promise<number> {
-    if (panel.cooldown <= 0) return 0;
+  async remainingCooldownSeconds(cfg: TicketPanel, userId: string, ticketType: string): Promise<number> {
+    if (cfg.cooldown <= 0) return 0;
     const data = await store.read();
-    const entry = data.cooldowns.find(c => c.guildId === panel.guildId && c.panelId === panel.id && c.userId === userId && c.ticketType === ticketType);
+    const entry = data.cooldowns.find(c => c.guildId === cfg.guildId && c.panelId === cfg.id && c.userId === userId && c.ticketType === ticketType);
     if (!entry) return 0;
     const elapsedSeconds = (Date.now() - entry.lastClosedAt) / 1000;
-    const remaining = panel.cooldown - elapsedSeconds;
+    const remaining = cfg.cooldown - elapsedSeconds;
     return remaining > 0 ? Math.ceil(remaining) : 0;
   }
 
-  async recordClose(panel: TicketPanel, userId: string, ticketType: string): Promise<void> {
+  /** `cfg` should be the ticket-type-resolved config (see `resolveTicketType`). */
+  async recordClose(cfg: TicketPanel, userId: string, ticketType: string): Promise<void> {
     await store.mutate(data => {
-      const existing = data.cooldowns.find(c => c.guildId === panel.guildId && c.panelId === panel.id && c.userId === userId && c.ticketType === ticketType);
+      const existing = data.cooldowns.find(c => c.guildId === cfg.guildId && c.panelId === cfg.id && c.userId === userId && c.ticketType === ticketType);
       if (existing) existing.lastClosedAt = Date.now();
-      else data.cooldowns.push({ guildId: panel.guildId, panelId: panel.id, userId, ticketType, lastClosedAt: Date.now() });
+      else data.cooldowns.push({ guildId: cfg.guildId, panelId: cfg.id, userId, ticketType, lastClosedAt: Date.now() });
     });
   }
 

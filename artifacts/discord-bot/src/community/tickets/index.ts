@@ -107,18 +107,18 @@ class TicketSystem {
     }
     const rawPanel = await panelManager.get(ticket.panelId);
     if (!rawPanel) return;
-    const panel = resolveTicketType(rawPanel, ticket.ticketType);
-    if (panel.automation.autoCloseInactivityMinutes <= 0) return;
+    const cfg = resolveTicketType(rawPanel, ticket.ticketType);
+    if (cfg.automation.autoCloseInactivityMinutes <= 0) return;
 
-    const inactiveIds = await automationEngine.getInactiveTicketIds(panel.automation.autoCloseInactivityMinutes);
+    const inactiveIds = await automationEngine.getInactiveTicketIds(cfg.automation.autoCloseInactivityMinutes);
     if (!inactiveIds.includes(ticketId)) return;
 
     const guild = await this.client.guilds.fetch(ticket.guildId).catch(() => null);
     if (!guild) return;
 
-    await ticketEngine.close(guild, panel, ticket, this.client.user?.id ?? 'automation', 'inactivity auto-close');
+    await ticketEngine.close(guild, cfg, ticket, this.client.user?.id ?? 'automation', 'inactivity auto-close');
     await automationEngine.logAction(ticketId, 'auto-close');
-    logger.info(`[TICKETS] Auto-closed inactive ticket #${ticket.number} (panel ${panel.id}, type ${ticket.ticketType})`);
+    logger.info(`[TICKETS] Auto-closed inactive ticket #${ticket.number} (panel ${cfg.id}, type ${ticket.ticketType})`);
   }
 
   /** Full panel-open flow shared by button clicks and select-menu selections. */
@@ -135,8 +135,8 @@ class TicketSystem {
     }
 
     const member = interaction.member instanceof GuildMember ? interaction.member : null;
-    const resolved = resolveTicketType(panel, ticketType);
-    const block = await ticketEngine.checkCanOpen(resolved, member, interaction.user.id, ticketType);
+    const cfg = resolveTicketType(panel, ticketType);
+    const block = await ticketEngine.checkCanOpen(cfg, member, interaction.user.id, ticketType);
     if (block) {
       await interaction.reply({ content: `❌ ${block}`, ephemeral: true });
       return;
@@ -176,10 +176,10 @@ class TicketSystem {
 
     await interaction.deferReply({ ephemeral: true });
     const extraAnswerFields = usedForms.length > 0 ? questionEngine.formatFormAnswersForEmbed(usedForms, answers) : [];
-    const resolved = resolveTicketType(panel, ticketType);
+    const cfg = resolveTicketType(panel, ticketType);
     const { ticket, channel } = await ticketEngine.createChannel(
       guild,
-      resolved,
+      cfg,
       { id: interaction.user.id, username: interaction.user.username, displayName: interaction.user.displayName ?? interaction.user.username, tag: interaction.user.tag },
       ticketType,
       answers,
@@ -372,7 +372,15 @@ class TicketSystem {
       await interaction.reply({ content: '❌ Ticket not found.', ephemeral: true });
       return;
     }
-    await ticketEngine.claim(guild, ticketId, interaction.user.id, claim);
+    const rawPanel = await panelManager.get(ticket.panelId);
+    if (!rawPanel) {
+      await interaction.reply({ content: '❌ This ticket panel no longer exists.', ephemeral: true });
+      return;
+    }
+    const cfg = resolveTicketType(rawPanel, ticket.ticketType);
+    const member = interaction.member instanceof GuildMember ? interaction.member : null;
+    const claimerRoleIds = member ? Array.from(member.roles.cache.keys()) : [];
+    await ticketEngine.claim(guild, cfg, ticketId, interaction.user.id, claim, claimerRoleIds);
     await interaction.reply({ content: claim ? `🙋 ${interaction.user} claimed this ticket.` : `↩️ ${interaction.user} unclaimed this ticket.` });
   }
 
@@ -387,9 +395,9 @@ class TicketSystem {
       await interaction.reply({ content: '❌ This ticket panel no longer exists.', ephemeral: true });
       return;
     }
-    const panel = resolveTicketType(rawPanel, ticket.ticketType);
+    const cfg = resolveTicketType(rawPanel, ticket.ticketType);
     await interaction.deferUpdate();
-    await ticketEngine.close(guild, panel, ticket, interaction.user.id, interaction.user.tag);
+    await ticketEngine.close(guild, cfg, ticket, interaction.user.id, interaction.user.tag);
 
     const embed = new EmbedBuilder().setColor(0xed4245).setDescription(`🔒 Ticket closed by ${interaction.user}.`);
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(

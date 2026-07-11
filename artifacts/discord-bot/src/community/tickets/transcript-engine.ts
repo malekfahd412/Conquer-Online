@@ -103,18 +103,19 @@ export class TranscriptEngine {
     return data.transcripts.find(t => t.ticketId === ticketId);
   }
 
-  async deliver(guild: Guild, panel: TicketPanel, ticket: TicketRecord, closedByTag: string): Promise<void> {
+  /** `cfg` should be the ticket-type-resolved config (see `resolveTicketType`) so `cfg.transcript` reflects this specific ticket type. */
+  async deliver(guild: Guild, cfg: TicketPanel, ticket: TicketRecord, closedByTag: string): Promise<void> {
     const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
     if (!channel?.isTextBased()) return;
 
     const result = await this.generate(channel as GuildTextBasedChannel);
-    const targetChannelId = panel.transcript.channelId;
+    const targetChannelId = cfg.transcript.channelId;
     let deliveredChannelId: string | undefined;
 
-    if (panel.transcript.enabled && targetChannelId) {
+    if (cfg.transcript.enabled && targetChannelId) {
       const tc = await guild.channels.fetch(targetChannelId).catch(() => null);
       if (tc?.isTextBased()) {
-        const files = panel.transcript.formats.includes('html')
+        const files = cfg.transcript.formats.includes('html')
           ? [new AttachmentBuilder(Buffer.from(result.html, 'utf-8'), { name: `ticket-${ticket.number}.html` })]
           : [new AttachmentBuilder(Buffer.from(result.markdown, 'utf-8'), { name: `ticket-${ticket.number}.md` })];
         await (tc as TextChannel).send({ content: `📄 Transcript for ticket #${ticket.number} (closed by ${closedByTag})`, files }).catch(err =>
@@ -124,7 +125,7 @@ export class TranscriptEngine {
       }
     }
 
-    if (panel.transcript.dmUser) {
+    if (cfg.transcript.dmUser) {
       const opener = await guild.members.fetch(ticket.openerId).catch(() => null);
       if (opener) {
         const file = new AttachmentBuilder(Buffer.from(result.html, 'utf-8'), { name: `ticket-${ticket.number}.html` });

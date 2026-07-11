@@ -64,24 +64,25 @@ function staffExtraFlags(cfg: TicketStaffPermConfig): bigint[] {
 }
 
 export class PermissionEngine {
-  /** Returns null when allowed, or a user-facing reason string when blocked. */
-  canOpen(panel: TicketPanel, member: GuildMember | null, userId: string): string | null {
+  /** Returns null when allowed, or a user-facing reason string when blocked. `cfg` should be the ticket-type-resolved config (see `resolveTicketType`). */
+  canOpen(cfg: TicketPanel, member: GuildMember | null, userId: string): string | null {
     const roleIds = memberRoleIds(member);
 
-    if (panel.blockedUsers.includes(userId)) return 'You are not permitted to open tickets on this panel.';
-    if (roleIds.some(id => panel.blockedRoles.includes(id))) return 'You are not permitted to open tickets on this panel.';
+    if (cfg.blockedUsers.includes(userId)) return 'You are not permitted to open tickets on this panel.';
+    if (roleIds.some(id => cfg.blockedRoles.includes(id))) return 'You are not permitted to open tickets on this panel.';
 
-    if (panel.allowedUsers.length > 0 || panel.allowedRoles.length > 0) {
-      const allowedByUser = panel.allowedUsers.includes(userId);
-      const allowedByRole = roleIds.some(id => panel.allowedRoles.includes(id));
+    if (cfg.allowedUsers.length > 0 || cfg.allowedRoles.length > 0) {
+      const allowedByUser = cfg.allowedUsers.includes(userId);
+      const allowedByRole = roleIds.some(id => cfg.allowedRoles.includes(id));
       if (!allowedByUser && !allowedByRole) return 'You do not have permission to open tickets here.';
     }
 
     return null;
   }
 
-  buildOverwrites(guild: Guild, panel: TicketPanel, openerId: string): OverwriteResolvable[] {
-    const p = normalizePanel(panel);
+  /** `cfg` should be the ticket-type-resolved config (see `resolveTicketType`) so per-type roles/permissions apply. */
+  buildOverwrites(guild: Guild, cfg: TicketPanel, openerId: string): OverwriteResolvable[] {
+    const p = normalizePanel(cfg);
     const everyone = guild.roles.everyone.id;
 
     const overwrites: OverwriteResolvable[] = [];
@@ -183,19 +184,29 @@ export class PermissionEngine {
     await channel.permissionOverwrites.edit(openerId, { SendMessages: true }).catch(() => {});
   }
 
-  /** Removes all support/manager role overwrites for a claimed ticket (hideFromOtherStaffOnClaim). */
-  async hideFromOtherStaff(channel: TextChannel, panel: TicketPanel, claimedByRoleIds: string[]): Promise<void> {
-    const p = normalizePanel(panel);
-    const allStaffRoles = [...p.supportRoles, ...p.managerRoles];
-    const toHide = allStaffRoles.filter(id => !claimedByRoleIds.includes(id));
+  /**
+   * Removes support/manager/admin role overwrites for a claimed ticket (hideFromOtherStaffOnClaim).
+   * `cfg` should be the ticket-type-resolved config so `claimBehaviour`, `supportRoles`,
+   * `managerRoles` and `adminRoles` reflect this specific ticket type. Roles kept visible:
+   * the claiming staff member's own roles, plus managerRoles/adminRoles when
+   * `cfg.claimBehaviour.managerOverride` / `adminOverride` are enabled.
+   */
+  async hideFromOtherStaff(channel: TextChannel, cfg: TicketPanel, claimedByRoleIds: string[]): Promise<void> {
+    const p = normalizePanel(cfg);
+    const keepVisible = new Set(claimedByRoleIds);
+    if (p.claimBehaviour.managerOverride) for (const id of p.managerRoles) keepVisible.add(id);
+    if (p.claimBehaviour.adminOverride) for (const id of p.adminRoles) keepVisible.add(id);
+
+    const allStaffRoles = [...new Set([...p.supportRoles, ...p.managerRoles, ...p.adminRoles])];
+    const toHide = allStaffRoles.filter(id => !keepVisible.has(id));
     for (const roleId of toHide) {
       await channel.permissionOverwrites.edit(roleId, { ViewChannel: false }).catch(() => {});
     }
   }
 
-  /** Restores support/manager role overwrites when a ticket is unclaimed. */
-  async restoreStaffAccess(channel: TextChannel, guild: Guild, panel: TicketPanel, openerId: string): Promise<void> {
-    const overwrites = this.buildOverwrites(guild, panel, openerId);
+  /** Restores support/manager/admin role overwrites when a ticket is unclaimed. `cfg` should be the ticket-type-resolved config. */
+  async restoreStaffAccess(channel: TextChannel, guild: Guild, cfg: TicketPanel, openerId: string): Promise<void> {
+    const overwrites = this.buildOverwrites(guild, cfg, openerId);
     for (const ow of overwrites) {
       await channel.permissionOverwrites.edit(ow as Parameters<typeof channel.permissionOverwrites.edit>[0], {}).catch(() => {});
     }

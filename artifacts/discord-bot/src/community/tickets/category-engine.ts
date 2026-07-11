@@ -24,16 +24,17 @@ export class CategoryEngine {
     }
   }
 
-  async moveToOpen(channel: TextChannel, panel: TicketPanel): Promise<void> {
-    await this.moveToCategory(channel, panel.openCategory, 'move-to-open');
+  /** `cfg` should be the ticket-type-resolved config (see `resolveTicketType`) so per-type categories apply. */
+  async moveToOpen(channel: TextChannel, cfg: TicketPanel): Promise<void> {
+    await this.moveToCategory(channel, cfg.openCategory, 'move-to-open');
   }
 
-  async moveToClosed(channel: TextChannel, panel: TicketPanel): Promise<void> {
-    await this.moveToCategory(channel, panel.closedCategory, 'move-to-closed');
+  async moveToClosed(channel: TextChannel, cfg: TicketPanel): Promise<void> {
+    await this.moveToCategory(channel, cfg.closedCategory, 'move-to-closed');
   }
 
-  async moveToArchive(channel: TextChannel, panel: TicketPanel): Promise<void> {
-    await this.moveToCategory(channel, panel.archiveCategory, 'move-to-archive');
+  async moveToArchive(channel: TextChannel, cfg: TicketPanel): Promise<void> {
+    await this.moveToCategory(channel, cfg.archiveCategory, 'move-to-archive');
   }
 }
 
