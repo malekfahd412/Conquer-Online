@@ -1,0 +1,641 @@
+{
+  "templates": [
+    {
+      "id": "tpl_1783809459809_e4xd4",
+      "name": "Support",
+      "description": "General player support requests.",
+      "builtIn": true,
+      "createdAt": 1783809459809,
+      "updatedAt": 1783809459809,
+      "panel": {
+        "additionalButtons": [],
+        "permissions": [],
+        "supportRoles": [],
+        "managerRoles": [],
+        "adminRoles": [],
+        "pingRoles": [],
+        "allowedRoles": [],
+        "blockedRoles": [],
+        "allowedUsers": [],
+        "blockedUsers": [],
+        "memberPerms": {
+          "viewChannel": true,
+          "sendMessages": true,
+          "attachFiles": true,
+          "embedLinks": true,
+          "addReactions": false,
+          "useExternalEmojis": false,
+          "useExternalStickers": false,
+          "mentionEveryone": false,
+          "createPublicThreads": false,
+          "createPrivateThreads": false,
+          "sendVoiceMessages": true,
+          "readMessageHistory": true,
+          "useApplicationCommands": false
+        },
+        "staffPerms": {
+          "manageMessages": true,
+          "manageThreads": false,
+          "manageChannels": false,
+          "managePermissions": false,
+          "mentionEveryone": false,
+          "manageWebhooks": false,
+          "manageEvents": false,
+          "priorityOverride": false
+        },
+        "visibility": "private",
+        "claimBehaviour": {
+          "hideFromOtherStaffOnClaim": false,
+          "keepVisible": true,
+          "managerOverride": true,
+          "adminOverride": true
+        },
+        "namingScheme": "support-{counter}",
+        "ticketLimit": 1,
+        "cooldown": 0,
+        "priority": "normal",
+        "modal": {
+          "enabled": false,
+          "questions": []
+        },
+        "forms": [],
+        "transcript": {
+          "enabled": true,
+          "formats": [
+            "html"
+          ],
+          "dmUser": false
+        },
+        "automation": {
+          "autoCloseInactivityMinutes": 0,
+          "autoDeleteAfterCloseMinutes": 0,
+          "cooldownSeconds": 0,
+          "reminderMinutes": 0
+        },
+        "statistics": {
+          "trackResponseTime": true,
+          "trackClaims": true
+        },
+        "enabled": true,
+        "name": "Support",
+        "description": "General player support requests.",
+        "embed": {
+          "title": "🎫 Support",
+          "description": "Click below to open a support ticket.",
+          "color": 5793266
+        },
+        "button": {
+          "label": "Open Support",
+          "style": "Primary",
+          "ticketType": "Support"
+        }
+      }
+    },
+    {
+      "id": "tpl_1783809459809_qa99w",
+      "name": "Purchase",
+      "description": "Handle in-game purchase requests.",
+      "builtIn": true,
+      "createdAt": 1783809459809,
+      "updatedAt": 1783809459809,
+      "panel": {
+        "additionalButtons": [],
+        "permissions": [],
+        "supportRoles": [],
+        "managerRoles": [],
+        "adminRoles": [],
+        "pingRoles": [],
+        "allowedRoles": [],
+        "blockedRoles": [],
+        "allowedUsers": [],
+        "blockedUsers": [],
+        "memberPerms": {
+          "viewChannel": true,
+          "sendMessages": true,
+          "attachFiles": true,
+          "embedLinks": true,
+          "addReactions": false,
+          "useExternalEmojis": false,
+          "useExternalStickers": false,
+          "mentionEveryone": false,
+          "createPublicThreads": false,
+          "createPrivateThreads": false,
+          "sendVoiceMessages": true,
+          "readMessageHistory": true,
+          "useApplicationCommands": false
+        },
+        "staffPerms": {
+          "manageMessages": true,
+          "manageThreads": false,
+          "manageChannels": false,
+          "managePermissions": false,
+          "mentionEveryone": false,
+          "manageWebhooks": false,
+          "manageEvents": false,
+          "priorityOverride": false
+        },
+        "visibility": "private",
+        "claimBehaviour": {
+          "hideFromOtherStaffOnClaim": false,
+          "keepVisible": true,
+          "managerOverride": true,
+          "adminOverride": true
+        },
+        "namingScheme": "purchase-{counter}",
+        "ticketLimit": 1,
+        "cooldown": 0,
+        "priority": "normal",
+        "modal": {
+          "enabled": false,
+          "questions": []
+        },
+        "forms": [],
+        "transcript": {
+          "enabled": true,
+          "formats": [
+            "html"
+          ],
+          "dmUser": false
+        },
+        "automation": {
+          "autoCloseInactivityMinutes": 0,
+          "autoDeleteAfterCloseMinutes": 0,
+          "cooldownSeconds": 0,
+          "reminderMinutes": 0
+        },
+        "statistics": {
+          "trackResponseTime": true,
+          "trackClaims": true
+        },
+        "enabled": true,
+        "name": "Purchase",
+        "description": "Handle in-game purchase requests.",
+        "embed": {
+          "title": "🎫 Purchase",
+          "description": "Click below to open a purchase ticket.",
+          "color": 5763719
+        },
+        "button": {
+          "label": "Open Purchase",
+          "style": "Primary",
+          "ticketType": "Purchase"
+        }
+      }
+    },
+    {
+      "id": "tpl_1783809459810_zz3s4",
+      "name": "Report Player",
+      "description": "Reports against other players.",
+      "builtIn": true,
+      "createdAt": 1783809459809,
+      "updatedAt": 1783809459809,
+      "panel": {
+        "additionalButtons": [],
+        "permissions": [],
+        "supportRoles": [],
+        "managerRoles": [],
+        "adminRoles": [],
+        "pingRoles": [],
+        "allowedRoles": [],
+        "blockedRoles": [],
+        "allowedUsers": [],
+        "blockedUsers": [],
+        "memberPerms": {
+          "viewChannel": true,
+          "sendMessages": true,
+          "attachFiles": true,
+          "embedLinks": true,
+          "addReactions": false,
+          "useExternalEmojis": false,
+          "useExternalStickers": false,
+          "mentionEveryone": false,
+          "createPublicThreads": false,
+          "createPrivateThreads": false,
+          "sendVoiceMessages": true,
+          "readMessageHistory": true,
+          "useApplicationCommands": false
+        },
+        "staffPerms": {
+          "manageMessages": true,
+          "manageThreads": false,
+          "manageChannels": false,
+          "managePermissions": false,
+          "mentionEveryone": false,
+          "manageWebhooks": false,
+          "manageEvents": false,
+          "priorityOverride": false
+        },
+        "visibility": "private",
+        "claimBehaviour": {
+          "hideFromOtherStaffOnClaim": false,
+          "keepVisible": true,
+          "managerOverride": true,
+          "adminOverride": true
+        },
+        "namingScheme": "report-{username}",
+        "ticketLimit": 1,
+        "cooldown": 0,
+        "priority": "normal",
+        "modal": {
+          "enabled": false,
+          "questions": []
+        },
+        "forms": [],
+        "transcript": {
+          "enabled": true,
+          "formats": [
+            "html"
+          ],
+          "dmUser": false
+        },
+        "automation": {
+          "autoCloseInactivityMinutes": 0,
+          "autoDeleteAfterCloseMinutes": 0,
+          "cooldownSeconds": 0,
+          "reminderMinutes": 0
+        },
+        "statistics": {
+          "trackResponseTime": true,
+          "trackClaims": true
+        },
+        "enabled": true,
+        "name": "Report Player",
+        "description": "Reports against other players.",
+        "embed": {
+          "title": "🎫 Report Player",
+          "description": "Click below to open a report player ticket.",
+          "color": 15548997
+        },
+        "button": {
+          "label": "Open Report Player",
+          "style": "Primary",
+          "ticketType": "Report Player"
+        }
+      }
+    },
+    {
+      "id": "tpl_1783809459810_n8874",
+      "name": "Appeal",
+      "description": "Ban / mute appeals.",
+      "builtIn": true,
+      "createdAt": 1783809459809,
+      "updatedAt": 1783809459809,
+      "panel": {
+        "additionalButtons": [],
+        "permissions": [],
+        "supportRoles": [],
+        "managerRoles": [],
+        "adminRoles": [],
+        "pingRoles": [],
+        "allowedRoles": [],
+        "blockedRoles": [],
+        "allowedUsers": [],
+        "blockedUsers": [],
+        "memberPerms": {
+          "viewChannel": true,
+          "sendMessages": true,
+          "attachFiles": true,
+          "embedLinks": true,
+          "addReactions": false,
+          "useExternalEmojis": false,
+          "useExternalStickers": false,
+          "mentionEveryone": false,
+          "createPublicThreads": false,
+          "createPrivateThreads": false,
+          "sendVoiceMessages": true,
+          "readMessageHistory": true,
+          "useApplicationCommands": false
+        },
+        "staffPerms": {
+          "manageMessages": true,
+          "manageThreads": false,
+          "manageChannels": false,
+          "managePermissions": false,
+          "mentionEveryone": false,
+          "manageWebhooks": false,
+          "manageEvents": false,
+          "priorityOverride": false
+        },
+        "visibility": "private",
+        "claimBehaviour": {
+          "hideFromOtherStaffOnClaim": false,
+          "keepVisible": true,
+          "managerOverride": true,
+          "adminOverride": true
+        },
+        "namingScheme": "appeal-{counter}",
+        "ticketLimit": 1,
+        "cooldown": 0,
+        "priority": "normal",
+        "modal": {
+          "enabled": false,
+          "questions": []
+        },
+        "forms": [],
+        "transcript": {
+          "enabled": true,
+          "formats": [
+            "html"
+          ],
+          "dmUser": false
+        },
+        "automation": {
+          "autoCloseInactivityMinutes": 0,
+          "autoDeleteAfterCloseMinutes": 0,
+          "cooldownSeconds": 0,
+          "reminderMinutes": 0
+        },
+        "statistics": {
+          "trackResponseTime": true,
+          "trackClaims": true
+        },
+        "enabled": true,
+        "name": "Appeal",
+        "description": "Ban / mute appeals.",
+        "embed": {
+          "title": "🎫 Appeal",
+          "description": "Click below to open a appeal ticket.",
+          "color": 16705372
+        },
+        "button": {
+          "label": "Open Appeal",
+          "style": "Primary",
+          "ticketType": "Appeal"
+        }
+      }
+    },
+    {
+      "id": "tpl_1783809459810_vtxte",
+      "name": "Bug Report",
+      "description": "In-game or bot bug reports.",
+      "builtIn": true,
+      "createdAt": 1783809459809,
+      "updatedAt": 1783809459809,
+      "panel": {
+        "additionalButtons": [],
+        "permissions": [],
+        "supportRoles": [],
+        "managerRoles": [],
+        "adminRoles": [],
+        "pingRoles": [],
+        "allowedRoles": [],
+        "blockedRoles": [],
+        "allowedUsers": [],
+        "blockedUsers": [],
+        "memberPerms": {
+          "viewChannel": true,
+          "sendMessages": true,
+          "attachFiles": true,
+          "embedLinks": true,
+          "addReactions": false,
+          "useExternalEmojis": false,
+          "useExternalStickers": false,
+          "mentionEveryone": false,
+          "createPublicThreads": false,
+          "createPrivateThreads": false,
+          "sendVoiceMessages": true,
+          "readMessageHistory": true,
+          "useApplicationCommands": false
+        },
+        "staffPerms": {
+          "manageMessages": true,
+          "manageThreads": false,
+          "manageChannels": false,
+          "managePermissions": false,
+          "mentionEveryone": false,
+          "manageWebhooks": false,
+          "manageEvents": false,
+          "priorityOverride": false
+        },
+        "visibility": "private",
+        "claimBehaviour": {
+          "hideFromOtherStaffOnClaim": false,
+          "keepVisible": true,
+          "managerOverride": true,
+          "adminOverride": true
+        },
+        "namingScheme": "bug-{counter}",
+        "ticketLimit": 1,
+        "cooldown": 0,
+        "priority": "normal",
+        "modal": {
+          "enabled": false,
+          "questions": []
+        },
+        "forms": [],
+        "transcript": {
+          "enabled": true,
+          "formats": [
+            "html"
+          ],
+          "dmUser": false
+        },
+        "automation": {
+          "autoCloseInactivityMinutes": 0,
+          "autoDeleteAfterCloseMinutes": 0,
+          "cooldownSeconds": 0,
+          "reminderMinutes": 0
+        },
+        "statistics": {
+          "trackResponseTime": true,
+          "trackClaims": true
+        },
+        "enabled": true,
+        "name": "Bug Report",
+        "description": "In-game or bot bug reports.",
+        "embed": {
+          "title": "🎫 Bug Report",
+          "description": "Click below to open a bug report ticket.",
+          "color": 15418782
+        },
+        "button": {
+          "label": "Open Bug Report",
+          "style": "Primary",
+          "ticketType": "Bug Report"
+        }
+      }
+    },
+    {
+      "id": "tpl_1783809459810_mxjma",
+      "name": "Staff Contact",
+      "description": "Direct line to the staff team.",
+      "builtIn": true,
+      "createdAt": 1783809459809,
+      "updatedAt": 1783809459809,
+      "panel": {
+        "additionalButtons": [],
+        "permissions": [],
+        "supportRoles": [],
+        "managerRoles": [],
+        "adminRoles": [],
+        "pingRoles": [],
+        "allowedRoles": [],
+        "blockedRoles": [],
+        "allowedUsers": [],
+        "blockedUsers": [],
+        "memberPerms": {
+          "viewChannel": true,
+          "sendMessages": true,
+          "attachFiles": true,
+          "embedLinks": true,
+          "addReactions": false,
+          "useExternalEmojis": false,
+          "useExternalStickers": false,
+          "mentionEveryone": false,
+          "createPublicThreads": false,
+          "createPrivateThreads": false,
+          "sendVoiceMessages": true,
+          "readMessageHistory": true,
+          "useApplicationCommands": false
+        },
+        "staffPerms": {
+          "manageMessages": true,
+          "manageThreads": false,
+          "manageChannels": false,
+          "managePermissions": false,
+          "mentionEveryone": false,
+          "manageWebhooks": false,
+          "manageEvents": false,
+          "priorityOverride": false
+        },
+        "visibility": "private",
+        "claimBehaviour": {
+          "hideFromOtherStaffOnClaim": false,
+          "keepVisible": true,
+          "managerOverride": true,
+          "adminOverride": true
+        },
+        "namingScheme": "staff-{counter}",
+        "ticketLimit": 1,
+        "cooldown": 0,
+        "priority": "normal",
+        "modal": {
+          "enabled": false,
+          "questions": []
+        },
+        "forms": [],
+        "transcript": {
+          "enabled": true,
+          "formats": [
+            "html"
+          ],
+          "dmUser": false
+        },
+        "automation": {
+          "autoCloseInactivityMinutes": 0,
+          "autoDeleteAfterCloseMinutes": 0,
+          "cooldownSeconds": 0,
+          "reminderMinutes": 0
+        },
+        "statistics": {
+          "trackResponseTime": true,
+          "trackClaims": true
+        },
+        "enabled": true,
+        "name": "Staff Contact",
+        "description": "Direct line to the staff team.",
+        "embed": {
+          "title": "🎫 Staff Contact",
+          "description": "Click below to open a staff contact ticket.",
+          "color": 5793266
+        },
+        "button": {
+          "label": "Open Staff Contact",
+          "style": "Primary",
+          "ticketType": "Staff Contact"
+        }
+      }
+    },
+    {
+      "id": "tpl_1783809459810_gvpqr",
+      "name": "Developer",
+      "description": "Technical / developer-only requests.",
+      "builtIn": true,
+      "createdAt": 1783809459809,
+      "updatedAt": 1783809459809,
+      "panel": {
+        "additionalButtons": [],
+        "permissions": [],
+        "supportRoles": [],
+        "managerRoles": [],
+        "adminRoles": [],
+        "pingRoles": [],
+        "allowedRoles": [],
+        "blockedRoles": [],
+        "allowedUsers": [],
+        "blockedUsers": [],
+        "memberPerms": {
+          "viewChannel": true,
+          "sendMessages": true,
+          "attachFiles": true,
+          "embedLinks": true,
+          "addReactions": false,
+          "useExternalEmojis": false,
+          "useExternalStickers": false,
+          "mentionEveryone": false,
+          "createPublicThreads": false,
+          "createPrivateThreads": false,
+          "sendVoiceMessages": true,
+          "readMessageHistory": true,
+          "useApplicationCommands": false
+        },
+        "staffPerms": {
+          "manageMessages": true,
+          "manageThreads": false,
+          "manageChannels": false,
+          "managePermissions": false,
+          "mentionEveryone": false,
+          "manageWebhooks": false,
+          "manageEvents": false,
+          "priorityOverride": false
+        },
+        "visibility": "private",
+        "claimBehaviour": {
+          "hideFromOtherStaffOnClaim": false,
+          "keepVisible": true,
+          "managerOverride": true,
+          "adminOverride": true
+        },
+        "namingScheme": "dev-{counter}",
+        "ticketLimit": 1,
+        "cooldown": 0,
+        "priority": "normal",
+        "modal": {
+          "enabled": false,
+          "questions": []
+        },
+        "forms": [],
+        "transcript": {
+          "enabled": true,
+          "formats": [
+            "html"
+          ],
+          "dmUser": false
+        },
+        "automation": {
+          "autoCloseInactivityMinutes": 0,
+          "autoDeleteAfterCloseMinutes": 0,
+          "cooldownSeconds": 0,
+          "reminderMinutes": 0
+        },
+        "statistics": {
+          "trackResponseTime": true,
+          "trackClaims": true
+        },
+        "enabled": true,
+        "name": "Developer",
+        "description": "Technical / developer-only requests.",
+        "embed": {
+          "title": "🎫 Developer",
+          "description": "Click below to open a developer ticket.",
+          "color": 2895667
+        },
+        "button": {
+          "label": "Open Developer",
+          "style": "Primary",
+          "ticketType": "Developer"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "migratedFromLegacy": true,
+  "defaultEmbedColor": 5793266,
+  "defaultNamingScheme": "ticket-{counter}",
+  "defaultTicketLimit": 1,
+  "migratedAt": 1783809459803
+}

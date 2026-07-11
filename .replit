@@ -29,7 +29,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pnpm install --frozen-lockfile && pnpm --filter @workspace/discord-bot run dev"
+args = "node node_modules/.pnpm/tsx@4.22.4/node_modules/tsx/dist/cli.mjs artifacts/discord-bot/src/index.ts"
 
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
@@ -46,6 +46,7 @@ FACEBOOK_URL = "https://www.facebook.com/mufasaaconquer"
 SERVER_WEBSITE = "https://www.mufasaconquer.com/"
 SERVER_NAME = "Mufasa Conquer"
 CHANNEL_SERVER_STATUS = "1524075536693989456"
+PORT = "8080"
 
 [nix]
 channel = "stable-25_05"
