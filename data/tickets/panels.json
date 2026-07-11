@@ -1,3 +1,350 @@
 {
-  "panels": []
+  "panels": [
+    {
+      "additionalButtons": [],
+      "permissions": [],
+      "supportRoles": [],
+      "managerRoles": [],
+      "adminRoles": [],
+      "pingRoles": [],
+      "allowedRoles": [],
+      "blockedRoles": [],
+      "allowedUsers": [],
+      "blockedUsers": [],
+      "memberPerms": {
+        "viewChannel": true,
+        "sendMessages": true,
+        "attachFiles": true,
+        "embedLinks": true,
+        "addReactions": false,
+        "useExternalEmojis": false,
+        "useExternalStickers": false,
+        "mentionEveryone": false,
+        "createPublicThreads": false,
+        "createPrivateThreads": false,
+        "sendVoiceMessages": true,
+        "readMessageHistory": true,
+        "useApplicationCommands": false
+      },
+      "staffPerms": {
+        "manageMessages": true,
+        "manageThreads": false,
+        "manageChannels": false,
+        "managePermissions": false,
+        "mentionEveryone": false,
+        "manageWebhooks": false,
+        "manageEvents": false,
+        "priorityOverride": false
+      },
+      "visibility": "private",
+      "claimBehaviour": {
+        "hideFromOtherStaffOnClaim": false,
+        "keepVisible": true,
+        "managerOverride": true,
+        "adminOverride": true
+      },
+      "namingScheme": "support-{counter}",
+      "ticketLimit": 1,
+      "cooldown": 0,
+      "priority": "normal",
+      "modal": {
+        "enabled": false,
+        "questions": []
+      },
+      "forms": [],
+      "transcript": {
+        "enabled": true,
+        "formats": [
+          "html"
+        ],
+        "dmUser": false
+      },
+      "automation": {
+        "autoCloseInactivityMinutes": 0,
+        "autoDeleteAfterCloseMinutes": 0,
+        "cooldownSeconds": 0,
+        "reminderMinutes": 0
+      },
+      "statistics": {
+        "trackResponseTime": true,
+        "trackClaims": true
+      },
+      "enabled": true,
+      "name": "Support",
+      "description": "General player support requests.",
+      "embed": {
+        "title": "🎫 Support",
+        "description": "Click below to open a support ticket.",
+        "color": 5793266
+      },
+      "button": {
+        "label": "Open Support",
+        "style": "Primary",
+        "ticketType": "Support",
+        "overrides": {
+          "ticketEmbed": {
+            "title": "asffa",
+            "description": "t",
+            "footer": "tsse",
+            "messageContent": "test"
+          }
+        }
+      },
+      "channelId": "",
+      "id": "panel_1783809972902_5eq2f",
+      "guildId": "1213437502078062674",
+      "createdAt": 1783809972902,
+      "updatedAt": 1783810011097
+    },
+    {
+      "additionalButtons": [],
+      "permissions": [],
+      "supportRoles": [],
+      "managerRoles": [],
+      "adminRoles": [],
+      "pingRoles": [],
+      "allowedRoles": [],
+      "blockedRoles": [],
+      "allowedUsers": [],
+      "blockedUsers": [],
+      "memberPerms": {
+        "viewChannel": true,
+        "sendMessages": true,
+        "attachFiles": true,
+        "embedLinks": true,
+        "addReactions": false,
+        "useExternalEmojis": false,
+        "useExternalStickers": false,
+        "mentionEveryone": false,
+        "createPublicThreads": false,
+        "createPrivateThreads": false,
+        "sendVoiceMessages": true,
+        "readMessageHistory": true,
+        "useApplicationCommands": false
+      },
+      "staffPerms": {
+        "manageMessages": true,
+        "manageThreads": false,
+        "manageChannels": false,
+        "managePermissions": false,
+        "mentionEveryone": false,
+        "manageWebhooks": false,
+        "manageEvents": false,
+        "priorityOverride": false
+      },
+      "visibility": "private",
+      "claimBehaviour": {
+        "hideFromOtherStaffOnClaim": false,
+        "keepVisible": true,
+        "managerOverride": true,
+        "adminOverride": true
+      },
+      "namingScheme": "support-{counter}",
+      "ticketLimit": 1,
+      "cooldown": 0,
+      "priority": "normal",
+      "modal": {
+        "enabled": false,
+        "questions": []
+      },
+      "forms": [],
+      "transcript": {
+        "enabled": true,
+        "formats": [
+          "html"
+        ],
+        "dmUser": false
+      },
+      "automation": {
+        "autoCloseInactivityMinutes": 0,
+        "autoDeleteAfterCloseMinutes": 0,
+        "cooldownSeconds": 0,
+        "reminderMinutes": 0
+      },
+      "statistics": {
+        "trackResponseTime": true,
+        "trackClaims": true
+      },
+      "enabled": true,
+      "name": "Support",
+      "description": "General player support requests.",
+      "embed": {
+        "title": "🎫 Support",
+        "description": "Click below to open a support ticket.",
+        "color": 5793266
+      },
+      "button": {
+        "label": "Open Support",
+        "style": "Primary",
+        "ticketType": "Support"
+      },
+      "channelId": "",
+      "id": "panel_1783810026359_cph80",
+      "guildId": "1213437502078062674",
+      "createdAt": 1783810026359,
+      "updatedAt": 1783810026359
+    },
+    {
+      "name": "𝐌𝐔𝐅𝐀𝐒𝐀® 𝐂♡𝐍𝐐𝐔𝐄𝐑 ( Store )",
+      "description": "",
+      "channelId": "1215672085569863742",
+      "embed": {
+        "title": "🎫 𝐌𝐔𝐅𝐀𝐒𝐀® 𝐂♡𝐍𝐐𝐔𝐄𝐑",
+        "description": "🏪 𝐒𝐓𝐎𝐑𝐄:\nلشراء اي شئ داخل اللعبه\n\n👨🏻‍💼 𝐒𝐔𝐏𝐏𝐎𝐑𝐓:\nللشكاوى من الاعضاء وبعضها او عندك مشكله في اللعبه او الديسكورد\n\n🆘 𝐒𝐔𝐏𝐏𝐎𝐑𝐓 𝐌𝐀𝐍𝐆𝐄𝐑:\nللشكاوى من الادارة فقط او اعدت التحقيق\n\n🤝 𝐈𝐍𝐓𝐄𝐑𝐕𝐈𝐄𝐖:\nللتقدم على الادارة",
+        "color": 16766720
+      },
+      "button": {
+        "label": "🏪 𝐒𝐓𝐎𝐑𝐄",
+        "style": "Primary",
+        "ticketType": "store",
+        "overrides": {
+          "openCategory": "1521582368484491384",
+          "closedCategory": "1521582953283719349",
+          "ticketEmbed": {
+            "title": "** 𝐒𝐓𝐎𝐑𝐄 اهلا وسهلا بيك في🥰**",
+            "description": "**\n# طرق الدفع\nINSTA PAY:``01110213421`` ➯ ``Mohamed khaled``\nCASH:``01157105551`` ➯ ``عمرو سيد``\nBinance:``1078222913`` ➯ ``aMr aRt``\nPaypal:``amrartlove@gmail.com``\n# ⚠️نحن غير مسؤولون عن اي تحويلات خاطئة⚠️\n**",
+            "color": 2016348,
+            "footer": "🤖 Ai Mufasa",
+            "messageContent": "{user} 𝐖𝐞𝐥𝐜𝐨𝐦𝐞\n<@&1524487799368056942>"
+          },
+          "supportRoles": [
+            "1524487799368056942"
+          ]
+        }
+      },
+      "additionalButtons": [
+        {
+          "label": "👨‍💼 𝐒𝐔𝐏𝐏𝐎𝐑𝐓",
+          "style": "Primary",
+          "ticketType": "support",
+          "overrides": {
+            "openCategory": "1521582460788281395",
+            "closedCategory": "1521582996581257508",
+            "ticketEmbed": {
+              "title": "** 𝐒𝐔𝐏𝐏𝐎𝐑𝐓 اهلا وسهلا بيك في قسم 🥰 **",
+              "description": "**\n🤍 𝐒𝐔𝐏𝐏𝐎𝐑𝐓 سيتم الرد عليكم في اسرع وقت من قبل 🤍\n\n# اذ كان لديك اي شكوى برجاء كتابة المشكله كامله وبرفقتها اسكرين شوت لاثبات لحقك\n\nلإغلاق التذكرة 🔒**",
+              "color": 2016348,
+              "footer": "🤖 Ai Mufasa",
+              "messageContent": "{user} Welcome\n<@&1524487799368056942>\n<@&1213437502078062681>"
+            },
+            "supportRoles": [
+              "1213437502078062681"
+            ]
+          }
+        },
+        {
+          "label": "🆘 𝐒𝐔𝐏𝐏𝐎𝐑𝐓 𝐌𝐀𝐍𝐆𝐄𝐑",
+          "style": "Success",
+          "ticketType": "Support Manger",
+          "overrides": {
+            "openCategory": "1521582519105880328",
+            "closedCategory": "1521583046749323484",
+            "supportRoles": [
+              "1521585525801095219"
+            ],
+            "ticketEmbed": {
+              "title": "** 𝐒𝐔𝐏𝐏𝐎𝐑𝐓 𝐌𝐀𝐍𝐆𝐄𝐑 اهلا وسهلا بيك في قسم 🥰 **",
+              "description": "**\n🤍 𝐌𝐀𝐍𝐆𝐄𝐑 سيتم الرد عليكم في اسرع وقت من قبل 🤍\n\n#  اذ كان لديك اي شكوى تخص اي سبورت او بشكل عام برجاء كتابة المشكله كامله وبرفقتها اسكرين شوت لاثبات لحقك ان وجد\n\nلإغلاق التذكرة 🔒**",
+              "color": 2016348,
+              "footer": "🤖 Ai Mufasa",
+              "messageContent": "{user} Welcome\n<@&1524487799368056942>\n<@&1521585525801095219>"
+            }
+          }
+        },
+        {
+          "label": "🤝 𝐈𝐍𝐓𝐄𝐑𝐕𝐈𝐄𝐖",
+          "style": "Danger",
+          "ticketType": "Staff",
+          "overrides": {
+            "ticketEmbed": {
+              "title": "** 𝐈𝐍𝐓𝐄𝐑𝐕𝐈𝐄𝐖 اهلا وسهلا بيك في قسم 🥰 **",
+              "description": "**\n🤍 𝐒𝐔𝐏𝐏𝐎𝐑𝐓 𝐎𝐑 𝐌𝐀𝐍𝐆𝐄𝐑 سيتم الرد عليكم في اسرع وقت من قبل 🤍\n\n# شروط التقدم\nمعرفة معلومات بما يكفي عن الديسكورد واللعبه وفكرة الادارة بشكل عام \n\nلإغلاق التذكرة 🔒**",
+              "color": 2016348,
+              "footer": "🤖 Ai Mufasa",
+              "messageContent": "{user} Welcome\n<@&1524487799368056942>\n<@&1521585525801095219>\n<@&1213437502078062681>"
+            },
+            "supportRoles": [
+              "1524487799368056942",
+              "1216032049794777160"
+            ],
+            "openCategory": "1524924586209050704",
+            "closedCategory": "1524924862144184371"
+          }
+        }
+      ],
+      "permissions": [],
+      "supportRoles": [],
+      "managerRoles": [],
+      "adminRoles": [],
+      "pingRoles": [],
+      "allowedRoles": [],
+      "blockedRoles": [],
+      "allowedUsers": [],
+      "blockedUsers": [],
+      "memberPerms": {
+        "viewChannel": true,
+        "sendMessages": true,
+        "attachFiles": true,
+        "embedLinks": true,
+        "addReactions": false,
+        "useExternalEmojis": false,
+        "useExternalStickers": false,
+        "mentionEveryone": false,
+        "createPublicThreads": false,
+        "createPrivateThreads": false,
+        "sendVoiceMessages": true,
+        "readMessageHistory": true,
+        "useApplicationCommands": false
+      },
+      "staffPerms": {
+        "manageMessages": true,
+        "manageThreads": false,
+        "manageChannels": false,
+        "managePermissions": false,
+        "mentionEveryone": false,
+        "manageWebhooks": false,
+        "manageEvents": false,
+        "priorityOverride": false
+      },
+      "visibility": "private",
+      "claimBehaviour": {
+        "hideFromOtherStaffOnClaim": false,
+        "keepVisible": true,
+        "managerOverride": true,
+        "adminOverride": true
+      },
+      "namingScheme": "ticket-{counter}",
+      "ticketLimit": 1,
+      "cooldown": 0,
+      "priority": "normal",
+      "modal": {
+        "enabled": false,
+        "questions": []
+      },
+      "forms": [],
+      "transcript": {
+        "enabled": false,
+        "formats": [
+          "html"
+        ],
+        "dmUser": false
+      },
+      "automation": {
+        "autoCloseInactivityMinutes": 0,
+        "autoDeleteAfterCloseMinutes": 0,
+        "cooldownSeconds": 0,
+        "reminderMinutes": 0
+      },
+      "statistics": {
+        "trackResponseTime": true,
+        "trackClaims": true
+      },
+      "enabled": true,
+      "id": "panel_1783810288179_l0nm0",
+      "guildId": "1213437502078062674",
+      "createdAt": 1783810288179,
+      "updatedAt": 1783812002504,
+      "messageId": "1525642857296433185"
+    }
+  ]
 }

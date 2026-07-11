@@ -1419,7 +1419,7 @@ export function buildExtraButtonModal(_panelId: string, existingBtn: TicketButto
     .setTitle(isEdit ? 'Edit Extra Button' : 'Add Extra Button')
     .addComponents(
       row(ti('label',      'Button Label', TextInputStyle.Short, existingBtn?.label      || '', 'e.g. General Support', true, 80)),
-      row(ti('style',      'Style',        TextInputStyle.Short, existingBtn?.style      || 'Primary', 'Primary | Secondary | Success | Danger', true, 10)),
+      row(ti('style',      'Color',        TextInputStyle.Short, existingBtn?.style      || 'Blue', 'Blue | Grey | Green | Red', true, 10)),
       row(ti('emoji',      'Emoji',        TextInputStyle.Short, existingBtn?.emoji      || '', 'e.g. 🎫 (optional)', false, 32)),
       row(ti('ticketType', 'Ticket Type',  TextInputStyle.Short, existingBtn?.ticketType || '', 'Internal key, e.g. billing', true, 50)),
     );

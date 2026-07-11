@@ -1517,10 +1517,15 @@ export class TicketPanelDesigner {
     const ticketType = getField(interaction, 'ticketType', true);
     const categoryId = getField(interaction, 'categoryId', false);
 
-    const validStyles = ['Primary', 'Secondary', 'Success', 'Danger'];
-    const style = validStyles.find(s => s.toLowerCase() === styleRaw.toLowerCase()) ?? 'Primary';
+    const colorMap: Record<string, TicketButtonConfig['style']> = {
+      primary: 'Primary', blue: 'Primary', blurple: 'Primary',
+      secondary: 'Secondary', grey: 'Secondary', gray: 'Secondary',
+      success: 'Success', green: 'Success',
+      danger: 'Danger', red: 'Danger',
+    };
+    const style = colorMap[styleRaw.toLowerCase()] ?? 'Primary';
 
-    const newBtn: TicketButtonConfig = { label, style: style as TicketButtonConfig['style'], emoji: emoji || undefined, ticketType, categoryId: categoryId || undefined };
+    const newBtn: TicketButtonConfig = { label, style, emoji: emoji || undefined, ticketType, categoryId: categoryId || undefined };
     const updated = await panelManager.update(panelId, { additionalButtons: [...panel.additionalButtons, newBtn] });
 
     if (!updated) {
@@ -1543,11 +1548,16 @@ export class TicketPanelDesigner {
     const ticketType = getField(interaction, 'ticketType', true);
     const categoryId = getField(interaction, 'categoryId', false);
 
-    const validStyles = ['Primary', 'Secondary', 'Success', 'Danger'];
-    const style = validStyles.find(s => s.toLowerCase() === styleRaw.toLowerCase()) ?? 'Primary';
+    const colorMap: Record<string, TicketButtonConfig['style']> = {
+      primary: 'Primary', blue: 'Primary', blurple: 'Primary',
+      secondary: 'Secondary', grey: 'Secondary', gray: 'Secondary',
+      success: 'Success', green: 'Success',
+      danger: 'Danger', red: 'Danger',
+    };
+    const style = colorMap[styleRaw.toLowerCase()] ?? 'Primary';
 
     const newButtons = [...panel.additionalButtons];
-    newButtons[idx] = { ...newButtons[idx], label, style: style as TicketButtonConfig['style'], emoji: emoji || undefined, ticketType, categoryId: categoryId || undefined };
+    newButtons[idx] = { ...newButtons[idx], label, style, emoji: emoji || undefined, ticketType, categoryId: categoryId || undefined };
     const updated = await panelManager.update(panelId, { additionalButtons: newButtons });
 
     if (!updated) {

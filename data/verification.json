@@ -1,0 +1,31 @@
+{
+  "panels": [
+    {
+      "guildId": "1213437502078062674",
+      "channelId": "1521595067348029571",
+      "title": "🛡️ Verification Center",
+      "description": "Welcome to Mufasa Conquer!\n\nBefore accessing the server, you must complete the verification process.\n\nClick the button below to verify your account and gain access to all server channels.\n\nAfter verification you'll receive:\n✅ Full server access\n✅ Community channels\n✅ Events & announcements\n✅ Support & tickets\n\nThis verification helps protect the server from spam, bots, and fake accounts.",
+      "color": 5763719,
+      "method": "button",
+      "verifiedRoleId": "1213437502078062680",
+      "minAccountAgeDays": 0,
+      "cooldownSeconds": 30,
+      "id": "vpanel_1783812313769_59enc",
+      "createdAt": 1783812313769,
+      "messageId": "1525644164610658368"
+    }
+  ],
+  "attempts": [
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "vpanel_1783812313769_59enc",
+      "userId": "727578927593291796",
+      "status": "verified",
+      "method": "button",
+      "id": "vattempt_1783812316297_bo9bc",
+      "createdAt": 1783812316297,
+      "lastAttemptAt": 1783812316297,
+      "failCount": 0
+    }
+  ]
+}
