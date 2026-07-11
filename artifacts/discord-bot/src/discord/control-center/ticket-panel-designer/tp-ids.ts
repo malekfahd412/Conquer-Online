@@ -6,44 +6,53 @@
  * then delegates within tp-designer.service.ts.
  *
  * Routing map:
- *   tp:list                         → panel list (page 0)
- *   tp:list:<offset>                → panel list paginated
- *   tp:new                          → show create-panel modal
- *   tp:new:m                        → create-panel modal submit
- *   tp:dash:<panelId>               → panel dashboard
- *   tp:section:<panelId>:<key>      → section screen
- *   tp:toggle:<panelId>:<field>     → toggle boolean field
- *   tp:preview:<panelId>            → live preview (no publish)
- *   tp:del:<panelId>                → delete confirm screen
- *   tp:del:yes:<panelId>            → confirmed delete
- *   tp:edit:<panelId>:<field>       → show edit modal for field
- *   tp:modal:<panelId>:<field>      → edit modal submit
- *   tp:pub:m:<panelId>              → publish-channel modal submit
- *   tp:repub:<panelId>              → republish to same channel
- *   tp:btn:primary:<panelId>        → edit primary button modal
- *   tp:btn:primary:m:<panelId>      → primary button modal submit
- *   tp:btn:add:<panelId>            → add extra button modal
- *   tp:btn:add:m:<panelId>          → add extra button modal submit
- *   tp:btn:detail:<panelId>:<idx>   → extra button detail view
- *   tp:btn:edit:<panelId>:<idx>     → edit extra button modal
- *   tp:btn:edit:m:<panelId>:<idx>   → edit extra button modal submit
- *   tp:btn:rm:<panelId>:<idx>       → remove extra button
- *   tp:sm:add:<panelId>             → add select option modal
- *   tp:sm:add:m:<panelId>           → add select option modal submit
- *   tp:sm:opt:<panelId>:<idx>       → select option detail view
- *   tp:sm:edit:<panelId>:<idx>      → edit select option modal
- *   tp:sm:edit:m:<panelId>:<idx>    → edit select option modal submit
- *   tp:sm:rm:<panelId>:<idx>        → remove select option
- *   tp:q:add:<panelId>              → add question modal
- *   tp:q:add:m:<panelId>            → add question modal submit
- *   tp:q:detail:<panelId>:<idx>     → question detail view
- *   tp:q:edit:<panelId>:<idx>       → edit question modal
- *   tp:q:edit:m:<panelId>:<idx>     → edit question modal submit
- *   tp:q:rm:<panelId>:<idx>         → remove question
- *   tp:ps:<offset>                  → panel list select menu
- *   tp:ebs:<panelId>                → extra buttons select menu
- *   tp:sos:<panelId>                → select menu options select
- *   tp:qs:<panelId>                 → questions select menu
+ *   tp:list                          → panel list (page 0)
+ *   tp:list:<offset>                 → panel list paginated
+ *   tp:new                           → show create-panel modal
+ *   tp:new:m                         → create-panel modal submit
+ *   tp:dash:<panelId>                → panel dashboard
+ *   tp:section:<panelId>:<key>       → section screen
+ *   tp:toggle:<panelId>:<field>      → toggle boolean field
+ *   tp:preview:<panelId>             → live preview (no publish)
+ *   tp:del:<panelId>                 → delete confirm screen
+ *   tp:del:yes:<panelId>             → confirmed delete
+ *   tp:edit:<panelId>:<field>        → show edit modal for field
+ *   tp:modal:<panelId>:<field>       → edit modal submit
+ *   tp:pub:m:<panelId>               → publish-channel modal submit
+ *   tp:repub:<panelId>               → republish to same channel
+ *   tp:btn:primary:<panelId>         → edit primary button modal
+ *   tp:btn:primary:m:<panelId>       → primary button modal submit
+ *   tp:btn:add:<panelId>             → add extra button modal
+ *   tp:btn:add:m:<panelId>           → add extra button modal submit
+ *   tp:btn:detail:<panelId>:<idx>    → extra button detail view
+ *   tp:btn:edit:<panelId>:<idx>      → edit extra button modal
+ *   tp:btn:edit:m:<panelId>:<idx>    → edit extra button modal submit
+ *   tp:btn:rm:<panelId>:<idx>        → remove extra button
+ *   tp:sm:add:<panelId>              → add select option modal
+ *   tp:sm:add:m:<panelId>            → add select option modal submit
+ *   tp:sm:opt:<panelId>:<idx>        → select option detail view
+ *   tp:sm:edit:<panelId>:<idx>       → edit select option modal
+ *   tp:sm:edit:m:<panelId>:<idx>     → edit select option modal submit
+ *   tp:sm:rm:<panelId>:<idx>         → remove select option
+ *   tp:q:add:<panelId>               → add question modal
+ *   tp:q:add:m:<panelId>             → add question modal submit
+ *   tp:q:detail:<panelId>:<idx>      → question detail view
+ *   tp:q:edit:<panelId>:<idx>        → edit question modal
+ *   tp:q:edit:m:<panelId>:<idx>      → edit question modal submit
+ *   tp:q:rm:<panelId>:<idx>          → remove question
+ *   tp:ps:<offset>                   → panel list select menu
+ *   tp:ebs:<panelId>                 → extra buttons select menu
+ *   tp:sos:<panelId>                 → select menu options select
+ *   tp:qs:<panelId>                  → questions select menu
+ *   tp:gallery                       → template gallery (page 0)
+ *   tp:tpl:detail:<tplId>            → template detail/preview
+ *   tp:tpl:use:<tplId>               → show create-from-template modal
+ *   tp:tpl:use:m:<tplId>             → create-from-template modal submit
+ *   tp:tpl:save:<panelId>            → show save-as-template modal
+ *   tp:tpl:save:m:<panelId>          → save-as-template modal submit
+ *   tp:tpl:del:yes:<tplId>           → confirmed template delete
+ *   tp:tpl:del:<tplId>               → template delete confirm screen
+ *   tp:tgs:<offset>                  → template gallery select menu
  */
 
 export type SectionKey =
@@ -104,6 +113,17 @@ export const TP = {
   extraBtnSel:  (panelId: string): string        => `tp:ebs:${panelId}`,
   smOptSel:     (panelId: string): string        => `tp:sos:${panelId}`,
   qSel:         (panelId: string): string        => `tp:qs:${panelId}`,
+
+  // ── Template Gallery ─────────────────────────────────────────────────────
+  GALLERY:      'tp:gallery',
+  tplDetail:    (tplId: string): string          => `tp:tpl:detail:${tplId}`,
+  tplUse:       (tplId: string): string          => `tp:tpl:use:${tplId}`,
+  tplUseM:      (tplId: string): string          => `tp:tpl:use:m:${tplId}`,
+  tplSave:      (panelId: string): string        => `tp:tpl:save:${panelId}`,
+  tplSaveM:     (panelId: string): string        => `tp:tpl:save:m:${panelId}`,
+  tplDel:       (tplId: string): string          => `tp:tpl:del:${tplId}`,
+  tplDelYes:    (tplId: string): string          => `tp:tpl:del:yes:${tplId}`,
+  tgSel:        (offset: number): string         => `tp:tgs:${offset}`,
 } as const;
 
 export function isTPInteraction(customId: string): boolean {

@@ -9,7 +9,7 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from 'discord.js';
-import type { TicketPanel, TicketButtonConfig, TicketSelectMenuOption, TicketModalQuestion } from '../../../community/tickets/types';
+import type { TicketPanel, TicketTemplate, TicketButtonConfig, TicketSelectMenuOption, TicketModalQuestion } from '../../../community/tickets/types';
 import type { TicketDashboard } from '../../../community/tickets/statistics-engine';
 import { truncate } from '../cc-categories';
 import { CC } from '../cc-ids';
@@ -18,7 +18,8 @@ import { TP, SECTION_META } from './tp-ids';
 import type { CCPayload } from '../cc-renderer';
 
 const FILE = 'tp-renderer.ts';
-export const PANELS_PER_PAGE = 10;
+export const PANELS_PER_PAGE    = 10;
+export const TEMPLATES_PER_PAGE = 20;
 
 // ── Shared button helpers ───────────────────────────────────────────────────
 
@@ -87,9 +88,10 @@ export function buildPanelList(panels: TicketPanel[], offset: number, totalCount
   const prevOffset = offset - PANELS_PER_PAGE;
   const nextOffset = offset + PANELS_PER_PAGE;
   const navRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    btn('➕ Create New Panel', TP.NEW,            ButtonStyle.Primary),
-    btn('◀ Prev',              TP.list(prevOffset), ButtonStyle.Secondary, offset === 0),
-    btn('▶ Next',              TP.list(nextOffset), ButtonStyle.Secondary, nextOffset >= totalCount),
+    btn('➕ Create New Panel', TP.NEW,              ButtonStyle.Primary),
+    btn('📋 Templates',       TP.GALLERY,           ButtonStyle.Secondary),
+    btn('◀ Prev',             TP.list(prevOffset),  ButtonStyle.Secondary, offset === 0),
+    btn('▶ Next',             TP.list(nextOffset),  ButtonStyle.Secondary, nextOffset >= totalCount),
     homeBtn(),
   );
   components.push(navRow);
@@ -146,7 +148,11 @@ export function buildPanelDashboard(panel: TicketPanel): CCPayload {
     btn(panel.enabled ? '🔴 Disable' : '🟢 Enable',   TP.toggle(panel.id, 'enabled'),       panel.enabled ? ButtonStyle.Secondary : ButtonStyle.Success),
     btn('🗑 Delete',                                   TP.del(panel.id),                     ButtonStyle.Danger),
   );
-  const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(listBtn(), homeBtn());
+  const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('💾 Save as Template', TP.tplSave(panel.id), ButtonStyle.Secondary),
+    listBtn(),
+    homeBtn(),
+  );
 
   const payload: CCPayload = { content: '', embeds: [embed], components: [row0, row1, row2, row3] };
   assertUniqueCustomIds('buildPanelDashboard', payload);
@@ -825,6 +831,185 @@ export function buildFeedback(success: boolean, message: string, panelId?: strin
   const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
   assertUniqueCustomIds('buildFeedback', payload);
   return payload;
+}
+
+// ── Template Gallery ────────────────────────────────────────────────────────
+
+export function buildTemplateGallery(templates: TicketTemplate[], offset: number, totalCount: number): CCPayload {
+  const fn = 'buildTemplateGallery';
+  const color = checkColor(FILE, fn, 'color', 0x5865f2);
+  const page = Math.floor(offset / TEMPLATES_PER_PAGE) + 1;
+  const totalPages = Math.max(1, Math.ceil(totalCount / TEMPLATES_PER_PAGE));
+  const builtInCount = templates.filter(t => t.builtIn).length;
+  const customCount  = templates.length - builtInCount;
+  const slice = templates.slice(0, TEMPLATES_PER_PAGE);
+
+  const desc = totalCount === 0
+    ? 'No templates available.'
+    : `**${totalCount}** template${totalCount !== 1 ? 's' : ''} — Page ${page}/${totalPages}\n🔒 ${builtInCount} built-in · 🖊 ${customCount} custom\n\nSelect a template to preview it, then click **Use This Template** to create a pre-configured panel in one click.`;
+
+  const embed = verifyBuilder(FILE, fn, 'gallery embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('📋 Template Gallery')
+      .setDescription(desc)
+      .setFooter({ text: 'Built-in templates cannot be deleted · Save any panel as a custom template from its dashboard' }),
+  );
+
+  const components: CCPayload['components'] = [];
+
+  if (slice.length > 0) {
+    const select = verifyBuilder(FILE, fn, 'template select', () =>
+      new StringSelectMenuBuilder()
+        .setCustomId(TP.tgSel(offset))
+        .setPlaceholder('Select a template to preview...')
+        .addOptions(
+          slice.map(t =>
+            new StringSelectMenuOptionBuilder()
+              .setLabel(truncate(`${t.builtIn ? '🔒 ' : '🖊 '}${t.name}`, 100))
+              .setDescription(truncate(t.description || 'No description', 100))
+              .setValue(t.id),
+          ),
+        ),
+    );
+    components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select));
+  }
+
+  const prevOffset = offset - TEMPLATES_PER_PAGE;
+  const nextOffset = offset + TEMPLATES_PER_PAGE;
+  const navRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('◀ Prev',   TP.list(prevOffset), ButtonStyle.Secondary, offset === 0),
+    btn('▶ Next',   TP.list(nextOffset), ButtonStyle.Secondary, nextOffset >= totalCount),
+    listBtn(),
+    homeBtn(),
+  );
+  components.push(navRow);
+
+  const payload: CCPayload = { content: '', embeds: [embed], components };
+  assertUniqueCustomIds('buildTemplateGallery', payload);
+  return payload;
+}
+
+export function buildTemplateDetail(template: TicketTemplate): CCPayload {
+  const fn = 'buildTemplateDetail';
+  const safeColor = checkColor(FILE, fn, 'embedColor', template.panel.embed.color);
+  const p = template.panel;
+
+  const buttonLine = p.selectMenu && p.selectMenu.options.length > 0
+    ? `📋 Select Menu · ${p.selectMenu.options.length} option(s)`
+    : `🔘 ${p.button.label} (${p.button.style})${p.button.emoji ? ` ${p.button.emoji}` : ''}`;
+
+  const qCount = p.modal.enabled ? `${p.modal.questions.length} question(s)` : 'Disabled';
+
+  const embed = verifyBuilder(FILE, fn, 'tpl detail embed', () =>
+    new EmbedBuilder()
+      .setColor(safeColor)
+      .setTitle(`${template.builtIn ? '🔒' : '🖊'} ${truncate(template.name, 100)}`)
+      .setDescription(truncate(template.description || 'No description', 512))
+      .addFields(
+        { name: '📝 Embed Title',   value: truncate(p.embed.title,  256), inline: true  },
+        { name: '🎨 Color',         value: `#${p.embed.color.toString(16).padStart(6,'0').toUpperCase()}`, inline: true },
+        { name: '🔘 Opener',        value: buttonLine,                     inline: false },
+        { name: '📝 Naming Scheme', value: `\`${p.namingScheme}\``,        inline: true  },
+        { name: '❓ Questions',     value: qCount,                          inline: true  },
+        { name: '⚡ Priority',      value: p.priority,                      inline: true  },
+        { name: '📄 Transcripts',   value: p.transcript.enabled ? '🟢 On' : '🔴 Off', inline: true },
+        { name: '🤖 Auto-close',    value: p.automation.autoCloseInactivityMinutes > 0
+          ? `${p.automation.autoCloseInactivityMinutes}m` : '🔴 Off',      inline: true  },
+      )
+      .setFooter({ text: `Template ID: ${template.id} · ${template.builtIn ? 'Built-in (read-only)' : 'Custom template'}` }),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✅ Use This Template', TP.tplUse(template.id), ButtonStyle.Success),
+    ...(!template.builtIn ? [btn('🗑 Delete Template', TP.tplDel(template.id), ButtonStyle.Danger)] : []),
+    btn('← Gallery', TP.GALLERY, ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildTemplateDetail', payload);
+  return payload;
+}
+
+export function buildTplDeleteConfirm(template: TicketTemplate): CCPayload {
+  const fn = 'buildTplDeleteConfirm';
+  const color = checkColor(FILE, fn, 'color', 0xed4245);
+
+  const embed = verifyBuilder(FILE, fn, 'tpl delete embed', () =>
+    new EmbedBuilder()
+      .setColor(color)
+      .setTitle('🗑 Delete Template?')
+      .setDescription(`You are about to permanently delete the custom template **${truncate(template.name, 100)}**.\n\nExisting panels created from this template are not affected.`)
+      .setFooter({ text: 'This cannot be undone' }),
+  );
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    btn('✅ Confirm Delete', TP.tplDelYes(template.id), ButtonStyle.Danger),
+    btn('✖ Cancel',          TP.tplDetail(template.id),  ButtonStyle.Secondary),
+    homeBtn(),
+  );
+
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
+  assertUniqueCustomIds('buildTplDeleteConfirm', payload);
+  return payload;
+}
+
+// ── Template Modals ─────────────────────────────────────────────────────────
+
+export function buildUseTplModal(template: TicketTemplate): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.tplUseM(template.id))
+    .setTitle(`Use: ${truncate(template.name, 40)}`)
+    .addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('name')
+          .setLabel('Panel Name')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder(`e.g. ${template.name} Panel`)
+          .setValue(template.name)
+          .setRequired(true)
+          .setMaxLength(100),
+      ),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('channelId')
+          .setLabel('Channel ID (where to post the panel)')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('Right-click a text channel → Copy ID')
+          .setRequired(false)
+          .setMaxLength(20),
+      ),
+    );
+}
+
+export function buildSaveAsTplModal(panel: TicketPanel): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(TP.tplSaveM(panel.id))
+    .setTitle('Save as Template')
+    .addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('name')
+          .setLabel('Template Name')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder(`e.g. ${truncate(panel.name, 60)}`)
+          .setValue(panel.name)
+          .setRequired(true)
+          .setMaxLength(100),
+      ),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('description')
+          .setLabel('Description (optional)')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('Short note about what this template is for')
+          .setValue(truncate(panel.description || '', 256))
+          .setRequired(false)
+          .setMaxLength(256),
+      ),
+    );
 }
 
 // ── Modals ──────────────────────────────────────────────────────────────────

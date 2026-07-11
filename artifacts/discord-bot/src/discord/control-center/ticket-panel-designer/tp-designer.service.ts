@@ -14,6 +14,7 @@ import {
 } from 'discord.js';
 import { panelManager } from '../../../community/tickets/panel-manager';
 import { statisticsEngine } from '../../../community/tickets/statistics-engine';
+import { templateEngine } from '../../../community/tickets/template-engine';
 import type { PermissionManager } from '../../../ai/permission-manager';
 import type { TicketPanel, TicketButtonConfig, TicketSelectMenuOption, TicketModalQuestion, TicketPriority } from '../../../community/tickets/types';
 import { CC } from '../cc-ids';
@@ -42,6 +43,12 @@ import {
   buildSmOptionDetail,
   buildQuestionDetail,
   buildFeedback,
+  buildTemplateGallery,
+  buildTemplateDetail,
+  buildTplDeleteConfirm,
+  buildUseTplModal,
+  buildSaveAsTplModal,
+  TEMPLATES_PER_PAGE,
   buildCreatePanelModal,
   buildEditGeneralModal,
   buildEditEmbedModal,
@@ -155,6 +162,36 @@ export class TicketPanelDesigner {
     }
     if (id === TP.NEW) {
       await interaction.showModal(buildCreatePanelModal());
+      return;
+    }
+    if (id === TP.GALLERY) {
+      await this.navTemplateGallery(interaction, guild, 0);
+      return;
+    }
+    if (id.startsWith('tp:tpl:detail:')) {
+      await this.navTemplateDetail(interaction, guild, id.slice('tp:tpl:detail:'.length));
+      return;
+    }
+    if (id.startsWith('tp:tpl:use:')) {
+      const tplId = id.slice('tp:tpl:use:'.length);
+      const tpl = await templateEngine.get(tplId);
+      if (!tpl) { await this.navTemplateGallery(interaction, guild, 0); return; }
+      await interaction.showModal(buildUseTplModal(tpl));
+      return;
+    }
+    if (id.startsWith('tp:tpl:save:')) {
+      const panelId = id.slice('tp:tpl:save:'.length);
+      const panel = await panelManager.get(panelId);
+      if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+      await interaction.showModal(buildSaveAsTplModal(panel));
+      return;
+    }
+    if (id.startsWith('tp:tpl:del:yes:')) {
+      await this.handleTplDeleteConfirmed(interaction, guild, id.slice('tp:tpl:del:yes:'.length));
+      return;
+    }
+    if (id.startsWith('tp:tpl:del:')) {
+      await this.navTplDeleteConfirm(interaction, guild, id.slice('tp:tpl:del:'.length));
       return;
     }
     if (id.startsWith('tp:dash:')) {
@@ -305,6 +342,11 @@ export class TicketPanelDesigner {
       await this.navQDetail(interaction, guild, panelId, parseInt(value, 10));
       return;
     }
+    if (id.startsWith('tp:tgs:')) {
+      // Template gallery select — value is the template ID
+      await this.navTemplateDetail(interaction, guild, value);
+      return;
+    }
   }
 
   // ── Modal routing ───────────────────────────────────────────────────────────
@@ -365,6 +407,14 @@ export class TicketPanelDesigner {
       const panelId = rest.slice(0, colon);
       const field   = rest.slice(colon + 1);
       await this.handleFieldModal(interaction, guild, panelId, field);
+      return;
+    }
+    if (id.startsWith('tp:tpl:use:m:')) {
+      await this.handleCreateFromTemplate(interaction, guild, id.slice('tp:tpl:use:m:'.length));
+      return;
+    }
+    if (id.startsWith('tp:tpl:save:m:')) {
+      await this.handleSaveAsTemplate(interaction, guild, id.slice('tp:tpl:save:m:'.length));
       return;
     }
   }
@@ -1054,6 +1104,94 @@ export class TicketPanelDesigner {
     logger.info(`[TPD] Deleted panel "${name}" (${panelId}) from guild ${guild.id}`);
     const allPanels = await panelManager.list(guild.id);
     await this.nav(interaction, buildPanelList(allPanels.slice(0, PANELS_PER_PAGE), 0, allPanels.length));
+  }
+
+  // ── Template Gallery navigation ─────────────────────────────────────────────
+
+  private async navTemplateGallery(interaction: NavInteraction, _guild: Guild, offset: number): Promise<void> {
+    const all = await templateEngine.list();
+    const slice = all.slice(offset, offset + TEMPLATES_PER_PAGE);
+    await this.nav(interaction, buildTemplateGallery(slice, offset, all.length));
+  }
+
+  private async navTemplateDetail(interaction: NavInteraction, _guild: Guild, tplId: string): Promise<void> {
+    const tpl = await templateEngine.get(tplId);
+    if (!tpl) {
+      const all = await templateEngine.list();
+      await this.nav(interaction, buildTemplateGallery(all.slice(0, TEMPLATES_PER_PAGE), 0, all.length));
+      return;
+    }
+    await this.nav(interaction, buildTemplateDetail(tpl));
+  }
+
+  private async navTplDeleteConfirm(interaction: NavInteraction, _guild: Guild, tplId: string): Promise<void> {
+    const tpl = await templateEngine.get(tplId);
+    if (!tpl || tpl.builtIn) {
+      const all = await templateEngine.list();
+      await this.nav(interaction, buildTemplateGallery(all.slice(0, TEMPLATES_PER_PAGE), 0, all.length));
+      return;
+    }
+    await this.nav(interaction, buildTplDeleteConfirm(tpl));
+  }
+
+  private async handleTplDeleteConfirmed(interaction: NavInteraction, _guild: Guild, tplId: string): Promise<void> {
+    const tpl = await templateEngine.get(tplId);
+    if (!tpl || tpl.builtIn) {
+      const all = await templateEngine.list();
+      await this.nav(interaction, buildTemplateGallery(all.slice(0, TEMPLATES_PER_PAGE), 0, all.length));
+      return;
+    }
+    const name = tpl.name;
+    await templateEngine.delete(tplId);
+    logger.info(`[TPD] Deleted custom template "${name}" (${tplId})`);
+    const all = await templateEngine.list();
+    await this.nav(interaction, buildTemplateGallery(all.slice(0, TEMPLATES_PER_PAGE), 0, all.length));
+  }
+
+  // ── Template create/save handlers ───────────────────────────────────────────
+
+  private async handleCreateFromTemplate(interaction: ModalSubmitInteraction, guild: Guild, tplId: string): Promise<void> {
+    const tpl = await templateEngine.get(tplId);
+    if (!tpl) {
+      await this.navReply(interaction, buildFeedback(false, 'Template not found.'));
+      return;
+    }
+
+    const name      = getField(interaction, 'name',      true);
+    const channelId = getField(interaction, 'channelId', false);
+
+    const tplInput = templateEngine.toPanelInput(tpl);
+    const panel = await panelManager.create(guild.id, {
+      ...tplInput,
+      name,
+      channelId: channelId || '',
+    });
+
+    logger.info(`[TPD] Created panel "${panel.name}" (${panel.id}) from template "${tpl.name}" in guild ${guild.id}`);
+    await this.navReply(interaction, buildPanelDashboard(panel));
+  }
+
+  private async handleSaveAsTemplate(interaction: ModalSubmitInteraction, guild: Guild, panelId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) {
+      await this.navReply(interaction, buildFeedback(false, 'Panel not found.'));
+      return;
+    }
+
+    const name        = getField(interaction, 'name',        true);
+    const description = getField(interaction, 'description', false);
+
+    // Extract the panel shape (strip runtime/identity fields)
+    const { id: _id, guildId: _guildId, channelId: _channelId, messageId: _messageId,
+            createdAt: _createdAt, updatedAt: _updatedAt, archivedAt: _archivedAt, ...panelShape } = panel;
+
+    const template = await templateEngine.create(name, description || panel.description, panelShape);
+    logger.info(`[TPD] Saved panel "${panel.name}" (${panel.id}) as template "${name}" (${template.id})`);
+    await this.navReply(interaction, buildFeedback(
+      true,
+      `✅ Saved **${name}** to the Template Gallery!\nOther admins can now use this template from **📋 Templates**.`,
+      panelId,
+    ));
   }
 
   // ── Error helpers ───────────────────────────────────────────────────────────
