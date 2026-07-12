@@ -434,6 +434,38 @@ const DELETECASE_COMMAND = {
   ],
 };
 
+const CHAT_COMMAND = {
+  name: 'chat',
+  description: 'Chat with Mufasa — your friendly AI companion',
+  options: [
+    {
+      name: 'talk',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Send a message to your companion',
+      options: [
+        {
+          name: 'message',
+          type: ApplicationCommandOptionType.String,
+          description: 'What do you want to say?',
+          required: true,
+          min_length: 1,
+          max_length: 2000,
+        },
+      ],
+    },
+    {
+      name: 'reset',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Clear your conversation history and start fresh',
+    },
+    {
+      name: 'profile',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'View your companion profile — friendship level, memories, and more',
+    },
+  ],
+};
+
 const PANEL_COMMAND = {
   name: 'panel',
   description: 'Open the Discord Control Center — browse and execute all 323 tools interactively',
@@ -448,6 +480,7 @@ const ALL_COMMANDS = [
   PANEL_COMMAND,
   CC_TEST_COMMAND,
   AI_COMMAND,
+  CHAT_COMMAND,
   FORGET_COMMAND,
   MEMORY_COMMAND,
   PREFERENCES_COMMAND,

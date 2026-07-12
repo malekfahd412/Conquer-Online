@@ -251,6 +251,10 @@ export class ControlCenterService {
             .setLabel('🎨 Ticket Panel Designer')
             .setCustomId('tp:list')
             .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setLabel('📈 Ticket SLA')
+            .setCustomId('sla:home')
+            .setStyle(ButtonStyle.Success),
         ),
       );
     }

@@ -41,6 +41,7 @@ import { transcriptEngine, TranscriptEngine } from './transcript-engine';
 import { genId } from './store';
 import type { TicketForm, TicketPanel, TicketPriority, TicketRecord } from './types';
 import { getEntry, entryRefForTicketType, resolveTicketType } from './types';
+import { slaEngine } from './sla-engine';
 import { logger } from '../../utils/logger';
 
 export * from './types';
@@ -70,6 +71,7 @@ class TicketSystem {
   private sweepHandle?: NodeJS.Timeout;
   private flowSweepHandle?: NodeJS.Timeout;
   private weeklyStatsHandle?: NodeJS.Timeout;
+  private slaSweepHandle?: NodeJS.Timeout;
   /** Tracks the last time a weekly stats embed was posted per panel, so we never double-post. */
   private readonly lastWeeklyPost = new Map<string, number>();
   /** In-memory state for multi-form chains (a form's `nextRules` can route to another form before a ticket is created). */
@@ -86,8 +88,10 @@ class TicketSystem {
       automationEngine.ensureFile(),
       transcriptEngine.ensureFile(),
       answerEngine.ensureFile(),
+      slaEngine.ensureFile(),
     ]);
     this.sweepHandle = automationEngine.createInactivitySweeper(ticketId => this.runTicketAutomation(ticketId));
+    this.slaSweepHandle = slaEngine.createSweeper(client);
     this.weeklyStatsHandle = setInterval(() => this.runWeeklyStatsCheck().catch(err => logger.warning('[TICKETS] Weekly stats check failed', err)), 60 * 60_000);
     this.flowSweepHandle = setInterval(() => {
       const cutoff = Date.now() - FLOW_TTL_MS;
@@ -95,13 +99,14 @@ class TicketSystem {
         if (flow.startedAt < cutoff) this.pendingFlows.delete(id);
       }
     }, 5 * 60 * 1000);
-    logger.success('[TICKETS] Ticket System Pro online — 11 engines wired (naming, category, permission, question, answer, transcript, automation, statistics, template, panel, ticket).');
+    logger.success('[TICKETS] Ticket System Pro online — 12 engines wired (naming, category, permission, question, answer, transcript, automation, statistics, template, panel, ticket, sla).');
   }
 
   shutdown(): void {
     if (this.sweepHandle) clearInterval(this.sweepHandle);
     if (this.flowSweepHandle) clearInterval(this.flowSweepHandle);
     if (this.weeklyStatsHandle) clearInterval(this.weeklyStatsHandle);
+    if (this.slaSweepHandle) clearInterval(this.slaSweepHandle);
   }
 
   /** Which TicketForm (if any) a given ticket-opening button/select-option starts. Falls back to the legacy `modal` when unset. */
