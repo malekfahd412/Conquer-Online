@@ -278,6 +278,16 @@ export class ControlCenterService {
         ),
       );
     }
+    if (category === 'moderation') {
+      payload.components.push(
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setLabel('🔨 Mod System Pro')
+            .setCustomId('md:dash')
+            .setStyle(ButtonStyle.Danger),
+        ),
+      );
+    }
 
     const uiGenMs = Date.now() - tUi;
     await this.nav(interaction, payload, `category:${category}`, { uiGen: uiGenMs });

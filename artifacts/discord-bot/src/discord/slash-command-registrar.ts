@@ -252,6 +252,188 @@ const TICKET_COMMAND = {
   ],
 };
 
+// ── Moderation System Pro Commands ────────────────────────────────────────
+
+const WARN_COMMAND = {
+  name: 'warn', description: 'Issue a warning to a member',
+  options: [
+    { name: 'user', type: ApplicationCommandOptionType.User, description: 'Member to warn', required: true },
+    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason for the warning', required: false, max_length: 500 },
+  ],
+};
+
+const UNWARN_COMMAND = {
+  name: 'unwarn', description: 'Remove a specific warning by case ID',
+  options: [
+    { name: 'case_id', type: ApplicationCommandOptionType.String, description: 'Case ID of the warning (e.g. MOD-0003)', required: true },
+  ],
+};
+
+const WARNINGS_COMMAND = {
+  name: 'warnings', description: "View all warnings for a member",
+  options: [
+    { name: 'user', type: ApplicationCommandOptionType.User, description: 'Member to check', required: true },
+  ],
+};
+
+const CLEARWARNINGS_COMMAND = {
+  name: 'clearwarnings', description: "Clear all active warnings for a member",
+  options: [
+    { name: 'user', type: ApplicationCommandOptionType.User, description: 'Member whose warnings to clear', required: true },
+  ],
+};
+
+const MUTE_COMMAND = {
+  name: 'mute', description: 'Timeout (mute) a member for a duration',
+  options: [
+    { name: 'user', type: ApplicationCommandOptionType.User, description: 'Member to mute', required: true },
+    { name: 'duration', type: ApplicationCommandOptionType.String, description: 'Duration: 10m, 1h, 7d (max 28d)', required: true },
+    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason for the mute', required: false, max_length: 500 },
+  ],
+};
+
+const TEMPTIMEOUT_COMMAND = {
+  name: 'temptimeout', description: 'Apply a temporary timeout to a member (alias for /mute)',
+  options: [
+    { name: 'user', type: ApplicationCommandOptionType.User, description: 'Member to timeout', required: true },
+    { name: 'duration', type: ApplicationCommandOptionType.String, description: 'Duration: 10m, 1h, 7d (max 28d)', required: true },
+    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason for the timeout', required: false, max_length: 500 },
+  ],
+};
+
+const UNMUTE_COMMAND = {
+  name: 'unmute', description: 'Remove timeout from a member',
+  options: [
+    { name: 'user', type: ApplicationCommandOptionType.User, description: 'Member to unmute', required: true },
+    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason for removing the timeout', required: false, max_length: 500 },
+  ],
+};
+
+const KICK_COMMAND = {
+  name: 'kick', description: 'Kick a member from the server',
+  options: [
+    { name: 'user', type: ApplicationCommandOptionType.User, description: 'Member to kick', required: true },
+    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason for the kick', required: false, max_length: 500 },
+  ],
+};
+
+const BAN_COMMAND = {
+  name: 'ban', description: 'Ban a member from the server',
+  options: [
+    { name: 'user', type: ApplicationCommandOptionType.User, description: 'Member to ban', required: true },
+    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason for the ban', required: false, max_length: 500 },
+    { name: 'delete_days', type: ApplicationCommandOptionType.Integer, description: 'Days of messages to delete (0-7)', required: false, min_value: 0, max_value: 7 },
+  ],
+};
+
+const TEMPBAN_COMMAND = {
+  name: 'tempban', description: 'Temporarily ban a member — auto-unbanned on expiry',
+  options: [
+    { name: 'user', type: ApplicationCommandOptionType.User, description: 'Member to temp-ban', required: true },
+    { name: 'duration', type: ApplicationCommandOptionType.String, description: 'Duration: 1h, 7d, 2w', required: true },
+    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason for the temp ban', required: false, max_length: 500 },
+  ],
+};
+
+const UNBAN_COMMAND = {
+  name: 'unban', description: 'Unban a user from the server by user ID',
+  options: [
+    { name: 'user_id', type: ApplicationCommandOptionType.String, description: 'User ID of the banned member', required: true },
+    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason for the unban', required: false, max_length: 500 },
+  ],
+};
+
+const SOFTBAN_COMMAND = {
+  name: 'softban', description: 'Softban — bans then immediately unbans to purge message history',
+  options: [
+    { name: 'user', type: ApplicationCommandOptionType.User, description: 'Member to softban', required: true },
+    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason for the softban', required: false, max_length: 500 },
+  ],
+};
+
+const PURGE_COMMAND = {
+  name: 'purge', description: 'Bulk delete messages in this channel (up to 100)',
+  options: [
+    { name: 'amount', type: ApplicationCommandOptionType.Integer, description: 'Number of messages to delete (1-100)', required: true, min_value: 1, max_value: 100 },
+    { name: 'user', type: ApplicationCommandOptionType.User, description: 'Only delete messages from this user', required: false },
+    { name: 'channel', type: ApplicationCommandOptionType.Channel, description: 'Channel to purge (defaults to current)', required: false },
+  ],
+};
+
+const SLOWMODE_COMMAND = {
+  name: 'slowmode', description: 'Set slowmode in a channel (0 to disable)',
+  options: [
+    { name: 'seconds', type: ApplicationCommandOptionType.Integer, description: 'Slowmode delay in seconds (0 = off, max 21600)', required: true, min_value: 0, max_value: 21600 },
+    { name: 'channel', type: ApplicationCommandOptionType.Channel, description: 'Channel to apply slowmode (defaults to current)', required: false },
+    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason', required: false, max_length: 500 },
+  ],
+};
+
+const NICK_COMMAND = {
+  name: 'nick', description: "Set or reset a member's nickname",
+  options: [
+    { name: 'user', type: ApplicationCommandOptionType.User, description: 'Member to nickname', required: true },
+    { name: 'nickname', type: ApplicationCommandOptionType.String, description: 'New nickname (leave blank to reset)', required: false, max_length: 32 },
+    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason', required: false, max_length: 500 },
+  ],
+};
+
+const LOCK_COMMAND = {
+  name: 'lock', description: 'Lock a channel — prevents members from sending messages',
+  options: [
+    { name: 'channel', type: ApplicationCommandOptionType.Channel, description: 'Channel to lock (defaults to current)', required: false },
+    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason for locking', required: false, max_length: 500 },
+  ],
+};
+
+const UNLOCK_COMMAND = {
+  name: 'unlock', description: 'Unlock a previously locked channel',
+  options: [
+    { name: 'channel', type: ApplicationCommandOptionType.Channel, description: 'Channel to unlock (defaults to current)', required: false },
+    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason for unlocking', required: false, max_length: 500 },
+  ],
+};
+
+const ROLE_COMMAND = {
+  name: 'role', description: 'Add or remove a role from a member',
+  options: [
+    { name: 'action', type: ApplicationCommandOptionType.String, description: 'Add or remove', required: true, choices: [{ name: 'Add', value: 'add' }, { name: 'Remove', value: 'remove' }] },
+    { name: 'user', type: ApplicationCommandOptionType.User, description: 'Target member', required: true },
+    { name: 'role', type: ApplicationCommandOptionType.Role, description: 'Role to add or remove', required: true },
+    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason', required: false, max_length: 500 },
+  ],
+};
+
+const CASE_COMMAND = {
+  name: 'case', description: 'View the full details of a moderation case',
+  options: [
+    { name: 'id', type: ApplicationCommandOptionType.String, description: 'Case ID (e.g. MOD-0042)', required: true },
+  ],
+};
+
+const HISTORY_COMMAND = {
+  name: 'history', description: "View a member's complete moderation history",
+  options: [
+    { name: 'user', type: ApplicationCommandOptionType.User, description: 'Member to look up', required: true },
+    { name: 'page', type: ApplicationCommandOptionType.Integer, description: 'Page number (default 1)', required: false, min_value: 1 },
+  ],
+};
+
+const EDITCASE_COMMAND = {
+  name: 'editcase', description: 'Edit the reason of a moderation case',
+  options: [
+    { name: 'id', type: ApplicationCommandOptionType.String, description: 'Case ID to edit', required: true },
+    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'New reason', required: true, max_length: 500 },
+  ],
+};
+
+const DELETECASE_COMMAND = {
+  name: 'deletecase', description: '[Admin] Permanently delete a moderation case',
+  options: [
+    { name: 'id', type: ApplicationCommandOptionType.String, description: 'Case ID to delete', required: true },
+  ],
+};
+
 const PANEL_COMMAND = {
   name: 'panel',
   description: 'Open the Discord Control Center — browse and execute all 323 tools interactively',
@@ -273,6 +455,29 @@ const ALL_COMMANDS = [
   WORKSPACE_COMMAND,
   VOICE_COMMAND,
   TICKET_COMMAND,
+  // Moderation System Pro
+  WARN_COMMAND,
+  UNWARN_COMMAND,
+  WARNINGS_COMMAND,
+  CLEARWARNINGS_COMMAND,
+  MUTE_COMMAND,
+  TEMPTIMEOUT_COMMAND,
+  UNMUTE_COMMAND,
+  KICK_COMMAND,
+  BAN_COMMAND,
+  TEMPBAN_COMMAND,
+  UNBAN_COMMAND,
+  SOFTBAN_COMMAND,
+  PURGE_COMMAND,
+  SLOWMODE_COMMAND,
+  NICK_COMMAND,
+  LOCK_COMMAND,
+  UNLOCK_COMMAND,
+  ROLE_COMMAND,
+  CASE_COMMAND,
+  HISTORY_COMMAND,
+  EDITCASE_COMMAND,
+  DELETECASE_COMMAND,
 ];
 
 const GUILD_ID = '1213437502078062674';

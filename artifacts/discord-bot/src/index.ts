@@ -13,6 +13,8 @@ import { registerSlashCommands } from './discord/slash-command-registrar';
 import { welcomeService } from './discord/welcome/welcome.service';
 import { serverLogService } from './discord/logging/server-log.service';
 import { verificationService } from './discord/verification/verification.service';
+import { expiryManager } from './community/moderation';
+
 import type { GuildChannel } from 'discord.js';
 
 const RETRY_CONNECT_INTERVAL_MS = 15_000;

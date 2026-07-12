@@ -16,6 +16,8 @@ import { ControlCenterService } from '../discord/control-center';
 import { TicketPanelDesigner, isTPInteraction } from '../discord/control-center/ticket-panel-designer';
 import { WelcomeCardDesigner, isWCInteraction } from '../discord/welcome/card-designer';
 import { LogsDesignerService, isLGInteraction } from '../discord/control-center/logs-designer';
+import { ModDashboardService, isMDInteraction } from '../discord/control-center/mod-dashboard/md-service';
+import { moderationHandler, MOD_COMMAND_NAMES } from '../community/moderation';
 import { runStartupAudit, runCCRenderAudit } from '../discord/control-center/cc-test';
 import { ticketSystem } from '../community/tickets';
 import { verificationService } from '../discord/verification/verification.service';
@@ -68,6 +70,7 @@ export class AIService {
   private readonly ticketPanelDesigner: TicketPanelDesigner;
   private readonly welcomeCardDesigner: WelcomeCardDesigner;
   private readonly logsDesigner: LogsDesignerService;
+  private readonly modDashboard: ModDashboardService;
   private voiceManager: VoiceManager | null = null;
 
   constructor(private readonly config: AIConfig) {
@@ -84,6 +87,7 @@ export class AIService {
     this.ticketPanelDesigner = new TicketPanelDesigner(this.permissionManager);
     this.welcomeCardDesigner = new WelcomeCardDesigner(this.permissionManager);
     this.logsDesigner = new LogsDesignerService(this.permissionManager);
+    this.modDashboard = new ModDashboardService(this.permissionManager);
   }
 
   async initialize(): Promise<void> {
@@ -192,6 +196,13 @@ export class AIService {
           );
           return;
         }
+        // ── Moderation System Pro commands ─────────────────────────────────
+        if (MOD_COMMAND_NAMES.has(name)) {
+          moderationHandler.handle(interaction as ChatInputCommandInteraction).catch(err =>
+            logger.error(`Moderation command /${name} error`, err),
+          );
+          return;
+        }
       }
 
       // ── Control Center interactions (cc:* custom IDs) ──────────────────────
@@ -233,6 +244,20 @@ export class AIService {
         if (interaction.guild) {
           this.welcomeCardDesigner.handleInteraction(interaction, interaction.guild).catch(err =>
             logger.error('Welcome Card Designer interaction error', err),
+          );
+        }
+        return;
+      }
+
+      // ── Moderation Dashboard interactions (md:* custom IDs) ───────────────
+      if (
+        (interaction.isButton() && isMDInteraction(interaction.customId)) ||
+        (interaction.isRoleSelectMenu() && isMDInteraction(interaction.customId)) ||
+        (interaction.isModalSubmit() && isMDInteraction(interaction.customId))
+      ) {
+        if (interaction.guild) {
+          this.modDashboard.handleInteraction(interaction, interaction.guild).catch(err =>
+            logger.error('Mod Dashboard interaction error', err),
           );
         }
         return;

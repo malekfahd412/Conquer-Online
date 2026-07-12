@@ -761,6 +761,39 @@ export function buildSampleEmbed(type: LogType): EmbedBuilder {
       return new EmbedBuilder().setColor(0xf5a623).setTitle('🎊 Sticker Updated')
         .addFields({ name: '🎊 Sticker', value: '**TestSticker**', inline: true }, { name: '📋 Changes', value: '**Name:** ~~OldSticker~~ → TestSticker', inline: false }, { name: '🔨 Updated By', value: '<@456> **AdminUser**', inline: false })
         .setTimestamp(now);
+    // Moderation System Pro samples
+    case 'mod_warn':
+      return new EmbedBuilder().setColor(0xfee75c).setTitle('⚠️ Warning Issued')
+        .addFields({ name: '👤 User', value: '<@123> (TestUser)\nID: `123456789012345678`', inline: true }, { name: '🛡️ Moderator', value: '<@456> (AdminUser)', inline: true }, { name: '📋 Case', value: '`MOD-0001`', inline: false }, { name: '📝 Reason', value: 'Breaking server rules', inline: false }, { name: '⚠️ Warning Count', value: 'User now has **1** active warning(s)', inline: true })
+        .setFooter({ text: 'Case MOD-0001' }).setTimestamp(now);
+    case 'mod_mute':
+      return new EmbedBuilder().setColor(0xf5a623).setTitle('🔇 Member Muted')
+        .addFields({ name: '👤 User', value: '<@123> (TestUser)\nID: `123456789012345678`', inline: true }, { name: '🛡️ Moderator', value: '<@456> (AdminUser)', inline: true }, { name: '📋 Case', value: '`MOD-0002`', inline: false }, { name: '📝 Reason', value: 'Disruptive behaviour', inline: false }, { name: '⏱️ Duration', value: `1h (expires ${fakeTs})`, inline: true })
+        .setFooter({ text: 'Case MOD-0002' }).setTimestamp(now);
+    case 'mod_unmute':
+      return new EmbedBuilder().setColor(0x57f287).setTitle('🔊 Member Unmuted')
+        .addFields({ name: '👤 User', value: '<@123> (TestUser)\nID: `123456789012345678`', inline: true }, { name: '🛡️ Moderator', value: '<@456> (AdminUser)', inline: true }, { name: '📝 Reason', value: 'Timeout removed manually', inline: false })
+        .setFooter({ text: 'Case MOD-0003' }).setTimestamp(now);
+    case 'mod_kick':
+      return new EmbedBuilder().setColor(0xe67e22).setTitle('👢 Member Kicked')
+        .addFields({ name: '👤 User', value: '<@123> (TestUser)\nID: `123456789012345678`', inline: true }, { name: '🛡️ Moderator', value: '<@456> (AdminUser)', inline: true }, { name: '📝 Reason', value: 'Warned multiple times', inline: false })
+        .setFooter({ text: 'Case MOD-0004' }).setTimestamp(now);
+    case 'mod_ban':
+      return new EmbedBuilder().setColor(0xed4245).setTitle('🔨 Member Banned')
+        .addFields({ name: '👤 User', value: '<@123> (TestUser)\nID: `123456789012345678`', inline: true }, { name: '🛡️ Moderator', value: '<@456> (AdminUser)', inline: true }, { name: '📝 Reason', value: 'Severe rule violation', inline: false })
+        .setFooter({ text: 'Case MOD-0005' }).setTimestamp(now);
+    case 'mod_unban':
+      return new EmbedBuilder().setColor(0x57f287).setTitle('🔓 Member Unbanned')
+        .addFields({ name: '👤 User', value: 'TestUser\nID: `123456789012345678`', inline: true }, { name: '🛡️ Moderator', value: '<@456> (AdminUser)', inline: true }, { name: '📝 Reason', value: 'Appeal accepted', inline: false })
+        .setFooter({ text: 'Case MOD-0006' }).setTimestamp(now);
+    case 'mod_softban':
+      return new EmbedBuilder().setColor(0xe67e22).setTitle('🧹 Member Softbanned')
+        .addFields({ name: '👤 User', value: '<@123> (TestUser)\nID: `123456789012345678`', inline: true }, { name: '🛡️ Moderator', value: '<@456> (AdminUser)', inline: true }, { name: '📝 Reason', value: 'Message history clean-up', inline: false })
+        .setFooter({ text: 'Case MOD-0007' }).setTimestamp(now);
+    case 'mod_tempban':
+      return new EmbedBuilder().setColor(0xed4245).setTitle('⏳ Temporary Ban')
+        .addFields({ name: '👤 User', value: '<@123> (TestUser)\nID: `123456789012345678`', inline: true }, { name: '🛡️ Moderator', value: '<@456> (AdminUser)', inline: true }, { name: '📝 Reason', value: 'Temporary removal', inline: false }, { name: '⏱️ Duration', value: `7d (expires ${fakeTs})`, inline: true })
+        .setFooter({ text: 'Case MOD-0008' }).setTimestamp(now);
     default:
       return new EmbedBuilder().setColor(0x99aab5).setTitle('📋 Log Sample').setDescription('This is a sample log embed.').setTimestamp(now);
   }

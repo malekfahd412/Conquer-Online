@@ -60,6 +60,15 @@ export type LogType =
   | 'sticker_created'
   | 'sticker_deleted'
   | 'sticker_updated'
+  // Moderation System Pro — command-driven actions
+  | 'mod_warn'
+  | 'mod_mute'
+  | 'mod_unmute'
+  | 'mod_kick'
+  | 'mod_ban'
+  | 'mod_unban'
+  | 'mod_softban'
+  | 'mod_tempban'
   // Global fallback
   | 'logs_all';
 
@@ -87,7 +96,11 @@ export const LOG_CATEGORIES: LogCategory[] = [
     key: 'moderation',
     label: 'Moderation',
     emoji: '👮',
-    types: ['timeout', 'kick', 'ban'],
+    types: [
+      'timeout', 'kick', 'ban',
+      'mod_warn', 'mod_mute', 'mod_unmute', 'mod_kick',
+      'mod_ban', 'mod_unban', 'mod_softban', 'mod_tempban',
+    ],
   },
   {
     key: 'messages',
@@ -221,8 +234,17 @@ export const LOG_TYPE_META: Record<LogType, LogTypeMeta> = {
   sticker_created:            { label: 'Sticker Created',        emoji: '🎉', description: 'A custom sticker was created',                  color: 0x57f287 },
   sticker_deleted:            { label: 'Sticker Deleted',        emoji: '😥', description: 'A custom sticker was deleted',                  color: 0xed4245 },
   sticker_updated:            { label: 'Sticker Updated',        emoji: '🎊', description: 'A custom sticker was updated',                  color: 0xf5a623 },
+  // Moderation System Pro
+  mod_warn:    { label: 'Warning Issued',    emoji: '⚠️',  description: 'User warned via /warn command',           color: 0xfee75c },
+  mod_mute:    { label: 'Member Muted',      emoji: '🔇', description: 'User muted/timed-out via mod command',    color: 0xf5a623 },
+  mod_unmute:  { label: 'Member Unmuted',    emoji: '🔊', description: 'User unmuted via mod command',            color: 0x57f287 },
+  mod_kick:    { label: 'Member Kicked',     emoji: '👢', description: 'User kicked via /kick command',           color: 0xe67e22 },
+  mod_ban:     { label: 'Member Banned',     emoji: '🔨', description: 'User banned via /ban command',            color: 0xed4245 },
+  mod_unban:   { label: 'Member Unbanned',   emoji: '🔓', description: 'User unbanned via /unban command',        color: 0x57f287 },
+  mod_softban: { label: 'Member Softbanned', emoji: '🧹', description: 'User softbanned via /softban command',   color: 0xe67e22 },
+  mod_tempban: { label: 'Temp Ban',          emoji: '⏳', description: 'User temp-banned via /tempban command',  color: 0xed4245 },
   // Fallback
-  logs_all:                   { label: 'Logs All (fallback)',    emoji: '📋', description: 'Fallback channel for all logs without a dedicated channel', color: 0x99aab5 },
+  logs_all:    { label: 'Logs All (fallback)', emoji: '📋', description: 'Fallback channel for all logs without a dedicated channel', color: 0x99aab5 },
 };
 
 // ── Config Schema ──────────────────────────────────────────────────────────
