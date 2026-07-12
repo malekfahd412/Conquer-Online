@@ -286,6 +286,16 @@ export class ReviewAnalyticsDesigner {
     try {
       await this.routeButton(interaction, guild);
     } catch (err) {
+      // DEBUG — write full error to stdout so it appears in workflow logs
+      process.stdout.write(`[RA][DEBUG] handleInteraction caught error:\n`);
+      process.stdout.write(`[RA][DEBUG] customId=${(interaction as ButtonInteraction).customId}\n`);
+      process.stdout.write(`[RA][DEBUG] guildId=${guild?.id}\n`);
+      if (err instanceof Error) {
+        process.stdout.write(`[RA][DEBUG] message: ${err.message}\n`);
+        process.stdout.write(`[RA][DEBUG] stack:\n${err.stack}\n`);
+      } else {
+        process.stdout.write(`[RA][DEBUG] err: ${String(err)}\n`);
+      }
       logger.error('[RA] Interaction error', err);
       if (interaction.isRepliable()) {
         const msg = '❌ An error occurred in Review Analytics.';
@@ -300,6 +310,7 @@ export class ReviewAnalyticsDesigner {
 
   private async routeButton(interaction: ButtonInteraction, guild: Guild): Promise<void> {
     const id = interaction.customId;
+    process.stdout.write(`[RA][DEBUG] routeButton id=${id} guildId=${guild?.id}\n`);
 
     // ra:home → overview, all time
     if (id === RA.HOME) {
@@ -312,6 +323,7 @@ export class ReviewAnalyticsDesigner {
       const parts = id.split(':'); // ['ra', 'v', view, period]
       const view   = (parts[2] ?? 'ov') as ViewCode;
       const period = (parts[3] ?? 'al') as PeriodCode;
+      process.stdout.write(`[RA][DEBUG] navView view=${view} period=${period}\n`);
       await this.navView(interaction, guild, view, period);
       return;
     }
@@ -320,10 +332,14 @@ export class ReviewAnalyticsDesigner {
   }
 
   private async navView(interaction: ButtonInteraction, guild: Guild, view: ViewCode, period: PeriodCode): Promise<void> {
+    process.stdout.write(`[RA][DEBUG] navView start view=${view} period=${period}\n`);
     await interaction.deferUpdate();
+    process.stdout.write(`[RA][DEBUG] deferUpdate done\n`);
 
     const allReviews = await reviewEngine.getAll(guild.id);
+    process.stdout.write(`[RA][DEBUG] getAll returned ${allReviews.length} reviews\n`);
     const analytics  = computeAnalytics(allReviews, toEnginePeriod(period));
+    process.stdout.write(`[RA][DEBUG] computeAnalytics done totalReviews=${analytics.totalReviews}\n`);
 
     let embed: EmbedBuilder;
     switch (view) {
@@ -333,14 +349,17 @@ export class ReviewAnalyticsDesigner {
       case 'bd': embed = buildLeaderboardEmbed(analytics, period); break;
       default:   embed = buildOverviewEmbed(analytics, period);
     }
+    process.stdout.write(`[RA][DEBUG] embed built\n`);
 
     const components = [
       buildFilterRow(view, period),
       buildViewRow(view, period),
       buildNavRow(),
     ];
+    process.stdout.write(`[RA][DEBUG] components built count=${components.length}\n`);
 
     await interaction.editReply({ content: '', embeds: [embed], components });
+    process.stdout.write(`[RA][DEBUG] editReply done\n`);
   }
 }
 
