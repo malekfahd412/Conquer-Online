@@ -101,9 +101,30 @@
         "631930445218578433"
       ],
       "headerMessageId": "1525646378284613766"
+    },
+    {
+      "id": "ticket_1783828544280_9injb",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketType": "Support Manger",
+      "channelId": "1525712240458727495",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 6,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783828544580,
+      "lastActivityAt": 1783828544580,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "headerMessageId": "1525712241293525073",
+      "closedAt": 1783828549742,
+      "closedBy": "727578927593291796",
+      "lastLifecycleMessageId": "1525712269810597931"
     }
   ],
   "counters": {
-    "1213437502078062674": 5
+    "1213437502078062674": 6
   }
 }

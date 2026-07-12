@@ -205,6 +205,14 @@ export class AIService {
         }
       }
 
+      // ── Moderation /history pagination buttons (_hist_prev_/_hist_next_) ───
+      if (interaction.isButton() && interaction.customId.startsWith('_hist_')) {
+        moderationHandler.handleHistoryButton(interaction).catch(err =>
+          logger.error('Moderation history pagination error', err),
+        );
+        return;
+      }
+
       // ── Control Center interactions (cc:* custom IDs) ──────────────────────
       const isCC = (id: string) => id.startsWith('cc:');
       if (

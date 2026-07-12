@@ -247,7 +247,7 @@ async function applyAutoPunish(
 
 export async function execUnwarn(
   guild: Guild,
-  mod: GuildMember,
+  _mod: GuildMember,
   caseId: string,
 ): Promise<{ case: ModCase } | null> {
   const existing = await _getCase(guild.id, caseId);
@@ -459,10 +459,10 @@ export async function execPurge(
   amount: number,
   targetUserId?: string,
 ): Promise<number> {
-  let messages = await channel.messages.fetch({ limit: Math.min(amount, 100) });
-  if (targetUserId) {
-    messages = messages.filter(m => m.author.id === targetUserId);
-  }
+  const fetched = await channel.messages.fetch({ limit: Math.min(amount, 100) });
+  const messages = targetUserId
+    ? fetched.filter(m => m.author.id === targetUserId)
+    : fetched;
   const deleted = await channel.bulkDelete(messages, true);
   const count = deleted.size;
 
@@ -499,8 +499,8 @@ export async function execSlowmode(
     guildId: guild.id,
     targetId: channel.id,
     targetTag: `#${channel.name}`,
-    moderatorId: mod.id,
-    moderatorTag: mod.user.tag,
+    moderatorId: _mod.id,
+    moderatorTag: _mod.user.tag,
     action: 'slowmode',
     reason: reason || 'No reason provided',
     timestamp: Date.now(),

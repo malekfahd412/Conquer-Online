@@ -204,6 +204,12 @@ async function main(): Promise<void> {
     });
   }
 
+  // ── Moderation System Pro ────────────────────────────────────────────────
+  expiryManager.setClient(client);
+  expiryManager.start().catch(error => {
+    logger.error('Moderation expiry manager failed to start', error);
+  });
+
   // ── AI Control Center ──────────────────────────────────────────────────────
   logger.info('Initializing AI Control Center...');
   logger.info(`Voice AI: STT=${config.voice.sttProvider}, TTS=${config.voice.ttsProvider}, personality=${config.voice.personality}`);

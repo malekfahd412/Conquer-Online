@@ -7,6 +7,7 @@ import {
   GuildMember,
   ChannelType,
   type ChatInputCommandInteraction,
+  type ButtonInteraction,
   type Guild,
   type TextChannel,
 } from 'discord.js';
@@ -503,6 +504,41 @@ export class ModerationCommandHandler {
     );
 
     await i.editReply({
+      embeds: [result.embed],
+      components: result.totalPages > 1 ? [prevRow] : [],
+    });
+  }
+
+  // ── History pagination buttons (_hist_prev_/_hist_next_) ────────────────
+
+  async handleHistoryButton(interaction: ButtonInteraction): Promise<void> {
+    if (!interaction.guild) return;
+    const guild = interaction.guild;
+
+    const match = /^_hist_(prev|next)_(\d+)_(\d+)$/.exec(interaction.customId);
+    if (!match) return;
+
+    const [, dir, userId, pageStr] = match;
+    const currentPage = parseInt(pageStr, 10);
+    const targetPage = dir === 'prev' ? currentPage - 1 : currentPage + 1;
+
+    await interaction.deferUpdate();
+    const result = await getHistory(guild, userId, targetPage);
+
+    const prevRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`_hist_prev_${userId}_${result.page}`)
+        .setLabel('← Previous')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(result.page === 0),
+      new ButtonBuilder()
+        .setCustomId(`_hist_next_${userId}_${result.page}`)
+        .setLabel('Next →')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(result.page >= result.totalPages - 1),
+    );
+
+    await interaction.editReply({
       embeds: [result.embed],
       components: result.totalPages > 1 ? [prevRow] : [],
     });
