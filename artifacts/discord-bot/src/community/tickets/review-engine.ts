@@ -71,7 +71,7 @@ export class ReviewEngine {
 
       const embed = new EmbedBuilder()
         .setColor(0x5865f2)
-        .setTitle('📋 How was your experience?')
+        .setTitle('📋 How was our experience?' )
         .setDescription(cfg.dmMessage || DEFAULT_REVIEW_CONFIG.dmMessage)
         .addFields(
           { name: '🎫 Ticket', value: `**#${ticket.number}** — ${ticket.ticketType}`, inline: true },

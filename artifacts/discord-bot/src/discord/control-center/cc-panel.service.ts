@@ -255,6 +255,10 @@ export class ControlCenterService {
             .setLabel('📈 Ticket SLA')
             .setCustomId('sla:home')
             .setStyle(ButtonStyle.Success),
+          new ButtonBuilder()
+            .setLabel('⭐ Review Analytics')
+            .setCustomId('ra:home')
+            .setStyle(ButtonStyle.Secondary),
         ),
       );
     }

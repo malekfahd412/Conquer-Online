@@ -343,8 +343,15 @@
       "id": "panel_1783810288179_l0nm0",
       "guildId": "1213437502078062674",
       "createdAt": 1783810288179,
-      "updatedAt": 1783813027246,
-      "messageId": "1525642857296433185"
+      "updatedAt": 1783887183148,
+      "messageId": "1525642857296433185",
+      "reviewConfig": {
+        "enabled": true,
+        "dmMessage": "Thank you for contacting our support team! We would love to hear about your experience.",
+        "requireComment": true,
+        "anonymousReviews": false,
+        "logChannelId": "1524534739845775582"
+      }
     }
   ]
 }

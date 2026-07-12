@@ -1,0 +1,30 @@
+{
+  "guilds": {
+    "1213437502078062674": [
+      {
+        "id": "MOD-0001",
+        "guildId": "1213437502078062674",
+        "targetId": "723982702625423430",
+        "targetTag": "forsell5995",
+        "moderatorId": "727578927593291796",
+        "moderatorTag": "s6.a_",
+        "action": "ban",
+        "reason": "Test",
+        "timestamp": 1783889212702,
+        "active": true
+      },
+      {
+        "id": "MOD-0002",
+        "guildId": "1213437502078062674",
+        "targetId": "723982702625423430",
+        "targetTag": "forsell5995",
+        "moderatorId": "727578927593291796",
+        "moderatorTag": "s6.a_",
+        "action": "unban",
+        "reason": "بحبه",
+        "timestamp": 1783889325594,
+        "active": false
+      }
+    ]
+  }
+}

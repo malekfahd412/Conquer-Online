@@ -1,3 +1,21 @@
 {
-  "reviews": []
+  "reviews": [
+    {
+      "id": "rev_1783887038627_u7etm",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1783886962039_wj2ly",
+      "ticketNumber": 7,
+      "ticketType": "store",
+      "openerId": "727578927593291796",
+      "closedBy": "727578927593291796",
+      "rating": 5,
+      "comment": "Test",
+      "anonymous": true,
+      "resolutionTimeMs": 6978,
+      "reviewedAt": 1783887038627,
+      "ticketCreatedAt": 1783886962275,
+      "ticketClosedAt": 1783886969253
+    }
+  ]
 }

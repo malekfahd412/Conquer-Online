@@ -1,4 +1,10 @@
 {
-  "guildConfigs": [],
+  "guildConfigs": [
+    {
+      "guildId": "1213437502078062674",
+      "enabled": true,
+      "types": {}
+    }
+  ],
   "records": []
 }

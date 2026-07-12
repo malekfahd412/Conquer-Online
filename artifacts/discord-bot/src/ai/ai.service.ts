@@ -37,6 +37,7 @@ import type { VoicePersonality } from '../voice/VoiceConversation';
 import type { VoiceModuleConfig } from '../config/config';
 import { logger } from '../utils/logger';
 import { slaDesigner, isSLAInteraction } from '../discord/control-center/sla-designer';
+import { reviewAnalyticsDesigner, isRAInteraction } from '../discord/control-center';
 import { CompanionService } from '../companion/companion.service';
 import { FRIENDSHIP_LABELS, FRIENDSHIP_EMOJIS } from '../companion/companion-store';
 
@@ -309,6 +310,16 @@ export class AIService {
         if (interaction.guild) {
           slaDesigner.handleInteraction(interaction, interaction.guild).catch(err =>
             logger.error('SLA Designer interaction error', err),
+          );
+        }
+        return;
+      }
+
+      // ── Review Analytics interactions (ra:* custom IDs) ──────────────────
+      if (interaction.isButton() && isRAInteraction(interaction.customId)) {
+        if (interaction.guild) {
+          reviewAnalyticsDesigner.handleInteraction(interaction, interaction.guild).catch(err =>
+            logger.error('Review Analytics interaction error', err),
           );
         }
         return;
