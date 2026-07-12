@@ -41,8 +41,9 @@ import {
 import { logger } from '../../../utils/logger';
 
 // ── Custom-ID namespace ───────────────────────────────────────────────────────
-// sc:home                → dashboard
-// sc:select              → StringSelectMenu selection → navs to module
+// sc:home                → dashboard page 0
+// sc:select:<page>       → StringSelectMenu selection → navs to module
+// sc:pg:<n>              → navigate to dashboard page n (pagination)
 // sc:mod:<key>           → module detail
 // sc:toggle:<key>        → toggle module on/off
 // sc:edit:<key>          → open edit settings modal (no defer)
@@ -84,6 +85,9 @@ function formatMs(ms: number): string {
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
+
+/** Discord hard limit for StringSelectMenu options. */
+const MAX_SC_OPTIONS = 25;
 
 const PUNISH_EMOJI: Record<string, string> = {
   warn: '⚠️', timeout: '⏰', kick: '👢', ban: '🔨',
@@ -243,7 +247,8 @@ export class SecurityCenterDesigner {
     const id = interaction.customId;
 
     // ── StringSelectMenu ─────────────────────────────────────────────────────
-    if (interaction.isStringSelectMenu() && id === 'sc:select') {
+    // sc:select:<page> — module picker (page encoded in custom_id, value = module key)
+    if (interaction.isStringSelectMenu() && id.startsWith('sc:select:')) {
       const key = (interaction as StringSelectMenuInteraction).values[0] as SecurityModuleKey;
       await interaction.deferUpdate();
       await this.renderModule(interaction as NavInteraction, guild, key);
@@ -276,7 +281,8 @@ export class SecurityCenterDesigner {
     // Navigation/action buttons — defer first
     await btn.deferUpdate();
 
-    if (id === 'sc:home')            { await this.renderDashboard(btn, guild); return; }
+    if (id === 'sc:home')            { await this.renderDashboard(btn, guild, 0); return; }
+    if (id.startsWith('sc:pg:'))    { await this.renderDashboard(btn, guild, parseInt(id.slice('sc:pg:'.length), 10) || 0); return; }
     if (id === 'sc:emergency')       { await this.renderEmergency(btn, guild); return; }
     if (id === 'sc:emergency:on')    { await this.doEmergencyOn(btn, guild);   return; }
     if (id === 'sc:emergency:off')   { await this.doEmergencyOff(btn, guild);  return; }
@@ -288,16 +294,30 @@ export class SecurityCenterDesigner {
   }
 
   // ── Render: Dashboard ─────────────────────────────────────────────────────
+  //
+  // Paginated: splits ALL_MODULE_KEYS into pages of MAX_SC_OPTIONS (25) so
+  // Discord's StringSelectMenu limit is never exceeded no matter how many
+  // modules are added in the future.
 
-  async renderDashboard(interaction: NavInteraction, guild: Guild): Promise<void> {
+  async renderDashboard(interaction: NavInteraction, guild: Guild, page = 0): Promise<void> {
     const cfg = await getGuildConfig(guild.id);
+
+    const totalModules = ALL_MODULE_KEYS.length;
+    const totalPages   = Math.max(1, Math.ceil(totalModules / MAX_SC_OPTIONS));
+    const safePage     = Math.max(0, Math.min(page, totalPages - 1));
+
+    const pageKeys = ALL_MODULE_KEYS.slice(safePage * MAX_SC_OPTIONS, (safePage + 1) * MAX_SC_OPTIONS);
 
     const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
       new StringSelectMenuBuilder()
-        .setCustomId('sc:select')
-        .setPlaceholder('🔍 Select a security module to configure...')
+        .setCustomId(`sc:select:${safePage}`)
+        .setPlaceholder(
+          totalPages > 1
+            ? `🔍 Modules (page ${safePage + 1}/${totalPages}) — select to configure...`
+            : '🔍 Select a security module to configure...',
+        )
         .addOptions(
-          ALL_MODULE_KEYS.map(key => {
+          pageKeys.map(key => {
             const { emoji, label, description } = MODULE_META[key];
             const on = cfg.modules[key]?.enabled ?? false;
             return new StringSelectMenuOptionBuilder()
@@ -313,15 +333,33 @@ export class SecurityCenterDesigner {
       ? new ButtonBuilder().setCustomId('sc:emergency').setLabel('🚨 Emergency: ACTIVE').setStyle(ButtonStyle.Danger)
       : new ButtonBuilder().setCustomId('sc:emergency').setLabel('🚨 Emergency Mode').setStyle(ButtonStyle.Secondary);
 
+    // Bottom row: pagination (only shown when there is more than one page) + nav
+    const bottomButtons: ButtonBuilder[] = [];
+    if (totalPages > 1) {
+      bottomButtons.push(
+        new ButtonBuilder()
+          .setCustomId(`sc:pg:${safePage - 1}`)
+          .setLabel('◀ Prev')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(safePage === 0),
+        new ButtonBuilder()
+          .setCustomId(`sc:pg:${safePage + 1}`)
+          .setLabel('Next ▶')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(safePage >= totalPages - 1),
+      );
+    }
+    bottomButtons.push(
+      emergencyBtn,
+      new ButtonBuilder().setCustomId('cc:cat:security').setLabel('← Security').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('cc:home').setLabel('🏠 CC Home').setStyle(ButtonStyle.Secondary),
+    );
+
     const payload: InteractionUpdateOptions = {
       embeds:     [dashboardEmbed(cfg)],
       components: [
         selectRow,
-        new ActionRowBuilder<ButtonBuilder>().addComponents(
-          emergencyBtn,
-          new ButtonBuilder().setCustomId('cc:cat:security').setLabel('← Security').setStyle(ButtonStyle.Secondary),
-          new ButtonBuilder().setCustomId('cc:home').setLabel('🏠 CC Home').setStyle(ButtonStyle.Secondary),
-        ),
+        new ActionRowBuilder<ButtonBuilder>().addComponents(...bottomButtons),
       ],
     };
 

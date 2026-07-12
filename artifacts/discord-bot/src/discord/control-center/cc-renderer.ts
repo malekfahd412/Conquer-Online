@@ -119,6 +119,30 @@ export function buildCategoryPanel(category: CategoryKey, tools: ITool[], page: 
   const safePage = checkPageIndex(FILE, fn, `page(${category})`, page, totalPages - 1);
   const color = checkColor(FILE, fn, `categoryColor(${category})`, meta.color);
 
+  // ── Zero-tools guard ────────────────────────────────────────────────────
+  // Discord requires StringSelectMenu to have 1–25 options. When a category
+  // has no tools (e.g. 'security', which surfaces its own designer instead)
+  // skip the select row entirely to avoid an Invalid Form Body error.
+  if (total === 0) {
+    const embed = verifyBuilder(FILE, fn, `category embed:${category}:empty`, () =>
+      new EmbedBuilder()
+        .setColor(color)
+        .setTitle(`${meta.emoji} ${meta.label}`)
+        .setDescription(`${meta.description}\n\nNo direct tools — use the buttons below to access this feature.`)
+        .setFooter({ text: 'Use the buttons below to open the dedicated designer' }),
+    );
+
+    const navRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      homeBtn(),
+      favBtn(),
+      searchBtn(),
+    );
+
+    const payload: CCPayload = { content: '', embeds: [embed], components: [navRow] };
+    assertUniqueCustomIds(`buildCategoryPanel(${category},empty)`, payload);
+    return payload;
+  }
+
   const slice = tools.slice(safePage * TOOLS_PER_PAGE, (safePage + 1) * TOOLS_PER_PAGE);
   const optionCount = checkCount(FILE, fn, `optionCount(${category})`, slice.length, MAX_SELECT_OPTIONS, MAX_SELECT_OPTIONS);
   const slicedOptions = slice.slice(0, optionCount);

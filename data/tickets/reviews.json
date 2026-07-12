@@ -35,6 +35,23 @@
       "reviewedAt": 1783896010979,
       "ticketCreatedAt": 1783895951582,
       "ticketClosedAt": 1783895977729
+    },
+    {
+      "id": "rev_1783898481739_d73yv",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1783898450541_2i1cu",
+      "ticketNumber": 9,
+      "ticketType": "Staff",
+      "openerId": "727578927593291796",
+      "closedBy": "727578927593291796",
+      "rating": 1,
+      "comment": "sss",
+      "anonymous": false,
+      "resolutionTimeMs": 4565,
+      "reviewedAt": 1783898481739,
+      "ticketCreatedAt": 1783898450761,
+      "ticketClosedAt": 1783898455326
     }
   ]
 }
