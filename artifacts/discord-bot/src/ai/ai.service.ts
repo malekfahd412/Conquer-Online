@@ -314,6 +314,20 @@ export class AIService {
         return;
       }
 
+      // ── Review System interactions (tk:review:* — DM-capable, no guild required) ──
+      if (interaction.isButton() && interaction.customId.startsWith('tk:review:rate:')) {
+        ticketSystem.handleReviewInteraction(interaction).catch(err =>
+          logger.error('Review interaction error', err),
+        );
+        return;
+      }
+      if (interaction.isModalSubmit() && interaction.customId.startsWith('tk:review:modal:')) {
+        ticketSystem.handleReviewModal(interaction).catch(err =>
+          logger.error('Review modal error', err),
+        );
+        return;
+      }
+
       // ── Ticket system interactions (tk:* custom IDs) ───────────────────────
       if (interaction.isButton() && interaction.customId.startsWith('tk:')) {
         if (interaction.guild) {

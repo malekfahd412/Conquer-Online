@@ -12,3 +12,4 @@
 - [Welcome Card system](welcome-card-system.md) — canvas join-image feature toggled by presence of `card.backgroundImage`; coordinate semantics, shared text styling, and local background upload approach.
 - [Ticket SLA Engine](sla-engine.md) — hook points, config key format, sweeper wiring, custom-ID encoding, and CC routing for SLA System Pro.
 - [Companion Mode](companion-mode.md) — isolated friendly AI chat; uses planner.reflect() for raw AI calls; routing logic splits admin AI vs companion in onMessage.
+- [Ticket Review System Pro](ticket-review-system.md) — post-close DM star-rating flow; DM routing placed before guild-gated tk:* block; pending rating stored in-memory between button and modal.

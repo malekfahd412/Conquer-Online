@@ -283,6 +283,18 @@ export const TP = {
     ctog:     (panelId: string, ref: string, field: string): string   => `tp:tt:ctog:${panelId}:${ref}:${field}`,
     reset:    (panelId: string, ref: string, section: string): string => `tp:tt:reset:${panelId}:${ref}:${section}`,
   },
+  // ── Review System Designer ───────────────────────────────────────────────
+  //
+  //   tp:rv:<panelId>                   → review config page
+  //   tp:rv:tog:<panelId>:<field>       → toggle boolean field
+  //   tp:rv:edit:<panelId>:<field>      → show edit modal for field
+  //   tp:rv:modal:<panelId>:<field>     → edit modal submit
+  RV: {
+    main:     (panelId: string): string                => `tp:rv:${panelId}`,
+    tog:      (panelId: string, field: string): string => `tp:rv:tog:${panelId}:${field}`,
+    edit:     (panelId: string, field: string): string => `tp:rv:edit:${panelId}:${field}`,
+    rvModal:  (panelId: string, field: string): string => `tp:rv:modal:${panelId}:${field}`,
+  },
 } as const;
 
 export function isTPInteraction(customId: string): boolean {

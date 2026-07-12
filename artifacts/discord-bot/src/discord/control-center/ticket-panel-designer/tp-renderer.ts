@@ -153,6 +153,7 @@ export function buildPanelDashboard(panel: TicketPanel): CCPayload {
   );
   const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(
     btn('💾 Save as Template', TP.tplSave(panel.id), ButtonStyle.Secondary),
+    btn('⭐ Reviews',           TP.RV.main(panel.id),  ButtonStyle.Secondary),
     listBtn(),
     homeBtn(),
   );

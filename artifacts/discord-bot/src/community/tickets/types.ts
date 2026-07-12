@@ -370,6 +370,8 @@ export interface TicketPanel {
   transcript: TicketTranscriptConfig;
   automation: TicketAutomationConfig;
   statistics: TicketStatisticsConfig;
+  /** Review System Pro — optional because older panels pre-date this feature; normalizePanel() fills defaults. */
+  reviewConfig?: ReviewConfig;
 
   createdAt: number;
   updatedAt: number;
@@ -405,6 +407,7 @@ export function normalizePanel(panel: TicketPanel): TicketPanel {
       reminderMinutes:             panel.automation?.reminderMinutes             ?? 0,
       ageWarnMinutes:              (panel.automation as any)?.ageWarnMinutes     ?? 0,
     },
+    reviewConfig: { ...DEFAULT_REVIEW_CONFIG, ...(panel.reviewConfig ?? {}) },
     button:            migrateEntryOverrides(panel.button),
     additionalButtons: (panel.additionalButtons ?? []).map(migrateEntryOverrides),
     selectMenu: panel.selectMenu
@@ -710,4 +713,53 @@ export interface TicketSettings {
   defaultEmbedColor: number;
   defaultNamingScheme: string;
   defaultTicketLimit: number;
+}
+
+// ── Review System Pro ────────────────────────────────────────────────────────
+
+export interface ReviewConfig {
+  /** Whether the review DM is sent when a ticket closes. */
+  enabled: boolean;
+  /** Channel where review log embeds are posted. Omit to disable logging. */
+  logChannelId?: string;
+  /** Body text of the DM sent to the ticket opener. */
+  dmMessage: string;
+  /** When true, the comment field is required (not optional) in the rating modal. */
+  requireComment: boolean;
+  /** When true, the user's identity is hidden in the review log embed. */
+  anonymousReviews: boolean;
+}
+
+export const DEFAULT_REVIEW_CONFIG: ReviewConfig = {
+  enabled: false,
+  dmMessage: 'Thank you for contacting our support team! We would love to hear about your experience.',
+  requireComment: false,
+  anonymousReviews: false,
+};
+
+/** A submitted review for a closed ticket. Stored permanently in reviews.json. */
+export interface TicketReviewRecord {
+  id: string;
+  guildId: string;
+  panelId: string;
+  ticketId: string;
+  ticketNumber: number;
+  ticketType: string;
+  openerId: string;
+  claimedBy?: string;
+  closedBy?: string;
+  /** 1–5 star rating chosen by the opener. */
+  rating: 1 | 2 | 3 | 4 | 5;
+  /** Optional written comment from the opener. */
+  comment?: string;
+  /** Whether the reviewer's identity is hidden in the log embed (mirrors ReviewConfig.anonymousReviews at time of review). */
+  anonymous: boolean;
+  /** Milliseconds from ticket open to first staff reply. */
+  responseTimeMs?: number;
+  /** Milliseconds from ticket open to close. */
+  resolutionTimeMs?: number;
+  /** When the review was submitted. */
+  reviewedAt: number;
+  ticketCreatedAt: number;
+  ticketClosedAt: number;
 }
