@@ -268,6 +268,16 @@ export class ControlCenterService {
         ),
       );
     }
+    if (category === 'serverlogs') {
+      payload.components.push(
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setLabel('📋 Logs Manager')
+            .setCustomId('lg:dash')
+            .setStyle(ButtonStyle.Primary),
+        ),
+      );
+    }
 
     const uiGenMs = Date.now() - tUi;
     await this.nav(interaction, payload, `category:${category}`, { uiGen: uiGenMs });

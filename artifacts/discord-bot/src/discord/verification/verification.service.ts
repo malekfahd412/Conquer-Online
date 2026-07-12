@@ -11,6 +11,7 @@ import {
   type ModalSubmitInteraction,
   type TextChannel,
 } from 'discord.js';
+import { serverLogService } from '../logging/server-log.service';
 import {
   getVerificationPanel,
   updateVerificationPanelMessage,
@@ -143,6 +144,7 @@ export class VerificationService {
 
     await upsertAttempt({ guildId: guild.id, panelId: panel.id, userId, status: 'verified', method: panel.method });
     if (panel.logChannelId) await this.log(guild, panel.logChannelId, `✅ ${member.user.tag} verified via **${panel.method}**`);
+    serverLogService.onVerification(member).catch(() => {});
     return true;
   }
 

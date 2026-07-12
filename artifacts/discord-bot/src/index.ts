@@ -87,6 +87,15 @@ async function main(): Promise<void> {
     verificationService.handleMemberLeave(member).catch(err => logger.error('Verification leave-reset error', err));
   });
 
+  client.on('guildBanAdd', ban => {
+    serverLogService.onBanAdd(ban).catch(err => logger.error('Ban log error', err));
+  });
+
+  client.on('guildMemberUpdate', (oldMember, newMember) => {
+    if (newMember.partial) return;
+    serverLogService.onMemberUpdate(oldMember, newMember).catch(err => logger.error('Member update log error', err));
+  });
+
   client.on('messageDelete', message => {
     serverLogService.onMessageDelete(message).catch(err => logger.error('Message delete log error', err));
   });

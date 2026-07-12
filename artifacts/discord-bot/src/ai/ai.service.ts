@@ -15,6 +15,7 @@ import { ResponseDeliveryService } from '../discord/response-delivery.service';
 import { ControlCenterService } from '../discord/control-center';
 import { TicketPanelDesigner, isTPInteraction } from '../discord/control-center/ticket-panel-designer';
 import { WelcomeCardDesigner, isWCInteraction } from '../discord/welcome/card-designer';
+import { LogsDesignerService, isLGInteraction } from '../discord/control-center/logs-designer';
 import { runStartupAudit, runCCRenderAudit } from '../discord/control-center/cc-test';
 import { ticketSystem } from '../community/tickets';
 import { verificationService } from '../discord/verification/verification.service';
@@ -66,6 +67,7 @@ export class AIService {
   private readonly controlCenter: ControlCenterService;
   private readonly ticketPanelDesigner: TicketPanelDesigner;
   private readonly welcomeCardDesigner: WelcomeCardDesigner;
+  private readonly logsDesigner: LogsDesignerService;
   private voiceManager: VoiceManager | null = null;
 
   constructor(private readonly config: AIConfig) {
@@ -81,6 +83,7 @@ export class AIService {
     this.controlCenter = new ControlCenterService(this.toolRegistry, this.permissionManager);
     this.ticketPanelDesigner = new TicketPanelDesigner(this.permissionManager);
     this.welcomeCardDesigner = new WelcomeCardDesigner(this.permissionManager);
+    this.logsDesigner = new LogsDesignerService(this.permissionManager);
   }
 
   async initialize(): Promise<void> {
@@ -230,6 +233,20 @@ export class AIService {
         if (interaction.guild) {
           this.welcomeCardDesigner.handleInteraction(interaction, interaction.guild).catch(err =>
             logger.error('Welcome Card Designer interaction error', err),
+          );
+        }
+        return;
+      }
+
+      // ── Logs Designer interactions (lg:* custom IDs) ───────────────────────
+      if (
+        (interaction.isButton() && isLGInteraction(interaction.customId)) ||
+        (interaction.isStringSelectMenu() && isLGInteraction(interaction.customId)) ||
+        (interaction.isModalSubmit() && isLGInteraction(interaction.customId))
+      ) {
+        if (interaction.guild) {
+          this.logsDesigner.handleInteraction(interaction, interaction.guild).catch(err =>
+            logger.error('Logs Designer interaction error', err),
           );
         }
         return;
