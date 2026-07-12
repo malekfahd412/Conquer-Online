@@ -3,7 +3,8 @@ export type CategoryKey =
   | 'moderation' | 'messages' | 'embeds' | 'voice' | 'emojis'
   | 'stickers' | 'invites' | 'automod' | 'events' | 'webhooks'
   | 'permissions' | 'analytics' | 'backup' | 'templates' | 'clone'
-  | 'panels' | 'utilities' | 'tickets' | 'verification' | 'welcome' | 'applications' | 'serverlogs';
+  | 'panels' | 'utilities' | 'tickets' | 'verification' | 'welcome' | 'applications' | 'serverlogs'
+  | 'security';
 
 export interface CategoryMeta {
   label: string;
@@ -40,6 +41,7 @@ export const CATEGORY_META: Record<CategoryKey, CategoryMeta> = {
   welcome:     { label: 'Welcome/Goodbye', emoji: '👋', description: 'Join and leave messages',        color: 0x57f287 },
   applications:{ label: 'Applications',  emoji: '📨', description: 'Application panels and reviews',  color: 0x5865f2 },
   serverlogs:  { label: 'Server Logging', emoji: '📋', description: 'Message, member, and voice logs', color: 0x99aab5 },
+  security:    { label: 'Security',       emoji: '🛡️', description: 'Anti-raid, anti-nuke, spam filters & scam protection', color: 0xed4245 },
 };
 
 export const CATEGORY_ORDER: CategoryKey[] = [
@@ -47,7 +49,7 @@ export const CATEGORY_ORDER: CategoryKey[] = [
   'moderation', 'messages', 'embeds', 'voice', 'emojis',
   'stickers', 'invites', 'automod', 'events', 'webhooks',
   'permissions', 'analytics', 'backup', 'templates', 'clone',
-  'panels', 'utilities', 'tickets', 'verification', 'welcome', 'applications', 'serverlogs',
+  'panels', 'utilities', 'tickets', 'verification', 'welcome', 'applications', 'serverlogs', 'security',
 ];
 
 export function inferCategory(toolName: string): CategoryKey {

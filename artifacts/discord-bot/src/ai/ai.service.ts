@@ -37,7 +37,8 @@ import type { VoicePersonality } from '../voice/VoiceConversation';
 import type { VoiceModuleConfig } from '../config/config';
 import { logger } from '../utils/logger';
 import { slaDesigner, isSLAInteraction } from '../discord/control-center/sla-designer';
-import { reviewAnalyticsDesigner, isRAInteraction } from '../discord/control-center';
+import { reviewAnalyticsDesigner, isRAInteraction, securityCenterDesigner, isSCInteraction } from '../discord/control-center';
+import { SecurityGuard } from '../discord/security/security-guard';
 import { CompanionService } from '../companion/companion.service';
 import { FRIENDSHIP_LABELS, FRIENDSHIP_EMOJIS } from '../companion/companion-store';
 
@@ -77,6 +78,7 @@ export class AIService {
   private readonly modDashboard: ModDashboardService;
   private voiceManager: VoiceManager | null = null;
   private readonly companionService: CompanionService;
+  private readonly securityGuard: SecurityGuard;
 
   constructor(private readonly config: AIConfig) {
     this.permissionManager = new PermissionManager(config.adminRole);
@@ -98,6 +100,7 @@ export class AIService {
       channelId: process.env.CHANNEL_COMPANION,
       serverName: config.serverName,
     });
+    this.securityGuard = new SecurityGuard();
   }
 
   async initialize(): Promise<void> {
@@ -132,6 +135,7 @@ export class AIService {
   start(client: Client): void {
     ticketSystem.init(client).catch(err => logger.error('[TICKETS] Ticket System Pro failed to initialize', err));
     this.companionService.ensureStore().catch(err => logger.warning('[COMPANION] Failed to initialize store', err));
+    this.securityGuard.start(client);
 
     client.on('messageCreate', message => {
       this.onMessage(message, client).catch(error => {
@@ -320,6 +324,20 @@ export class AIService {
         if (interaction.guild) {
           reviewAnalyticsDesigner.handleInteraction(interaction, interaction.guild).catch(err =>
             logger.error('Review Analytics interaction error', err),
+          );
+        }
+        return;
+      }
+
+      // ── Security Center interactions (sc:* custom IDs) ────────────────────
+      if (
+        (interaction.isButton() && isSCInteraction(interaction.customId)) ||
+        (interaction.isStringSelectMenu() && isSCInteraction(interaction.customId)) ||
+        (interaction.isModalSubmit() && isSCInteraction(interaction.customId))
+      ) {
+        if (interaction.guild) {
+          securityCenterDesigner.handleInteraction(interaction, interaction.guild).catch(err =>
+            logger.error('Security Center interaction error', err),
           );
         }
         return;

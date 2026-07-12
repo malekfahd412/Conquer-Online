@@ -9,7 +9,7 @@
         "moderatorId": "727578927593291796",
         "moderatorTag": "s6.a_",
         "action": "ban",
-        "reason": "Test",
+        "reason": "TEST",
         "timestamp": 1783889212702,
         "active": true
       },
@@ -21,7 +21,7 @@
         "moderatorId": "727578927593291796",
         "moderatorTag": "s6.a_",
         "action": "unban",
-        "reason": "بحبه",
+        "reason": "refresh",
         "timestamp": 1783889325594,
         "active": false
       }

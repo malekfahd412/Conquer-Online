@@ -14,3 +14,4 @@
 - [Companion Mode](companion-mode.md) — isolated friendly AI chat; uses planner.reflect() for raw AI calls; routing logic splits admin AI vs companion in onMessage.
 - [Ticket Review System Pro](ticket-review-system.md) — post-close DM star-rating flow; DM routing placed before guild-gated tk:* block; pending rating stored in-memory between button and modal.
 - [Review Analytics Pro](review-analytics.md) — ra:* CC designer; pure computation in review-analytics-engine.ts; view+period encoded in every button ID as ra:v:<view>:<period>.
+- [Security Center Pro](security-center-pro.md) — 14-module security system; sc:* CC designer; SecurityGuard event listeners; emergency mode; wiring in ai.service.ts.

@@ -296,6 +296,16 @@ export class ControlCenterService {
         ),
       );
     }
+    if (category === 'security') {
+      payload.components.push(
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setLabel('🛡️ Security Center')
+            .setCustomId('sc:home')
+            .setStyle(ButtonStyle.Danger),
+        ),
+      );
+    }
 
     const uiGenMs = Date.now() - tUi;
     await this.nav(interaction, payload, `category:${category}`, { uiGen: uiGenMs });
