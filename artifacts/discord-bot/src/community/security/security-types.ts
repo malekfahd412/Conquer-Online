@@ -47,6 +47,11 @@ export interface SecurityGuildConfig {
   emergencyLockedChannels: string[];
   /** Fallback log channel when a module has no specific channel set. */
   securityLogChannelId?: string;
+  /**
+   * Role ID to @mention in security alert messages (as message content, not inside the embed).
+   * Applies to all module detections and emergency mode activations/deactivations.
+   */
+  securityMentionRoleId?: string;
   modules: Record<SecurityModuleKey, SecurityModuleConfig>;
 }
 

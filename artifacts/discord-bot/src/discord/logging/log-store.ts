@@ -254,8 +254,13 @@ export interface LogTypeConfig {
   channelId?: string;
   /** Custom embed color (hex integer, e.g. 0x57f287). Overrides the default. */
   color?: number;
-  /** Role IDs to @mention when this log fires. */
+  /** Role IDs to @mention when this log fires (sent as message content, not inside the embed). */
   mentionRoles?: string[];
+  /**
+   * When true, the role mention is suppressed unless this log type is in CRITICAL_LOG_TYPES.
+   * Lets admins set a role once and only get pinged for genuinely critical events.
+   */
+  mentionCriticalOnly?: boolean;
   /** User IDs whose events should be silently ignored. */
   ignoreUsers?: string[];
   /** Role IDs — members holding any of these roles are ignored. */
@@ -263,6 +268,20 @@ export interface LogTypeConfig {
   /** When true, events caused by bots are ignored. */
   ignoreBots?: boolean;
 }
+
+/**
+ * Log types considered "critical" — bans, kicks, timeouts, and elevated mod actions.
+ * When `mentionCriticalOnly` is true, the mention role only fires for these types.
+ */
+export const CRITICAL_LOG_TYPES = new Set<LogType>([
+  'ban',
+  'kick',
+  'timeout',
+  'mod_ban',
+  'mod_kick',
+  'mod_softban',
+  'mod_tempban',
+]);
 
 export interface GuildLogConfig {
   guildId: string;
@@ -397,10 +416,16 @@ export async function resolveLogConfig(
 
   if (!channelId) return null;
 
+  // Suppress mentions when mentionCriticalOnly=true AND this type is NOT in the critical set.
+  const effectiveMentionRoles =
+    typeCfg?.mentionCriticalOnly && !CRITICAL_LOG_TYPES.has(type)
+      ? undefined
+      : typeCfg?.mentionRoles;
+
   return {
     channelId,
     color:        typeCfg?.color,
-    mentionRoles: typeCfg?.mentionRoles,
+    mentionRoles: effectiveMentionRoles,
     ignoreUsers:  typeCfg?.ignoreUsers,
     ignoreRoles:  typeCfg?.ignoreRoles,
     ignoreBots:   typeCfg?.ignoreBots,

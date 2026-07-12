@@ -121,6 +121,7 @@ export async function emitSecurityLog(
     punishment?: SecurityPunishment;
     restored?: boolean;
   },
+  mentionRoleId?: string,
 ): Promise<void> {
   const meta      = MODULE_META[module];
   const channelId = cfg.logChannelId ?? globalLogChannelId;
@@ -171,7 +172,8 @@ export async function emitSecurityLog(
     embed.addFields({ name: '♻️ Restored', value: event.restored ? '✅ Yes' : '❌ No', inline: true });
 
   try {
-    await (ch as TextChannel).send({ embeds: [embed] });
+    const content = mentionRoleId ? `<@&${mentionRoleId}>` : undefined;
+    await (ch as TextChannel).send({ content, embeds: [embed] });
   } catch (err) {
     logger.error('[Security] Log emit failed', err);
   }
@@ -209,6 +211,8 @@ export interface ViolationOpts {
   module: SecurityModuleKey;
   cfg: SecurityModuleConfig;
   globalLogChannelId?: string;
+  /** Role ID to @mention as message content when the security alert is posted. */
+  globalMentionRoleId?: string;
   executor: GuildMember | User | null;
   target?: string;
   action: string;
@@ -261,7 +265,7 @@ export async function handleViolation(opts: ViolationOpts): Promise<void> {
     detail,
     punishment: punishmentApplied,
     restored,
-  });
+  }, opts.globalMentionRoleId);
 }
 
 // ── Best-effort channel restore ───────────────────────────────────────────────
@@ -309,6 +313,7 @@ export async function restoreRole(guild: Guild, role: Role): Promise<boolean> {
 export async function enableEmergencyMode(
   guild: Guild,
   logChannelId?: string,
+  mentionRoleId?: string,
 ): Promise<string[]> {
   const lockedChannels: string[] = [];
   const everyoneId = guild.roles.everyone.id;
@@ -344,7 +349,8 @@ export async function enableEmergencyMode(
           'Use **Security Center → Emergency Mode → Restore Server** to re-enable.',
         )
         .setTimestamp();
-      await (ch as TextChannel).send({ embeds: [embed] }).catch(() => {});
+      const emergencyContent = mentionRoleId ? `<@&${mentionRoleId}>` : undefined;
+      await (ch as TextChannel).send({ content: emergencyContent, embeds: [embed] }).catch(() => {});
     }
   }
 
@@ -355,6 +361,7 @@ export async function disableEmergencyMode(
   guild: Guild,
   lockedChannels: string[],
   logChannelId?: string,
+  mentionRoleId?: string,
 ): Promise<void> {
   const everyoneId = guild.roles.everyone.id;
   let restored = 0;
@@ -376,7 +383,8 @@ export async function disableEmergencyMode(
         .setTitle('✅ Emergency Mode Deactivated — Server Restored')
         .setDescription(`**${restored}** channels unlocked. Server is back to normal.`)
         .setTimestamp();
-      await (ch as TextChannel).send({ embeds: [embed] }).catch(() => {});
+      const restoreContent = mentionRoleId ? `<@&${mentionRoleId}>` : undefined;
+      await (ch as TextChannel).send({ content: restoreContent, embeds: [embed] }).catch(() => {});
     }
   }
 }

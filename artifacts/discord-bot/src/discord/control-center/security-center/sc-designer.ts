@@ -10,6 +10,7 @@ import {
   ButtonStyle,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
+  RoleSelectMenuBuilder,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -18,6 +19,7 @@ import {
   type Guild,
   type ButtonInteraction,
   type StringSelectMenuInteraction,
+  type RoleSelectMenuInteraction,
   type ModalSubmitInteraction,
   type InteractionUpdateOptions,
 } from 'discord.js';
@@ -53,6 +55,9 @@ import { logger } from '../../../utils/logger';
 // sc:emergency           → emergency mode page
 // sc:emergency:on        → enable emergency
 // sc:emergency:off       → disable emergency (restore)
+// sc:setmenrole          → show native RoleSelectMenu picker for the global alert mention role
+// sc:setmenrole:s        → RoleSelectMenu submit: save selected role as securityMentionRoleId
+// sc:clrmenrole          → clear the global security mention role
 // sc:modal:edit:<key>    → modal submit: edit settings
 // sc:modal:log:<key>     → modal submit: log channel
 // sc:modal:words:<key>   → modal submit: bad words
@@ -93,7 +98,7 @@ const PUNISH_EMOJI: Record<string, string> = {
   warn: '⚠️', timeout: '⏰', kick: '👢', ban: '🔨',
 };
 
-type NavInteraction = ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction;
+type NavInteraction = ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction | RoleSelectMenuInteraction;
 
 // ── Embed builders ────────────────────────────────────────────────────────────
 
@@ -106,6 +111,10 @@ function dashboardEmbed(guildCfg: SecurityGuildConfig): EmbedBuilder {
     const { emoji, label } = MODULE_META[key];
     return `${mods[key]?.enabled ? '✅' : '❌'} ${emoji} ${label}`;
   });
+
+  const alertRoleValue = guildCfg.securityMentionRoleId
+    ? `<@&${guildCfg.securityMentionRoleId}> — pinged on every detection & emergency`
+    : '`Not set` — use **Set Alert Role** below to configure';
 
   return new EmbedBuilder()
     .setColor(guildCfg.emergencyMode ? 0xed4245 : 0x5865f2)
@@ -122,6 +131,11 @@ function dashboardEmbed(guildCfg: SecurityGuildConfig): EmbedBuilder {
         value:  guildCfg.emergencyMode
           ? `🚨 **ACTIVE** — ${guildCfg.emergencyLockedChannels.length} channels locked`
           : '✅ Inactive',
+        inline: false,
+      },
+      {
+        name:   '🔔 Alert Mention Role',
+        value:  alertRoleValue,
         inline: false,
       },
     )
@@ -221,11 +235,12 @@ export class SecurityCenterDesigner {
     if (
       !interaction.isButton() &&
       !interaction.isStringSelectMenu() &&
-      !interaction.isModalSubmit()
+      !interaction.isModalSubmit() &&
+      !interaction.isRoleSelectMenu()
     ) return;
 
     try {
-      await this.route(interaction as ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction, guild);
+      await this.route(interaction as ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction | RoleSelectMenuInteraction, guild);
     } catch (err) {
       logger.error('[SC] Interaction error', err);
       const msg = {
@@ -241,10 +256,20 @@ export class SecurityCenterDesigner {
   }
 
   private async route(
-    interaction: ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction,
+    interaction: ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction | RoleSelectMenuInteraction,
     guild: Guild,
   ): Promise<void> {
     const id = interaction.customId;
+
+    // ── RoleSelectMenu ───────────────────────────────────────────────────────
+    // sc:setmenrole:s — role picker submit: save selected role as securityMentionRoleId
+    if (interaction.isRoleSelectMenu() && id === 'sc:setmenrole:s') {
+      const roleId = (interaction as RoleSelectMenuInteraction).values[0] ?? undefined;
+      await interaction.deferUpdate();
+      await patchGuildConfig(guild.id, { securityMentionRoleId: roleId });
+      await this.renderDashboard(interaction as NavInteraction, guild, 0);
+      return;
+    }
 
     // ── StringSelectMenu ─────────────────────────────────────────────────────
     // sc:select:<page> — module picker (page encoded in custom_id, value = module key)
@@ -286,6 +311,8 @@ export class SecurityCenterDesigner {
     if (id === 'sc:emergency')       { await this.renderEmergency(btn, guild); return; }
     if (id === 'sc:emergency:on')    { await this.doEmergencyOn(btn, guild);   return; }
     if (id === 'sc:emergency:off')   { await this.doEmergencyOff(btn, guild);  return; }
+    if (id === 'sc:setmenrole')      { await this.showMentionRolePicker(btn, guild); return; }
+    if (id === 'sc:clrmenrole')      { await this.clearMentionRole(btn, guild); return; }
     if (id.startsWith('sc:mod:'))    { await this.renderModule(btn, guild, id.slice('sc:mod:'.length) as SecurityModuleKey); return; }
     if (id.startsWith('sc:toggle:')) { await this.doToggle(btn, guild, id.slice('sc:toggle:'.length) as SecurityModuleKey); return; }
     if (id.startsWith('sc:test:'))   { await this.renderTest(btn, guild, id.slice('sc:test:'.length) as SecurityModuleKey); return; }
@@ -355,11 +382,26 @@ export class SecurityCenterDesigner {
       new ButtonBuilder().setCustomId('cc:home').setLabel('🏠 CC Home').setStyle(ButtonStyle.Secondary),
     );
 
+    // Alert mention role row — always shown so admins can configure it easily
+    const mentionRoleRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId('sc:setmenrole')
+        .setLabel(cfg.securityMentionRoleId ? '🔔 Alert Role: Set ✅' : '🔔 Set Alert Role')
+        .setStyle(cfg.securityMentionRoleId ? ButtonStyle.Success : ButtonStyle.Primary),
+      ...(cfg.securityMentionRoleId ? [
+        new ButtonBuilder()
+          .setCustomId('sc:clrmenrole')
+          .setLabel('🗑 Clear Alert Role')
+          .setStyle(ButtonStyle.Danger),
+      ] : []),
+    );
+
     const payload: InteractionUpdateOptions = {
       embeds:     [dashboardEmbed(cfg)],
       components: [
         selectRow,
         new ActionRowBuilder<ButtonBuilder>().addComponents(...bottomButtons),
+        mentionRoleRow,
       ],
     };
 
@@ -449,16 +491,53 @@ export class SecurityCenterDesigner {
 
   private async doEmergencyOn(interaction: ButtonInteraction, guild: Guild): Promise<void> {
     const cfg    = await getGuildConfig(guild.id);
-    const locked = await enableEmergencyMode(guild, cfg.securityLogChannelId);
+    const locked = await enableEmergencyMode(guild, cfg.securityLogChannelId, cfg.securityMentionRoleId);
     await patchGuildConfig(guild.id, { emergencyMode: true, emergencyLockedChannels: locked });
     await this.renderEmergency(interaction, guild);
   }
 
   private async doEmergencyOff(interaction: ButtonInteraction, guild: Guild): Promise<void> {
     const cfg = await getGuildConfig(guild.id);
-    await disableEmergencyMode(guild, cfg.emergencyLockedChannels, cfg.securityLogChannelId);
+    await disableEmergencyMode(guild, cfg.emergencyLockedChannels, cfg.securityLogChannelId, cfg.securityMentionRoleId);
     await patchGuildConfig(guild.id, { emergencyMode: false, emergencyLockedChannels: [] });
     await this.renderEmergency(interaction, guild);
+  }
+
+  private async showMentionRolePicker(interaction: ButtonInteraction, guild: Guild): Promise<void> {
+    const cfg = await getGuildConfig(guild.id);
+
+    const roleSelect = new RoleSelectMenuBuilder()
+      .setCustomId('sc:setmenrole:s')
+      .setPlaceholder('🔔 Select role to ping on security alerts...')
+      .setMinValues(0)
+      .setMaxValues(1);
+
+    const payload: InteractionUpdateOptions = {
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0x5865f2)
+          .setTitle('🔔 Set Security Alert Role')
+          .setDescription(
+            'Pick the role to @mention whenever a security module detects a violation ' +
+            'or when Emergency Mode is activated/deactivated.\n\n' +
+            `**Current:** ${cfg.securityMentionRoleId ? `<@&${cfg.securityMentionRoleId}>` : '_None_'}\n\n` +
+            'Select **0 roles** to clear. Select **1 role** to set.',
+          )
+          .setFooter({ text: 'Security Center Pro · Alert Role Picker' }),
+      ],
+      components: [
+        new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(roleSelect),
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder().setCustomId('sc:home').setLabel('← Cancel').setStyle(ButtonStyle.Secondary),
+        ),
+      ],
+    };
+    await interaction.editReply(payload);
+  }
+
+  private async clearMentionRole(interaction: ButtonInteraction, guild: Guild): Promise<void> {
+    await patchGuildConfig(guild.id, { securityMentionRoleId: undefined });
+    await this.renderDashboard(interaction, guild, 0);
   }
 
   private async doToggle(interaction: ButtonInteraction, guild: Guild, key: SecurityModuleKey): Promise<void> {

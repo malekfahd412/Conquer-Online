@@ -295,6 +295,7 @@ export class AIService {
       // ── Logs Designer interactions (lg:* custom IDs) ───────────────────────
       if (
         (interaction.isButton() && isLGInteraction(interaction.customId)) ||
+        (interaction.isRoleSelectMenu() && isLGInteraction(interaction.customId)) ||
         (interaction.isStringSelectMenu() && isLGInteraction(interaction.customId)) ||
         (interaction.isModalSubmit() && isLGInteraction(interaction.customId))
       ) {
@@ -332,6 +333,7 @@ export class AIService {
       // ── Security Center interactions (sc:* custom IDs) ────────────────────
       if (
         (interaction.isButton() && isSCInteraction(interaction.customId)) ||
+        (interaction.isRoleSelectMenu() && isSCInteraction(interaction.customId)) ||
         (interaction.isStringSelectMenu() && isSCInteraction(interaction.customId)) ||
         (interaction.isModalSubmit() && isSCInteraction(interaction.customId))
       ) {
