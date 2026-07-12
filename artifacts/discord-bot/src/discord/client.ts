@@ -9,6 +9,9 @@ export function createDiscordClient(): Client {
       GatewayIntentBits.MessageContent,
       GatewayIntentBits.GuildMembers,
       GatewayIntentBits.GuildVoiceStates,
+      GatewayIntentBits.GuildModeration,
+      GatewayIntentBits.GuildEmojisAndStickers,
+      GatewayIntentBits.GuildInvites,
     ],
   });
 }

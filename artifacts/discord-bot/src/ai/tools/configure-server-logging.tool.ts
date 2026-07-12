@@ -1,6 +1,6 @@
 import type { Guild } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from './tool.interface';
-import { setTypeConfig, getGuildLogConfig, type LogType } from '../../discord/logging/log-store';
+import { setTypeConfig, type LogType } from '../../discord/logging/log-store';
 
 const LOG_TYPE_NAMES: Record<string, LogType> = {
   invite_in: 'invite_in', join: 'invite_in',

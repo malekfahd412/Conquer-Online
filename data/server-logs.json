@@ -1,0 +1,61 @@
+{
+  "guilds": [
+    {
+      "guildId": "1213437502078062674",
+      "types": {
+        "invite_in": {
+          "enabled": true,
+          "channelId": "1525473213339926559"
+        },
+        "invite_out": {
+          "enabled": true,
+          "channelId": "1525473338317733979"
+        },
+        "verification": {
+          "enabled": true,
+          "channelId": "1525473475668475995"
+        },
+        "timeout": {
+          "enabled": true,
+          "channelId": "1525473490608717875"
+        },
+        "kick": {
+          "enabled": true,
+          "channelId": "1525473508694687774"
+        },
+        "ban": {
+          "enabled": true,
+          "channelId": "1525473574092275742"
+        },
+        "voice_join": {
+          "enabled": true,
+          "channelId": "1525473655625093161"
+        },
+        "voice_leave": {
+          "enabled": true,
+          "channelId": "1525473676626104400"
+        },
+        "role_given": {
+          "enabled": true,
+          "channelId": "1525477226362048542"
+        },
+        "role_removed": {
+          "enabled": true,
+          "channelId": "1525477018076971038"
+        },
+        "voice_move": {
+          "enabled": true,
+          "channelId": "1525473759379587133"
+        },
+        "message_deleted": {
+          "enabled": true,
+          "channelId": "1525473842045128794"
+        },
+        "logs_all": {
+          "enabled": true,
+          "channelId": "1525473865218920488"
+        }
+      }
+    }
+  ]
+}
