@@ -141,7 +141,8 @@
       "createdAt": 1783907184304,
       "updatedAt": 1783939381034,
       "lastMessageAt": 1783907184304,
-      "unreadCount": 0
+      "unreadCount": 0,
+      "lastSeenAt": 1783939458843
     }
   ]
 }
