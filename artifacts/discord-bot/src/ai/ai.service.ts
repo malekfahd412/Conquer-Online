@@ -39,7 +39,7 @@ import type { VoicePersonality } from '../voice/VoiceConversation';
 import type { VoiceModuleConfig } from '../config/config';
 import { logger } from '../utils/logger';
 import { slaDesigner, isSLAInteraction } from '../discord/control-center/sla-designer';
-import { reviewAnalyticsDesigner, isRAInteraction, securityCenterDesigner, isSCInteraction } from '../discord/control-center';
+import { reviewAnalyticsDesigner, isRAInteraction, securityCenterDesigner, isSCInteraction, staffProgressDesigner, isSPInteraction } from '../discord/control-center';
 import { SecurityGuard } from '../discord/security/security-guard';
 import { CompanionService } from '../companion/companion.service';
 import { FRIENDSHIP_LABELS, FRIENDSHIP_EMOJIS } from '../companion/companion-store';
@@ -323,6 +323,16 @@ export class AIService {
         if (interaction.guild) {
           this.staffDashboard.handleInteraction(interaction, interaction.guild).catch(err =>
             logger.error('Staff Dashboard interaction error', err),
+          );
+        }
+        return;
+      }
+
+      // ── Staff Progress Designer interactions (sp:* custom IDs) ───────────
+      if (interaction.isButton() && isSPInteraction(interaction.customId)) {
+        if (interaction.guild) {
+          staffProgressDesigner.handleInteraction(interaction, interaction.guild).catch(err =>
+            logger.error('Staff Progress interaction error', err),
           );
         }
         return;

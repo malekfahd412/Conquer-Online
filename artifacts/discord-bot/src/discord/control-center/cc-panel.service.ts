@@ -259,6 +259,10 @@ export class ControlCenterService {
             .setLabel('⭐ Review Analytics')
             .setCustomId('ra:home')
             .setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setLabel('📊 Staff Progress')
+            .setCustomId('sp:home')
+            .setStyle(ButtonStyle.Secondary),
         ),
       );
     }
