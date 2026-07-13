@@ -9,6 +9,7 @@ import type {
   InboxConversation,
   InboxMessage,
   InboxAttachment,
+  InboxEmbedSnapshot,
   InboxMessageType,
   InboxSortMode,
   InboxFilterMode,
@@ -19,6 +20,7 @@ export type {
   InboxConversation,
   InboxMessage,
   InboxAttachment,
+  InboxEmbedSnapshot,
   InboxMessageType,
   InboxSortMode,
   InboxFilterMode,
@@ -108,6 +110,7 @@ export async function addUserMessage(
     replyToId?: string;
     replyToContent?: string;
     isEdited?: boolean;
+    embedSnapshots?: InboxEmbedSnapshot[];
   },
 ): Promise<InboxConversation> {
   return mutate(data => {
@@ -127,6 +130,7 @@ export async function addUserMessage(
       hasStickers: options.hasStickers ?? false,
       replyToId: options.replyToId,
       replyToContent: options.replyToContent,
+      embedSnapshots: options.embedSnapshots,
     };
 
     conv.messages.push(msg);
@@ -203,7 +207,7 @@ export async function addStaffNote(
 export async function markAsRead(userId: string): Promise<void> {
   await mutate(data => {
     const conv = data.conversations.find(c => c.id === userId);
-    if (conv) { conv.isRead = true; conv.unreadCount = 0; }
+    if (conv) { conv.isRead = true; conv.unreadCount = 0; conv.lastSeenAt = Date.now(); }
   });
 }
 

@@ -9,6 +9,18 @@ export interface InboxAttachment {
   contentType?: string;
 }
 
+/** A lightweight snapshot of a Discord embed, captured so it can be redisplayed to staff later. */
+export interface InboxEmbedSnapshot {
+  title?: string;
+  description?: string;
+  url?: string;
+  imageUrl?: string;
+  thumbnailUrl?: string;
+  color?: number;
+  authorName?: string;
+  footerText?: string;
+}
+
 export type InboxMessageType =
   | 'user'          // DM from user
   | 'staff_reply'   // Reply sent by staff (bot)
@@ -29,6 +41,8 @@ export interface InboxMessage {
   replyToId?: string;
   /** Excerpt of the replied-to message content */
   replyToContent?: string;
+  /** Simplified snapshots of any embeds attached to the original Discord message */
+  embedSnapshots?: InboxEmbedSnapshot[];
 }
 
 export type ConversationStatus = 'open' | 'closed';
@@ -56,8 +70,25 @@ export interface InboxConversation {
   lastMessageAt: number;
   /** How many unread user messages since last staff read */
   unreadCount: number;
+  /** Timestamp of the last time a staff member opened/read this conversation */
+  lastSeenAt?: number;
 }
 
 export interface InboxData {
   conversations: InboxConversation[];
+}
+
+// ── Quick Replies ────────────────────────────────────────────────────────────
+
+export interface QuickReply {
+  id: string;
+  title: string;
+  /** May contain {user}, {server}, {ticket}, {staff} placeholders */
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface QuickReplyData {
+  replies: QuickReply[];
 }

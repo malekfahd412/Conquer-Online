@@ -2,7 +2,6 @@
 // Support Inbox Pro — Main Service
 // ─────────────────────────────────────────────────────────────────────────────
 import {
-  EmbedBuilder,
   MessageFlags,
   type Client,
   type Message,
@@ -11,6 +10,7 @@ import {
   type Interaction,
   type ButtonInteraction,
   type ModalSubmitInteraction,
+  type StringSelectMenuInteraction,
   type ChatInputCommandInteraction,
 } from 'discord.js';
 import type { PermissionManager } from '../../../ai/permission-manager';
@@ -32,8 +32,14 @@ import {
   filterConversations,
   getTotalUnread,
   updateUserAvatar,
+  getAllQuickReplies,
+  getQuickReply,
+  addQuickReply,
+  updateQuickReply,
+  deleteQuickReply,
+  resolvePlaceholders,
 } from '../../../community/inbox';
-import type { InboxSortMode, InboxFilterMode } from '../../../community/inbox';
+import type { InboxSortMode, InboxFilterMode, InboxEmbedSnapshot } from '../../../community/inbox';
 import { SI, isSIInteraction } from './inbox-ids';
 import {
   buildInboxList,
@@ -47,9 +53,15 @@ import {
   buildRewriteModal,
   buildDMComposerModal,
   buildInfoEmbed,
+  buildQuickReplyPicker,
+  buildQuickReplyManager,
+  buildQuickReplyAddModal,
+  buildQuickReplyEditModal,
 } from './inbox-renderer';
 import { getGeminiClient, AI_MODEL } from '../../../ai/gemini-client';
 import { logger } from '../../../utils/logger';
+import { LiveViewRegistry } from './live-view-registry';
+import { startTyping, stopTyping } from './typing-indicator';
 
 export { isSIInteraction };
 
@@ -62,6 +74,9 @@ function trunc(s: string, n: number) { return s.length > n ? s.slice(0, n - 1) +
 
 // ─────────────────────────────────────────────────────────────────────────────
 export class InboxService {
+  /** Tracks each staff member's open inbox screen for live sync (no-refresh updates). */
+  private readonly liveViews = new LiveViewRegistry();
+
   constructor(
     private readonly permissionManager: PermissionManager,
     /** SUPPORT_STAFF_ROLE_ID — if set, users with this role can also access the inbox */
@@ -112,6 +127,17 @@ export class InboxService {
       } catch { /* not critical */ }
     }
 
+    const embedSnapshots: InboxEmbedSnapshot[] = message.embeds.slice(0, 2).map(e => ({
+      title: e.title ?? undefined,
+      description: e.description ?? undefined,
+      url: e.url ?? undefined,
+      imageUrl: e.image?.url,
+      thumbnailUrl: e.thumbnail?.url,
+      color: e.color ?? undefined,
+      authorName: e.author?.name,
+      footerText: e.footer?.text,
+    }));
+
     await addUserMessage(
       message.author.id,
       message.author.tag,
@@ -124,11 +150,18 @@ export class InboxService {
         hasStickers: message.stickers.size > 0,
         replyToId,
         replyToContent,
+        embedSnapshots: embedSnapshots.length ? embedSnapshots : undefined,
       },
     );
 
     await updateUserAvatar(message.author.id, message.author.displayAvatarURL({ size: 128 })).catch(() => {});
     logger.info(`[Inbox] DM captured from ${message.author.tag} (${message.author.id})`);
+
+    // Live Sync: push this new message into any open conversation/list views instantly
+    await this.liveViews.notifyConversation(message.author.id, page => this.renderConversationPayload(message.author.id, page))
+      .catch(err => logger.warning('[Inbox] Live conversation notify failed', err));
+    await this.liveViews.notifyList((sort, filter, page) => this.renderListPayload(sort, filter, page))
+      .catch(err => logger.warning('[Inbox] Live list notify failed', err));
   }
 
   // ── Interaction Router ────────────────────────────────────────────────────
@@ -145,8 +178,9 @@ export class InboxService {
     }
 
     try {
-      if (interaction.isButton())           await this.routeButton(interaction, guild);
-      else if (interaction.isModalSubmit()) await this.routeModal(interaction, guild);
+      if (interaction.isButton())                await this.routeButton(interaction, guild);
+      else if (interaction.isModalSubmit())       await this.routeModal(interaction, guild);
+      else if (interaction.isStringSelectMenu())  await this.routeSelect(interaction, guild);
     } catch (err) {
       if (isStale(err)) return;
       logger.error('[Inbox] Interaction error', err);
@@ -189,6 +223,8 @@ export class InboxService {
         await i.reply({ content: '❌ Conversation not found or closed.', flags: MessageFlags.Ephemeral });
         return;
       }
+      // Typing Indicator: show "typing…" in the user's DM the moment the reply box opens
+      startTyping(i.client, uid);
       await i.showModal(buildReplyModal(uid));
       return;
     }
@@ -308,6 +344,79 @@ export class InboxService {
       await i.showModal(buildRewriteModal(uid));
       return;
     }
+
+    // si:qr:pick:<uid> — open the quick-reply picker for a conversation
+    if (id.startsWith('si:qr:pick:')) {
+      const uid = id.slice('si:qr:pick:'.length);
+      await i.deferUpdate();
+      this.liveViews.clear(i.user.id);
+      const replies = await getAllQuickReplies();
+      await i.editReply(buildQuickReplyPicker(uid, replies) as never);
+      return;
+    }
+
+    // si:qr:mgmt:<page> — quick reply management screen
+    if (id.startsWith('si:qr:mgmt:')) {
+      const page = parseInt(id.slice('si:qr:mgmt:'.length), 10) || 0;
+      await i.deferUpdate();
+      this.liveViews.clear(i.user.id);
+      const replies = await getAllQuickReplies();
+      await i.editReply(buildQuickReplyManager(replies, page));
+      return;
+    }
+
+    // si:qr:add — show "add quick reply" modal
+    if (id === SI.QR_ADD) {
+      await i.showModal(buildQuickReplyAddModal());
+      return;
+    }
+
+    // si:qr:edit:<id>  (not si:qr:edit_s:)
+    if (id.startsWith('si:qr:edit:') && !id.startsWith('si:qr:edit_s:')) {
+      const qrId  = id.slice('si:qr:edit:'.length);
+      const reply = await getQuickReply(qrId);
+      if (!reply) { await i.reply({ content: '❌ Quick reply not found.', flags: MessageFlags.Ephemeral }); return; }
+      await i.showModal(buildQuickReplyEditModal(reply));
+      return;
+    }
+
+    // si:qr:del:<id> — delete a quick reply
+    if (id.startsWith('si:qr:del:')) {
+      const qrId = id.slice('si:qr:del:'.length);
+      await i.deferUpdate();
+      await deleteQuickReply(qrId);
+      logger.info(`[Inbox] Quick reply ${qrId} deleted by ${i.user.tag}`);
+      const replies = await getAllQuickReplies();
+      await i.editReply(buildQuickReplyManager(replies, 0));
+      return;
+    }
+  }
+
+  // ── Quick Reply select menu ───────────────────────────────────────────────
+
+  private async routeSelect(i: StringSelectMenuInteraction, guild: Guild): Promise<void> {
+    const id = i.customId;
+
+    // si:qr:use:<uid> — staff picked a saved reply; open the reply modal pre-filled
+    if (id.startsWith('si:qr:use:')) {
+      const uid      = id.slice('si:qr:use:'.length);
+      const replyId  = i.values[0];
+      if (!replyId) { await i.reply({ content: '❌ No reply selected.', flags: MessageFlags.Ephemeral }); return; }
+
+      const qr = await getQuickReply(replyId);
+      if (!qr) { await i.reply({ content: '❌ Quick reply not found.', flags: MessageFlags.Ephemeral }); return; }
+
+      const conv = await getConversation(uid);
+      const resolved = resolvePlaceholders(qr.content, {
+        user: conv?.userTag ?? uid,
+        server: guild.name,
+        ticket: 'N/A',
+        staff: i.user.tag,
+      });
+
+      await i.showModal(buildReplyModal(uid, resolved));
+      return;
+    }
   }
 
   private async routeModal(i: ModalSubmitInteraction, guild: Guild): Promise<void> {
@@ -319,9 +428,18 @@ export class InboxService {
     if (id.startsWith('si:note_s:'))         { await this.handleNote(i, id.slice('si:note_s:'.length)); return; }
     if (id.startsWith('si:tag_s:'))          { await this.handleTag(i, id.slice('si:tag_s:'.length)); return; }
     if (id.startsWith('si:ai:rw_s:'))        { await this.handleAIRewrite(i, id.slice('si:ai:rw_s:'.length)); return; }
+    if (id === SI.QR_ADD_SUBMIT)             { await this.handleQuickReplyAdd(i);  return; }
+    if (id.startsWith('si:qr:edit_s:'))      { await this.handleQuickReplyEdit(i, id.slice('si:qr:edit_s:'.length)); return; }
   }
 
   // ── Inbox List ────────────────────────────────────────────────────────────
+
+  private async renderListPayload(sort: InboxSortMode, filter: InboxFilterMode, page: number) {
+    const all    = await getAllConversations();
+    const sorted = sortConversations(filterConversations(all, filter), sort);
+    const unread = getTotalUnread(all);
+    return buildInboxList(sorted, sort, filter, page, unread);
+  }
 
   async showInboxList(
     interaction: ButtonInteraction | ModalSubmitInteraction,
@@ -334,13 +452,18 @@ export class InboxService {
       if (interaction.isButton()) await interaction.deferUpdate();
       else await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     }
-    const all     = await getAllConversations();
-    const sorted  = sortConversations(filterConversations(all, filter), sort);
-    const unread  = getTotalUnread(all);
-    await interaction.editReply(buildInboxList(sorted, sort, filter, page, unread));
+    await interaction.editReply(await this.renderListPayload(sort, filter, page));
+    // Live Sync: this is now this staff member's tracked "open" screen
+    this.liveViews.setListView(interaction.user.id, sort, filter, page, interaction);
   }
 
   // ── Conversation View ─────────────────────────────────────────────────────
+
+  private async renderConversationPayload(uid: string, page: number) {
+    const conv = await getConversation(uid);
+    if (!conv) return buildInfoEmbed('❌ Not Found', 'Conversation not found.', 0xed4245, SI.HOME, '📥 Inbox');
+    return buildConversationView(conv, page);
+  }
 
   private async showConversation(
     i: ButtonInteraction,
@@ -356,11 +479,15 @@ export class InboxService {
     }
     if (!conv.isRead) await markAsRead(uid);
     await i.editReply(buildConversationView(conv, page));
+    // Live Sync: this is now this staff member's tracked "open" screen
+    this.liveViews.setConversationView(i.user.id, uid, page, i);
   }
 
   // ── Reply ─────────────────────────────────────────────────────────────────
 
-  private async handleReply(i: ModalSubmitInteraction, uid: string, guild: Guild): Promise<void> {
+  private async handleReply(i: ModalSubmitInteraction, uid: string, _guild: Guild): Promise<void> {
+    // Typing Indicator: composing has ended (modal submitted) — stop immediately
+    stopTyping(uid);
     await i.deferReply({ flags: MessageFlags.Ephemeral });
 
     const content = i.fields.getTextInputValue('content').trim();
@@ -385,6 +512,12 @@ export class InboxService {
     await addStaffReply(uid, i.user.id, i.user.tag, content, [], { msgId });
     logger.info(`[Inbox] Staff reply sent to ${uid} by ${i.user.tag}`);
     await i.editReply({ content: `✅ Reply sent to **${conv.userTag}**.` });
+
+    // Live Sync: reflect the new staff reply in any other open views instantly
+    await this.liveViews.notifyConversation(uid, page => this.renderConversationPayload(uid, page))
+      .catch(err => logger.warning('[Inbox] Live conversation notify failed', err));
+    await this.liveViews.notifyList((sort, filter, page) => this.renderListPayload(sort, filter, page))
+      .catch(err => logger.warning('[Inbox] Live list notify failed', err));
   }
 
   // ── Note ──────────────────────────────────────────────────────────────────
@@ -452,6 +585,12 @@ export class InboxService {
 
     logger.info(`[Inbox] DM sent to ${userTag} (${targetId}) by ${i.user.tag}`);
     await i.editReply({ content: `✅ Message sent to **${userTag}**.` });
+
+    // Live Sync
+    await this.liveViews.notifyConversation(targetId, page => this.renderConversationPayload(targetId, page))
+      .catch(err => logger.warning('[Inbox] Live conversation notify failed', err));
+    await this.liveViews.notifyList((sort, filter, page) => this.renderListPayload(sort, filter, page))
+      .catch(err => logger.warning('[Inbox] Live list notify failed', err));
   }
 
   // ── Search ────────────────────────────────────────────────────────────────
@@ -467,6 +606,7 @@ export class InboxService {
   // ── AI: Suggest Reply ─────────────────────────────────────────────────────
 
   private async aiSuggestReply(i: ButtonInteraction, uid: string): Promise<void> {
+    this.liveViews.clear(i.user.id);
     const conv = await getConversation(uid);
     if (!conv) { await i.editReply(buildInfoEmbed('❌ Not Found', 'Conversation not found.', 0xed4245, SI.HOME)); return; }
 
@@ -492,6 +632,7 @@ export class InboxService {
   // ── AI: Summarize ─────────────────────────────────────────────────────────
 
   private async aiSummarize(i: ButtonInteraction, uid: string): Promise<void> {
+    this.liveViews.clear(i.user.id);
     const conv = await getConversation(uid);
     if (!conv) { await i.editReply(buildInfoEmbed('❌ Not Found', 'Conversation not found.', 0xed4245, SI.HOME)); return; }
 
@@ -517,6 +658,7 @@ export class InboxService {
   // ── AI: Translate ─────────────────────────────────────────────────────────
 
   private async aiTranslate(i: ButtonInteraction, uid: string): Promise<void> {
+    this.liveViews.clear(i.user.id);
     const conv = await getConversation(uid);
     if (!conv) { await i.editReply(buildInfoEmbed('❌ Not Found', 'Conversation not found.', 0xed4245, SI.HOME)); return; }
 
@@ -564,6 +706,29 @@ export class InboxService {
       logger.error('[Inbox] AI rewrite error', err);
       await i.editReply({ content: `❌ AI error: ${err instanceof Error ? err.message : err}` });
     }
+  }
+
+  // ── Quick Replies: Add / Edit ─────────────────────────────────────────────
+
+  private async handleQuickReplyAdd(i: ModalSubmitInteraction): Promise<void> {
+    await i.deferReply({ flags: MessageFlags.Ephemeral });
+    const title   = i.fields.getTextInputValue('title').trim();
+    const content = i.fields.getTextInputValue('content').trim();
+    if (!title || !content) { await i.editReply({ content: '❌ Title and content are required.' }); return; }
+    await addQuickReply(title, content);
+    logger.info(`[Inbox] Quick reply "${title}" added by ${i.user.tag}`);
+    await i.editReply({ content: `✅ Quick reply **${title}** added.` });
+  }
+
+  private async handleQuickReplyEdit(i: ModalSubmitInteraction, qrId: string): Promise<void> {
+    await i.deferReply({ flags: MessageFlags.Ephemeral });
+    const title   = i.fields.getTextInputValue('title').trim();
+    const content = i.fields.getTextInputValue('content').trim();
+    if (!title || !content) { await i.editReply({ content: '❌ Title and content are required.' }); return; }
+    const updated = await updateQuickReply(qrId, title, content);
+    if (!updated) { await i.editReply({ content: '❌ Quick reply not found.' }); return; }
+    logger.info(`[Inbox] Quick reply ${qrId} updated by ${i.user.tag}`);
+    await i.editReply({ content: `✅ Quick reply **${title}** updated.` });
   }
 
   // ── Panel entry for support staff (non-admin) ─────────────────────────────

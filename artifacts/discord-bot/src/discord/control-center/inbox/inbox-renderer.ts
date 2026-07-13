@@ -9,8 +9,16 @@ import {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
+  StringSelectMenuBuilder,
 } from 'discord.js';
-import type { InboxConversation, InboxMessage, InboxSortMode, InboxFilterMode } from '../../../community/inbox';
+import type {
+  InboxConversation,
+  InboxMessage,
+  InboxAttachment,
+  InboxSortMode,
+  InboxFilterMode,
+  QuickReply,
+} from '../../../community/inbox';
 import { SI } from './inbox-ids';
 import { CC } from '../cc-ids';
 
@@ -37,6 +45,86 @@ function relTime(ts: number): string {
 
 function discordTs(ts: number): string {
   return `<t:${Math.floor(ts / 1000)}:f>`;
+}
+
+function discordRel(ts: number): string {
+  return `<t:${Math.floor(ts / 1000)}:R>`;
+}
+
+/** ✓ Seen / 🔵 Unread + last-seen timestamp — the "Read Receipt" line for a conversation. */
+function readReceiptLine(conv: InboxConversation): string {
+  if (conv.isRead) {
+    return conv.lastSeenAt ? `✅ Seen · Last seen ${discordRel(conv.lastSeenAt)}` : '✅ Seen';
+  }
+  return conv.lastSeenAt ? `🔵 Unread · Last seen ${discordRel(conv.lastSeenAt)}` : '🔵 Unread · Never seen';
+}
+
+function isImageAttachment(a: InboxAttachment): boolean {
+  if (a.contentType) return a.contentType.startsWith('image/');
+  return /\.(png|jpe?g|gif|webp)$/i.test(a.name);
+}
+
+function isVideoAttachment(a: InboxAttachment): boolean {
+  if (a.contentType) return a.contentType.startsWith('video/');
+  return /\.(mp4|mov|webm|mkv)$/i.test(a.name);
+}
+
+const MAX_EXTRA_EMBEDS = 6;
+const MAX_DOWNLOAD_BUTTONS = 5;
+
+/**
+ * Builds extra embeds for image attachments + preserved original embeds so
+ * staff see rich previews inline, not just links. Capped to stay well under
+ * Discord's 10-embeds-per-message limit alongside the main list/conversation embed.
+ */
+function buildAttachmentEmbeds(messages: InboxMessage[]): EmbedBuilder[] {
+  const extras: EmbedBuilder[] = [];
+
+  // Walk newest-first so the most recent media takes priority if capped.
+  for (const msg of [...messages].reverse()) {
+    for (const snap of msg.embedSnapshots ?? []) {
+      if (extras.length >= MAX_EXTRA_EMBEDS) return extras;
+      const eb = new EmbedBuilder().setColor(snap.color ?? 0x2b2d31);
+      if (snap.title) eb.setTitle(trunc(snap.title, 256));
+      if (snap.description) eb.setDescription(trunc(snap.description, 500));
+      if (snap.url) eb.setURL(snap.url);
+      if (snap.imageUrl) eb.setImage(snap.imageUrl);
+      if (snap.thumbnailUrl) eb.setThumbnail(snap.thumbnailUrl);
+      if (snap.authorName) eb.setAuthor({ name: snap.authorName });
+      if (snap.footerText) eb.setFooter({ text: snap.footerText });
+      extras.push(eb);
+    }
+    for (const att of msg.attachments) {
+      if (extras.length >= MAX_EXTRA_EMBEDS) return extras;
+      if (isImageAttachment(att)) {
+        extras.push(new EmbedBuilder().setColor(0x2b2d31).setTitle(trunc(att.name, 100)).setImage(att.url));
+      }
+    }
+  }
+
+  return extras;
+}
+
+/** A single row of "⬇️ filename" link buttons for non-image attachments (videos/files). */
+function buildAttachmentDownloadRow(messages: InboxMessage[]): ActionRowBuilder<ButtonBuilder> | null {
+  const buttons: ButtonBuilder[] = [];
+
+  for (const msg of [...messages].reverse()) {
+    for (const att of msg.attachments) {
+      if (buttons.length >= MAX_DOWNLOAD_BUTTONS) break;
+      if (isImageAttachment(att)) continue;
+      buttons.push(
+        new ButtonBuilder()
+          .setStyle(ButtonStyle.Link)
+          .setURL(att.url)
+          .setLabel(trunc(`${isVideoAttachment(att) ? '🎬' : '📎'} ${att.name}`, 80)),
+      );
+    }
+    if (buttons.length >= MAX_DOWNLOAD_BUTTONS) break;
+  }
+
+  if (buttons.length === 0) return null;
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
 }
 
 function statusBadge(conv: InboxConversation): string {
@@ -122,7 +210,8 @@ export function buildInboxList(
       const preview = lastMsg ? trunc(lastMsg.content || '*(attachment)*', CONTENT_PREVIEW) : '*No messages*';
       const badge   = statusBadge(conv);
       const tags    = conv.tags.length ? `🏷️ ${conv.tags.join(', ')}` : '';
-      const lines   = [preview, badge, tags].filter(Boolean);
+      const receipt = readReceiptLine(conv);
+      const lines   = [preview, badge, receipt, tags].filter(Boolean);
 
       embed.addFields({
         name: `${conv.isRead ? '⚪' : '🔵'} ${conv.userTag} · ${relTime(conv.lastMessageAt)}`,
@@ -205,6 +294,18 @@ export function buildInboxList(
     ),
   );
 
+  // Quick reply management (only room for this row when conv buttons don't already fill 2 rows + the 2 above)
+  if (rows.length < 5) {
+    rows.push(
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(SI.qrManage(0))
+          .setLabel('⚡ Quick Replies')
+          .setStyle(ButtonStyle.Secondary),
+      ),
+    );
+  }
+
   return { content: '', embeds: [embed], components: rows };
 }
 
@@ -231,6 +332,7 @@ export function buildConversationView(
       [
         `**User ID:** \`${conv.userId}\``,
         `**Status:** ${conv.status === 'closed' ? '🔒 Closed' : '🟢 Open'} · ${assignedLine}`,
+        readReceiptLine(conv),
         tagsLine,
         `**Started:** ${discordTs(conv.createdAt)} · **Messages:** ${conv.messages.length}`,
         `**Page:** ${safePage + 1}/${totalPages}`,
@@ -249,6 +351,9 @@ export function buildConversationView(
       });
     }
   }
+
+  const mediaEmbeds = buildAttachmentEmbeds(slice);
+  const allEmbeds   = [embed, ...mediaEmbeds];
 
   const rows: ActionRowBuilder<ButtonBuilder>[] = [];
 
@@ -276,13 +381,18 @@ export function buildConversationView(
     ),
   );
 
-  // Row 2: Reply + note + read + close/reopen
+  // Row 2: Reply + quick reply + note + read + close/reopen
   rows.push(
     new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(SI.reply(conv.userId))
         .setLabel('💬 Reply')
         .setStyle(ButtonStyle.Primary)
+        .setDisabled(conv.status === 'closed'),
+      new ButtonBuilder()
+        .setCustomId(SI.qrPick(conv.userId))
+        .setLabel('⚡ Quick Reply')
+        .setStyle(ButtonStyle.Secondary)
         .setDisabled(conv.status === 'closed'),
       new ButtonBuilder()
         .setCustomId(SI.note(conv.userId))
@@ -343,7 +453,13 @@ export function buildConversationView(
     ),
   );
 
-  return { content: '', embeds: [embed], components: rows };
+  // Row 5 (if room): download links for video/file attachments on this page
+  if (rows.length < 5) {
+    const downloadRow = buildAttachmentDownloadRow(slice);
+    if (downloadRow) rows.push(downloadRow);
+  }
+
+  return { content: '', embeds: allEmbeds, components: rows };
 }
 
 // ── Search Results ────────────────────────────────────────────────────────────
@@ -437,21 +553,20 @@ export function buildAIResult(
 
 // ── Modals ────────────────────────────────────────────────────────────────────
 
-export function buildReplyModal(userId: string): ModalBuilder {
+export function buildReplyModal(userId: string, prefill?: string): ModalBuilder {
+  const input = new TextInputBuilder()
+    .setCustomId('content')
+    .setLabel('Your reply (sent as bot DM)')
+    .setStyle(TextInputStyle.Paragraph)
+    .setRequired(true)
+    .setMaxLength(1900)
+    .setPlaceholder('Type your reply here…');
+  if (prefill) input.setValue(trunc(prefill, 1900));
+
   return new ModalBuilder()
     .setCustomId(SI.replySubmit(userId))
     .setTitle('Reply to User')
-    .addComponents(
-      new ActionRowBuilder<TextInputBuilder>().addComponents(
-        new TextInputBuilder()
-          .setCustomId('content')
-          .setLabel('Your reply (sent as bot DM)')
-          .setStyle(TextInputStyle.Paragraph)
-          .setRequired(true)
-          .setMaxLength(1900)
-          .setPlaceholder('Type your reply here…'),
-      ),
-    );
+    .addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(input));
 }
 
 export function buildNoteModal(userId: string): ModalBuilder {
@@ -545,6 +660,165 @@ export function buildRewriteModal(userId: string): ModalBuilder {
           .setRequired(true)
           .setMaxLength(1000)
           .setPlaceholder('Paste your rough reply here and AI will polish it…'),
+      ),
+    );
+}
+
+// ── Quick Replies ─────────────────────────────────────────────────────────────
+
+// Capped at 5 so every reply on a page gets its own Edit/Delete button (Discord allows max 5 buttons per row).
+const QR_PER_PAGE = 5;
+
+/** String-select picker shown when staff clicks "⚡ Quick Reply" on a conversation. */
+export function buildQuickReplyPicker(
+  uid: string,
+  replies: QuickReply[],
+): { content: string; embeds: EmbedBuilder[]; components: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[] } {
+  if (replies.length === 0) {
+    return buildInfoEmbed(
+      'ℹ️ No Quick Replies Yet',
+      'No saved replies have been configured.\nUse **⚡ Quick Replies** from the inbox home to add one.',
+      0x99aab5,
+      SI.view(uid, 0),
+      '⬅️ Back',
+    ) as { content: string; embeds: EmbedBuilder[]; components: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[] };
+  }
+
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId(SI.qrUse(uid))
+    .setPlaceholder('Choose a quick reply to insert…')
+    .addOptions(
+      replies.slice(0, 25).map(r => ({
+        label: trunc(r.title, 100),
+        value: r.id,
+        description: trunc(r.content.replace(/\s+/g, ' '), 100),
+      })),
+    );
+
+  return {
+    content: '',
+    embeds: [
+      new EmbedBuilder()
+        .setColor(0x5865f2)
+        .setTitle('⚡ Quick Replies')
+        .setDescription('Pick a saved reply below — it will open the reply box pre-filled so you can tweak it before sending.'),
+    ],
+    components: [
+      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu),
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setCustomId(SI.view(uid, 0)).setLabel('⬅️ Back').setStyle(ButtonStyle.Secondary),
+      ),
+    ] as unknown as ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[],
+  };
+}
+
+/** Management screen for saved quick replies, opened from the Support Inbox home. */
+export function buildQuickReplyManager(
+  replies: QuickReply[],
+  page: number,
+): { content: string; embeds: EmbedBuilder[]; components: ActionRowBuilder<ButtonBuilder>[] } {
+  const totalPages = Math.max(1, Math.ceil(replies.length / QR_PER_PAGE));
+  const safePage    = Math.max(0, Math.min(page, totalPages - 1));
+  const slice       = replies.slice(safePage * QR_PER_PAGE, (safePage + 1) * QR_PER_PAGE);
+
+  const embed = new EmbedBuilder()
+    .setColor(0x5865f2)
+    .setTitle('⚡ Quick Replies — Manage')
+    .setDescription(
+      `**${replies.length}** saved repl${replies.length === 1 ? 'y' : 'ies'} · Page ${safePage + 1}/${totalPages}\n` +
+      'Placeholders: `{user}` `{server}` `{ticket}` `{staff}`',
+    );
+
+  if (slice.length === 0) {
+    embed.addFields({ name: 'No quick replies', value: 'Click **➕ Add** below to create your first saved reply.' });
+  } else {
+    for (const r of slice) {
+      embed.addFields({ name: `💬 ${trunc(r.title, 100)}`, value: trunc(r.content, 500) });
+    }
+  }
+
+  const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+
+  if (slice.length > 0) {
+    const editButtons = slice.map((r, i) =>
+      new ButtonBuilder().setCustomId(SI.qrEdit(r.id)).setLabel(`✏️ ${i + 1}`).setStyle(ButtonStyle.Secondary),
+    );
+    const delButtons = slice.map((r, i) =>
+      new ButtonBuilder().setCustomId(SI.qrDelete(r.id)).setLabel(`🗑️ ${i + 1}`).setStyle(ButtonStyle.Danger),
+    );
+    rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(editButtons.slice(0, 5)));
+    rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(delButtons.slice(0, 5)));
+  }
+
+  rows.push(
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(SI.qrManage(safePage - 1))
+        .setLabel('◀ Prev')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(safePage === 0),
+      new ButtonBuilder()
+        .setCustomId(SI.qrManage(safePage + 1))
+        .setLabel('Next ▶')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(safePage >= totalPages - 1),
+      new ButtonBuilder().setCustomId(SI.QR_ADD).setLabel('➕ Add').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(SI.HOME).setLabel('⬅️ Inbox').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(CC.HOME).setLabel('🏠 Home').setStyle(ButtonStyle.Secondary),
+    ),
+  );
+
+  return { content: '', embeds: [embed], components: rows };
+}
+
+export function buildQuickReplyAddModal(): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(SI.QR_ADD_SUBMIT)
+    .setTitle('Add Quick Reply')
+    .addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('title')
+          .setLabel('Title (shown in the picker)')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setMaxLength(80)
+          .setPlaceholder('e.g. Refund Policy'),
+      ),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('content')
+          .setLabel('Reply text')
+          .setStyle(TextInputStyle.Paragraph)
+          .setRequired(true)
+          .setMaxLength(1900)
+          .setPlaceholder('Hi {user}, thanks for reaching out to {server}…'),
+      ),
+    );
+}
+
+export function buildQuickReplyEditModal(reply: QuickReply): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(SI.qrEditSubmit(reply.id))
+    .setTitle('Edit Quick Reply')
+    .addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('title')
+          .setLabel('Title (shown in the picker)')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setMaxLength(80)
+          .setValue(reply.title),
+      ),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('content')
+          .setLabel('Reply text')
+          .setStyle(TextInputStyle.Paragraph)
+          .setRequired(true)
+          .setMaxLength(1900)
+          .setValue(reply.content),
       ),
     );
 }

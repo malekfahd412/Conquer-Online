@@ -25,6 +25,14 @@
  *   si:ai:tr:<uid>               → AI translate last message
  *   si:ai:rw:<uid>               → show AI rewrite modal
  *   si:ai:rw_s:<uid>             → AI rewrite modal submit
+ *   si:qr:pick:<uid>             → show quick-reply select menu for this conversation
+ *   si:qr:use:<uid>              → select menu submit (value = quick reply id) → opens prefilled reply modal
+ *   si:qr:mgmt:<page>            → quick-reply management list (Control Center)
+ *   si:qr:add                    → show "add quick reply" modal
+ *   si:qr:add_s                  → add quick reply modal submit
+ *   si:qr:edit:<id>              → show "edit quick reply" modal
+ *   si:qr:edit_s:<id>            → edit quick reply modal submit
+ *   si:qr:del:<id>               → delete a quick reply
  */
 export const SI = {
   HOME: 'si:home',
@@ -59,6 +67,16 @@ export const SI = {
   /** Open the "DM any user by ID" composer modal */
   DM_OPEN:   'si:dm',
   DM_SUBMIT: 'si:dm_s',
+
+  // ── Quick Replies ──────────────────────────────────────────────────────────
+  qrPick:       (uid: string): string => `si:qr:pick:${uid}`,
+  qrUse:        (uid: string): string => `si:qr:use:${uid}`,
+  qrManage:     (page: number): string => `si:qr:mgmt:${page}`,
+  QR_ADD:        'si:qr:add',
+  QR_ADD_SUBMIT: 'si:qr:add_s',
+  qrEdit:       (id: string): string => `si:qr:edit:${id}`,
+  qrEditSubmit: (id: string): string => `si:qr:edit_s:${id}`,
+  qrDelete:     (id: string): string => `si:qr:del:${id}`,
 } as const;
 
 export function isSIInteraction(id: string): boolean {

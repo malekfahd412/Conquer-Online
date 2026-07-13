@@ -119,6 +119,18 @@
           "attachments": [],
           "hasEmbeds": false,
           "hasStickers": false
+        },
+        {
+          "id": "reply_1783939381033",
+          "type": "staff_reply",
+          "content": "عمرو",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1783939381034,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
         }
       ],
       "status": "open",
@@ -127,7 +139,7 @@
       "isArchived": false,
       "tags": [],
       "createdAt": 1783907184304,
-      "updatedAt": 1783907445237,
+      "updatedAt": 1783939381034,
       "lastMessageAt": 1783907184304,
       "unreadCount": 0
     }

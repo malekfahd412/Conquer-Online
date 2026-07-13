@@ -437,7 +437,8 @@ export class AIService {
       // ── Support Inbox interactions (si:* custom IDs) ───────────────────────
       if (
         (interaction.isButton() && isSIInteraction(interaction.customId)) ||
-        (interaction.isModalSubmit() && isSIInteraction(interaction.customId))
+        (interaction.isModalSubmit() && isSIInteraction(interaction.customId)) ||
+        (interaction.isStringSelectMenu() && isSIInteraction(interaction.customId))
       ) {
         if (interaction.guild) {
           this.inboxService.handleInteraction(interaction, interaction.guild).catch(err =>
