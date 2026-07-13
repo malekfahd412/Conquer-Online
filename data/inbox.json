@@ -431,6 +431,32 @@
           "hasEmbeds": false,
           "hasStickers": false,
           "dmMessageId": "1526228915860013091"
+        },
+        {
+          "id": "1526229410414329997",
+          "type": "staff_reply",
+          "content": "عمرو",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1783951847953,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false,
+          "dmMessageId": "1526229412478189579"
+        },
+        {
+          "id": "1526229478454464634",
+          "type": "staff_reply",
+          "content": "كدا افضل يا عمرو بحيث ان اي حد من الادارة يظهر اسمه و هو بيكلم عشان نفرق مين الي بيتكلم ف البوت",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1783951863853,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false,
+          "dmMessageId": "1526229478899056703"
         }
       ],
       "status": "open",
@@ -439,7 +465,7 @@
       "isArchived": false,
       "tags": [],
       "createdAt": 1783907184304,
-      "updatedAt": 1783951729689,
+      "updatedAt": 1783951863853,
       "lastMessageAt": 1783950782878,
       "unreadCount": 0,
       "lastSeenAt": 1783951512260,
