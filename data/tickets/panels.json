@@ -185,8 +185,8 @@
       "updatedAt": 1783810026359
     },
     {
-      "name": "𝐌𝐔𝐅𝐀𝐒𝐀® 𝐂♡𝐍𝐐𝐔𝐄𝐑 ( Store )",
-      "description": "",
+      "name": "𝐌𝐔𝐅𝐀𝐒𝐀® 𝐂♡𝐍𝐐𝐔𝐄𝐑",
+      "description": "The main Template",
       "channelId": "1215672085569863742",
       "embed": {
         "title": "🎫 𝐌𝐔𝐅𝐀𝐒𝐀® 𝐂♡𝐍𝐐𝐔𝐄𝐑",
@@ -323,11 +323,12 @@
       },
       "forms": [],
       "transcript": {
-        "enabled": false,
+        "enabled": true,
         "formats": [
           "html"
         ],
-        "dmUser": false
+        "dmUser": false,
+        "channelId": "1526333372924825641"
       },
       "automation": {
         "autoCloseInactivityMinutes": 0,
@@ -343,14 +344,14 @@
       "id": "panel_1783810288179_l0nm0",
       "guildId": "1213437502078062674",
       "createdAt": 1783810288179,
-      "updatedAt": 1783965215372,
+      "updatedAt": 1783977226693,
       "messageId": "1526285113338368014",
       "reviewConfig": {
         "enabled": true,
         "dmMessage": "Thank you for contacting our support team! We would love to hear about your experience.",
-        "requireComment": true,
+        "requireComment": false,
         "anonymousReviews": false,
-        "logChannelId": "1524534739845775582"
+        "logChannelId": "1526333372924825641"
       }
     }
   ]

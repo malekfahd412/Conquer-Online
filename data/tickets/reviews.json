@@ -154,6 +154,40 @@
       "reviewedAt": 1783963543307,
       "ticketCreatedAt": 1783963525111,
       "ticketClosedAt": 1783963530001
+    },
+    {
+      "id": "rev_1783976612865_zgsf6",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1783966034386_8930h",
+      "ticketNumber": 22,
+      "ticketType": "store",
+      "openerId": "727578927593291796",
+      "closedBy": "727578927593291796",
+      "rating": 5,
+      "comment": "Thx.",
+      "anonymous": false,
+      "resolutionTimeMs": 10566111,
+      "reviewedAt": 1783976612865,
+      "ticketCreatedAt": 1783966034728,
+      "ticketClosedAt": 1783976600839
+    },
+    {
+      "id": "rev_1783977019716_d0089",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1783965740644_qwzs9",
+      "ticketNumber": 19,
+      "ticketType": "store",
+      "openerId": "727578927593291796",
+      "closedBy": "727578927593291796",
+      "rating": 4,
+      "comment": "f",
+      "anonymous": false,
+      "resolutionTimeMs": 160095,
+      "reviewedAt": 1783977019716,
+      "ticketCreatedAt": 1783965741037,
+      "ticketClosedAt": 1783965901132
     }
   ]
 }

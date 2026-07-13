@@ -136,7 +136,7 @@
           "trustedUsers": []
         },
         "anti_scam_link": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
           "actionLimit": 5,
           "timeWindowMs": 10000,
