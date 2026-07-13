@@ -25,12 +25,36 @@ import type { Warning } from '../../../ai/tools/moderation-store';
 import { IC } from './ic-ids';
 
 const BRAND_COLOR   = 0x5865f2;
-const USER_MSG_COLOR = 0x2b2d31;
 const CLOSED_COLOR  = 0xed4245;
 const AI_COLOR      = 0x9b59b6;
 
+/** Attribution names for non-human speakers in the mirrored conversation (requirement: every
+ *  mirrored message — user, staff, AI, system — shows who is speaking above its content). */
+export const NOVA_AI_NAME = 'Nova AI';
+export const NOVA_SYSTEM_NAME = 'Nova System';
+
 function trunc(str: string, max: number): string {
   return str.length > max ? str.slice(0, max - 1) + '…' : str;
+}
+
+/** Resolves the best available display name for a Discord user/member, following the required
+ *  fallback order: guild display name → global display name → username. `GuildMember.displayName`
+ *  already falls back internally from nickname → global name → username, so this only adds a
+ *  further tier for callers that couldn't resolve a `GuildMember` (e.g. the guild fetch failed),
+ *  falling through to the raw `User` object and finally a caller-supplied tag. */
+export function resolveDisplayName(
+  member: GuildMember | null | undefined,
+  user: User | null | undefined,
+  fallbackTag?: string,
+): string {
+  return member?.displayName || user?.globalName || user?.username || fallbackTag || 'Unknown User';
+}
+
+/** Formats a mirrored conversation message as plain text — "Display Name:\nContent" — instead of
+ *  an embed, per the Support Inbox conversation UI convention. Applies to every mirrored message:
+ *  user DMs, staff replies, AI replies (attributed to Nova AI), and system notices (Nova System). */
+export function formatSpeakerMessage(name: string, content: string): string {
+  return `${name}:\n${content}`;
 }
 
 // ── Badge status (requirement #8: Waiting for User / Waiting for Staff / Claimed / Closed / Archived) ──
@@ -265,13 +289,18 @@ export function receiptLine(state: ReceiptState): string {
   return '✓ Sent';
 }
 
-/** Small companion message posted right after a staff reply is delivered, carrying message-level actions
- *  that Discord has no way to attach to a message the bot didn't author (the staff member's own thread message). */
-export function buildReplyActionBar(uid: string, dmMsgId: string, staffTag: string, preview: string, receipt: ReceiptState): DashboardPayload {
-  const embed = new EmbedBuilder()
-    .setColor(BRAND_COLOR)
-    .setDescription(`📤 **${staffTag}**: ${trunc(preview, 200)}`)
-    .setFooter({ text: receiptLine(receipt) });
+/** Plain-text payload for a mirrored conversation message that still needs message-level action
+ *  buttons attached (staff replies) — Discord's component system works on any message, embed or not. */
+export interface MirroredMessagePayload {
+  content: string;
+  components: ActionRowBuilder<ButtonBuilder>[];
+}
+
+/** Companion message posted right after a staff reply is delivered, carrying message-level actions
+ *  that Discord has no way to attach to a message the bot didn't author (the staff member's own thread
+ *  message) — rendered as plain "Display Name:\nContent" text (no embed) plus the delivery receipt. */
+export function buildReplyActionBar(uid: string, dmMsgId: string, staffName: string, content: string, receipt: ReceiptState): MirroredMessagePayload {
+  const body = formatSpeakerMessage(staffName, trunc(content || '(attachment)', 1700));
 
   const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder().setCustomId(IC.msgPin(uid, dmMsgId)).setEmoji('⭐').setLabel('Pin').setStyle(ButtonStyle.Secondary),
@@ -284,7 +313,7 @@ export function buildReplyActionBar(uid: string, dmMsgId: string, staffTag: stri
     new ButtonBuilder().setCustomId(IC.msgRewrite(uid, dmMsgId)).setEmoji('🤖').setLabel('AI Rewrite').setStyle(ButtonStyle.Secondary),
   );
 
-  return { embeds: [embed], components: [row1, row2] };
+  return { content: trunc(`${body}\n${receiptLine(receipt)}`, 2000), components: [row1, row2] };
 }
 
 export function buildRewritePreview(uid: string, dmMsgId: string, rewritten: string): DashboardPayload {
@@ -302,15 +331,16 @@ export function buildRewritePreview(uid: string, dmMsgId: string, rewritten: str
 // ── Mirrored inbound user DM ─────────────────────────────────────────────────
 
 export interface UserMessagePayload {
-  embeds: EmbedBuilder[];
+  content: string;
   files: AttachmentBuilder[];
 }
 
-/** Renders a user's DM as a clean embed inside their thread (avatar, name, timestamp). Real attachments
- *  (images/video/audio/voice messages/files) are forwarded as native Discord attachments — re-uploaded
- *  from their CDN URL — so Discord renders its own inline players and download affordance for free,
- *  rather than an approximation baked into the embed. */
-export function buildUserMessagePayload(message: Message): UserMessagePayload {
+/** Renders a user's DM as a plain-text message inside their thread — "Display Name:\nContent",
+ *  no embed — with the sender's name resolved via the guild → global → username fallback chain.
+ *  Real attachments (images/video/audio/voice messages/files) are forwarded as native Discord
+ *  attachments — re-uploaded from their CDN URL, listed below the sender name/content — so Discord
+ *  renders its own inline players and download affordance for free. */
+export function buildUserMessagePayload(message: Message, member?: GuildMember | null): UserMessagePayload {
   const attachments = [...message.attachments.values()];
   const files = attachments.map(a => new AttachmentBuilder(a.url, { name: a.name ?? 'file' }));
 
@@ -329,22 +359,20 @@ export function buildUserMessagePayload(message: Message): UserMessagePayload {
       ? `🏷️ _Sticker: ${stickers.map(s => s.name).join(', ')}_`
       : undefined;
 
-  const main = new EmbedBuilder()
-    .setColor(USER_MSG_COLOR)
-    .setAuthor({ name: `${message.author.tag} · DM`, iconURL: message.author.displayAvatarURL({ size: 128 }) })
-    .setDescription(
-      message.content
-        ? trunc(message.content, 3800)
-        : kindNote ?? (attachments.length || stickers.length ? '_(attachment only)_' : '_(empty message)_'),
-    )
-    .setTimestamp(message.createdAt);
-
-  if (kindNote && message.content) main.addFields({ name: 'Type', value: kindNote });
+  const bodyLines: string[] = [
+    message.content
+      ? trunc(message.content, 1700)
+      : kindNote ?? (attachments.length || stickers.length ? '_(attachment only)_' : '_(empty message)_'),
+  ];
+  if (kindNote && message.content) bodyLines.push(kindNote);
   if (attachments.length) {
-    main.addFields({ name: `📎 Attachments (${attachments.length})`, value: attachments.slice(0, 10).map(a => `• ${trunc(a.name ?? 'file', 60)}`).join('\n') });
+    bodyLines.push(`📎 ${attachments.slice(0, 10).map(a => trunc(a.name ?? 'file', 60)).join(', ')}`);
   }
 
-  return { embeds: [main], files };
+  const name = resolveDisplayName(member, message.author, message.author.tag);
+  const content = trunc(formatSpeakerMessage(name, bodyLines.join('\n')), 2000);
+
+  return { content, files };
 }
 
 // ── Modals (ic:* namespace, mirrors si:* reply/note modals for the thread flow) ──
@@ -435,42 +463,20 @@ export function buildAITranslateModal(uid: string): ModalBuilder {
 
 // ── AI / Summary result embeds (posted natively in-thread, visible to all staff) ──
 
-export function buildAIAssistEmbed(text: string): EmbedBuilder {
-  return new EmbedBuilder()
-    .setColor(AI_COLOR)
-    .setAuthor({ name: '✨ AI Suggest Reply' })
-    .setDescription(trunc(text, 3800))
-    .setFooter({ text: 'Copy, edit, and send as your own reply — nothing here goes to the user automatically.' });
+export interface SpeakerMessagePayload {
+  content: string;
 }
 
-export function buildSummaryEmbed(text: string): EmbedBuilder {
-  return new EmbedBuilder()
-    .setColor(AI_COLOR)
-    .setAuthor({ name: '✨ Conversation Summary' })
-    .setDescription(trunc(text, 3800));
+/** Plain-text mirror for AI-generated conversation content (Suggest Reply, Rewrite, Translate,
+ *  Summarize, Sentiment, Follow-up) — attributed to "Nova AI" instead of an embed, per the
+ *  Support Inbox conversation UI convention (Display Name:\nContent, no embed). */
+export function buildAIMessage(body: string, heading?: string): SpeakerMessagePayload {
+  const text = heading ? `${heading}\n${trunc(body, 1800)}` : trunc(body, 1900);
+  return { content: trunc(formatSpeakerMessage(NOVA_AI_NAME, text), 2000) };
 }
 
-export function buildTranslateEmbed(text: string, language: string): EmbedBuilder {
-  return new EmbedBuilder()
-    .setColor(AI_COLOR)
-    .setAuthor({ name: `✨ Translation (${language})` })
-    .setDescription(trunc(text, 3800));
-}
-
-export function buildSentimentEmbed(text: string): EmbedBuilder {
-  return new EmbedBuilder()
-    .setColor(AI_COLOR)
-    .setAuthor({ name: '✨ Sentiment Detection' })
-    .setDescription(trunc(text, 3800));
-}
-
-export function buildFollowupEmbed(text: string): EmbedBuilder {
-  return new EmbedBuilder()
-    .setColor(AI_COLOR)
-    .setAuthor({ name: '✨ Suggested Follow-up' })
-    .setDescription(trunc(text, 3800));
-}
-
-export function buildSystemNoteEmbed(text: string, color: number = BRAND_COLOR): EmbedBuilder {
-  return new EmbedBuilder().setColor(color).setDescription(text);
+/** Plain-text mirror for bot/system notices (delivery failures, close/reopen, voice setup,
+ *  duplicate-reply warnings, AI errors) — attributed to "Nova System" instead of an embed. */
+export function buildSystemMessage(text: string): SpeakerMessagePayload {
+  return { content: trunc(formatSpeakerMessage(NOVA_SYSTEM_NAME, text), 2000) };
 }

@@ -101,12 +101,9 @@ import {
   buildEditReplyModal,
   buildAIRewriteModal,
   buildAITranslateModal,
-  buildAIAssistEmbed,
-  buildSummaryEmbed,
-  buildTranslateEmbed,
-  buildSentimentEmbed,
-  buildFollowupEmbed,
-  buildSystemNoteEmbed,
+  buildAIMessage,
+  buildSystemMessage,
+  resolveDisplayName,
   type ReceiptState as RendererReceiptState,
 } from './ic-renderer';
 import { getGeminiClient, AI_MODEL } from '../../../ai/gemini-client';
@@ -366,9 +363,10 @@ export class InboxChannelService {
     if (!message.author || message.author.bot) return;
 
     let guild: Guild | undefined;
+    let member: GuildMember | null = null;
     for (const [, g] of client.guilds.cache) {
-      const member = await g.members.fetch(message.author.id).catch(() => null);
-      if (member) { guild = g; break; }
+      const m = await g.members.fetch(message.author.id).catch(() => null);
+      if (m) { guild = g; member = m; break; }
     }
     if (!guild) return;
 
@@ -380,8 +378,8 @@ export class InboxChannelService {
       const thread = await this.ensureThread(guild, conv);
       if (!thread) return;
 
-      const payload = buildUserMessagePayload(message);
-      const sent = await thread.send({ embeds: payload.embeds, files: payload.files });
+      const payload = buildUserMessagePayload(message, member);
+      const sent = await thread.send({ content: payload.content, files: payload.files });
       const row = buildUserMessageActionRow(conv.userId, sent.id);
       await sent.edit({ components: [row] }).catch(() => {});
 
@@ -441,6 +439,7 @@ export class InboxChannelService {
     markViewing(conv.userId, message.author.id, message.author.tag);
     const thread = message.channel as ThreadChannel;
     const raw = message.content ?? '';
+    const staffName = resolveDisplayName(member, message.author, message.author.tag);
 
     const noteMatch = /^!note\s+([\s\S]+)/i.exec(raw.trim());
     if (noteMatch) {
@@ -464,7 +463,7 @@ export class InboxChannelService {
     } catch (err) {
       logger.error(`[InboxChannel] Failed to deliver reply to ${conv.userTag}`, err);
       await message.react('❌').catch(() => {});
-      await thread.send({ embeds: [buildSystemNoteEmbed(`⚠️ Could not deliver that message — **${conv.userTag}** may have DMs disabled.`, 0xed4245)] }).catch(() => {});
+      await thread.send({ content: buildSystemMessage(`⚠️ Could not deliver that message — **${conv.userTag}** may have DMs disabled.`).content }).catch(() => {});
       return;
     }
 
@@ -476,14 +475,14 @@ export class InboxChannelService {
     await message.react('✅').catch(() => {});
     if (wasAssignedToOther) await message.react('⚠️').catch(() => {});
     if (otherTypers.length) {
-      await thread.send({ embeds: [buildSystemNoteEmbed(`⚠️ Heads up — ${otherTypers.map(t => `**${t}**`).join(', ')} also looked like ${otherTypers.length > 1 ? 'they were' : 'they were'} replying just now. Double-check for duplicate answers.`, 0xfee75c)] }).catch(() => {});
+      await thread.send({ content: buildSystemMessage(`⚠️ Heads up — ${otherTypers.map(t => `**${t}**`).join(', ')} also looked like ${otherTypers.length > 1 ? 'they were' : 'they were'} replying just now. Double-check for duplicate answers.`).content }).catch(() => {});
     }
 
     const replyTimestamp = Date.now();
     const afterReply = await getConversation(conv.userId);
     const receipt = afterReply ? this.computeReceipt(afterReply, replyTimestamp) : 'delivered';
-    const bar = buildReplyActionBar(conv.userId, dmMsg.id, message.author.tag, raw || '(attachment)', receipt);
-    await thread.send({ embeds: bar.embeds, components: bar.components }).catch(() => {});
+    const bar = buildReplyActionBar(conv.userId, dmMsg.id, staffName, raw || '(attachment)', receipt);
+    await thread.send({ content: bar.content, components: bar.components }).catch(() => {});
 
     if (afterReply) {
       await this.refreshThreadPanel(thread, afterReply);
@@ -685,8 +684,10 @@ export class InboxChannelService {
     const updated = await getConversation(uid);
     if (thread) {
       const receipt = updated ? this.computeReceipt(updated, Date.now()) : 'delivered';
-      const bar = buildReplyActionBar(uid, dmMsg.id, i.user.tag, content, receipt);
-      await thread.send({ embeds: bar.embeds, components: bar.components }).catch(() => {});
+      const staffMember = await guild.members.fetch(i.user.id).catch(() => null);
+      const staffName = resolveDisplayName(staffMember, i.user, i.user.tag);
+      const bar = buildReplyActionBar(uid, dmMsg.id, staffName, content, receipt);
+      await thread.send({ content: bar.content, components: bar.components }).catch(() => {});
     }
     if (thread && updated) {
       await this.refreshThreadPanel(thread, updated);
@@ -786,7 +787,7 @@ export class InboxChannelService {
       await markStaffReplyDeleted(uid, msg.dmMessageId);
       await i.reply({ content: '🗑 Deleted from the user\'s DM.', flags: MessageFlags.Ephemeral });
       if (i.channel?.isThread()) {
-        await i.channel.send({ embeds: [buildSystemNoteEmbed(`🗑 A reply from **${i.user.tag}** was deleted.`, 0xed4245)] }).catch(() => {});
+        await i.channel.send({ content: buildSystemMessage(`🗑 A reply from **${i.user.tag}** was deleted.`).content }).catch(() => {});
       }
     } catch (err) {
       logger.error('[InboxChannel] Delete reply failed', err);
@@ -843,17 +844,17 @@ export class InboxChannelService {
 
   private async postAIAssist(thread: ThreadChannel, conv: InboxConversation): Promise<void> {
     const ai = getGeminiClient();
-    if (!ai) { await thread.send({ embeds: [buildSystemNoteEmbed('❌ AI Assist is unavailable — GEMINI_API_KEY is not set.', 0xed4245)] }); return; }
+    if (!ai) { await thread.send({ content: buildSystemMessage('❌ AI Assist is unavailable — GEMINI_API_KEY is not set.').content }); return; }
     const context = conv.messages.filter(m => m.type === 'user').slice(-5).map(m => `User: ${m.content}`).join('\n');
     try {
       const res = await ai.models.generateContent({
         model: AI_MODEL,
         contents: [{ role: 'user', parts: [{ text: `You are a professional support agent. Suggest a concise, helpful reply to this user's latest message. Keep it under 200 words.\n\nConversation:\n${context}\n\nSuggest a reply:` }] }],
       });
-      await thread.send({ embeds: [buildAIAssistEmbed(res.text ?? 'Could not generate a suggestion.')] });
+      await thread.send({ content: buildAIMessage(res.text ?? 'Could not generate a suggestion.', '✨ Suggested Reply').content });
     } catch (err) {
       logger.error('[InboxChannel] AI Assist error', err);
-      await thread.send({ embeds: [buildSystemNoteEmbed(`❌ AI error: ${err instanceof Error ? err.message : err}`, 0xed4245)] });
+      await thread.send({ content: buildSystemMessage(`❌ AI error: ${err instanceof Error ? err.message : err}`).content });
     }
   }
 
@@ -868,7 +869,7 @@ export class InboxChannelService {
         contents: [{ role: 'user', parts: [{ text: `Rewrite this draft support reply to be clearer, friendlier, and more professional:\n\n"${draft}"` }] }],
       });
       const thread = i.channel?.isThread() ? (i.channel as ThreadChannel) : await this.ensureThread(guild, await getConversation(uid) as InboxConversation);
-      if (thread) await thread.send({ embeds: [buildAIAssistEmbed(res.text ?? 'Could not rewrite.')] });
+      if (thread) await thread.send({ content: buildAIMessage(res.text ?? 'Could not rewrite.', '✨ Rewrite').content });
       await i.editReply({ content: '✅ Posted the rewrite in the thread.' });
     } catch (err) {
       logger.error('[InboxChannel] AI Rewrite (sidebar) error', err);
@@ -888,7 +889,7 @@ export class InboxChannelService {
         contents: [{ role: 'user', parts: [{ text: `Translate the following text to ${language}. Only output the translation:\n\n"${text}"` }] }],
       });
       const thread = i.channel?.isThread() ? (i.channel as ThreadChannel) : await this.ensureThread(guild, await getConversation(uid) as InboxConversation);
-      if (thread) await thread.send({ embeds: [buildTranslateEmbed(res.text ?? 'Could not translate.', language)] });
+      if (thread) await thread.send({ content: buildAIMessage(res.text ?? 'Could not translate.', `✨ Translation (${language})`).content });
       await i.editReply({ content: '✅ Posted the translation in the thread.' });
     } catch (err) {
       logger.error('[InboxChannel] AI Translate error', err);
@@ -898,7 +899,7 @@ export class InboxChannelService {
 
   private async postSummary(thread: ThreadChannel, conv: InboxConversation): Promise<void> {
     const ai = getGeminiClient();
-    if (!ai) { await thread.send({ embeds: [buildSystemNoteEmbed('❌ Summary is unavailable — GEMINI_API_KEY is not set.', 0xed4245)] }); return; }
+    if (!ai) { await thread.send({ content: buildSystemMessage('❌ Summary is unavailable — GEMINI_API_KEY is not set.').content }); return; }
     const msgs = conv.messages.filter(m => m.type !== 'staff_note').slice(-20)
       .map(m => `${m.type === 'user' ? 'User' : 'Staff'}: ${m.content}`).join('\n');
     try {
@@ -906,42 +907,42 @@ export class InboxChannelService {
         model: AI_MODEL,
         contents: [{ role: 'user', parts: [{ text: `Summarize this support conversation in bullet points. Include: main issue, key facts, current status, any actions taken.\n\nConversation:\n${msgs}` }] }],
       });
-      await thread.send({ embeds: [buildSummaryEmbed(res.text ?? 'Could not summarize.')] });
+      await thread.send({ content: buildAIMessage(res.text ?? 'Could not summarize.', '✨ Conversation Summary').content });
     } catch (err) {
       logger.error('[InboxChannel] Summary error', err);
-      await thread.send({ embeds: [buildSystemNoteEmbed(`❌ AI error: ${err instanceof Error ? err.message : err}`, 0xed4245)] });
+      await thread.send({ content: buildSystemMessage(`❌ AI error: ${err instanceof Error ? err.message : err}`).content });
     }
   }
 
   private async postSentiment(thread: ThreadChannel, conv: InboxConversation): Promise<void> {
     const ai = getGeminiClient();
-    if (!ai) { await thread.send({ embeds: [buildSystemNoteEmbed('❌ Sentiment detection is unavailable — GEMINI_API_KEY is not set.', 0xed4245)] }); return; }
+    if (!ai) { await thread.send({ content: buildSystemMessage('❌ Sentiment detection is unavailable — GEMINI_API_KEY is not set.').content }); return; }
     const msgs = conv.messages.filter(m => m.type === 'user').slice(-10).map(m => `User: ${m.content}`).join('\n');
     try {
       const res = await ai.models.generateContent({
         model: AI_MODEL,
         contents: [{ role: 'user', parts: [{ text: `Analyze the sentiment of this user's messages in a support conversation. Give an overall mood (positive/neutral/frustrated/angry) and one sentence explaining why.\n\n${msgs}` }] }],
       });
-      await thread.send({ embeds: [buildSentimentEmbed(res.text ?? 'Could not analyze sentiment.')] });
+      await thread.send({ content: buildAIMessage(res.text ?? 'Could not analyze sentiment.', '✨ Sentiment Detection').content });
     } catch (err) {
       logger.error('[InboxChannel] Sentiment error', err);
-      await thread.send({ embeds: [buildSystemNoteEmbed(`❌ AI error: ${err instanceof Error ? err.message : err}`, 0xed4245)] });
+      await thread.send({ content: buildSystemMessage(`❌ AI error: ${err instanceof Error ? err.message : err}`).content });
     }
   }
 
   private async postFollowup(thread: ThreadChannel, conv: InboxConversation): Promise<void> {
     const ai = getGeminiClient();
-    if (!ai) { await thread.send({ embeds: [buildSystemNoteEmbed('❌ Follow-up suggestions are unavailable — GEMINI_API_KEY is not set.', 0xed4245)] }); return; }
+    if (!ai) { await thread.send({ content: buildSystemMessage('❌ Follow-up suggestions are unavailable — GEMINI_API_KEY is not set.').content }); return; }
     const msgs = conv.messages.slice(-15).map(m => `${m.type === 'user' ? 'User' : 'Staff'}: ${m.content}`).join('\n');
     try {
       const res = await ai.models.generateContent({
         model: AI_MODEL,
         contents: [{ role: 'user', parts: [{ text: `Given this support conversation, suggest one short, proactive follow-up message staff could send to check in or move things forward.\n\n${msgs}` }] }],
       });
-      await thread.send({ embeds: [buildFollowupEmbed(res.text ?? 'Could not generate a follow-up.')] });
+      await thread.send({ content: buildAIMessage(res.text ?? 'Could not generate a follow-up.', '✨ Suggested Follow-up').content });
     } catch (err) {
       logger.error('[InboxChannel] Follow-up error', err);
-      await thread.send({ embeds: [buildSystemNoteEmbed(`❌ AI error: ${err instanceof Error ? err.message : err}`, 0xed4245)] });
+      await thread.send({ content: buildSystemMessage(`❌ AI error: ${err instanceof Error ? err.message : err}`).content });
     }
   }
 
@@ -975,9 +976,9 @@ export class InboxChannelService {
       }
 
       await thread.send({
-        embeds: [buildSystemNoteEmbed(
+        content: buildSystemMessage(
           `📞 **Voice channel ready:** ${voiceChannel}\n${invite ? `Invite sent to the user: ${invite.url}` : '⚠️ Could not generate an invite link — share the channel manually.'}`,
-        )],
+        ).content,
       });
 
       await addTimelineEvent(conv.userId, 'voice_session', staff?.user.tag);
@@ -987,7 +988,7 @@ export class InboxChannelService {
       setTimeout(() => { voiceChannel.delete('Voice support session expired').catch(() => {}); }, 60 * 60 * 1000);
     } catch (err) {
       logger.error('[InboxChannel] Voice support setup failed', err);
-      await thread.send({ embeds: [buildSystemNoteEmbed(`❌ Could not set up a voice channel: ${err instanceof Error ? err.message : err}`, 0xed4245)] });
+      await thread.send({ content: buildSystemMessage(`❌ Could not set up a voice channel: ${err instanceof Error ? err.message : err}`).content });
     }
   }
 
@@ -995,7 +996,7 @@ export class InboxChannelService {
 
   private async closeConversation(guild: Guild, thread: ThreadChannel, conv: InboxConversation, byTag: string): Promise<void> {
     await setStatus(conv.userId, 'closed');
-    await thread.send({ embeds: [buildSystemNoteEmbed(`🔒 Conversation closed by **${byTag}**.`, 0xed4245)] });
+    await thread.send({ content: buildSystemMessage(`🔒 Conversation closed by **${byTag}**.`).content });
     const updated = await getConversation(conv.userId);
     if (updated) {
       await this.refreshThreadPanel(thread, updated);
@@ -1010,7 +1011,7 @@ export class InboxChannelService {
     if (thread.locked) await thread.setLocked(false).catch(() => {});
     if (thread.archived) await thread.setArchived(false).catch(() => {});
     await setStatus(conv.userId, 'open');
-    await thread.send({ embeds: [buildSystemNoteEmbed(`🔓 Conversation reopened by **${byTag}**.`)] });
+    await thread.send({ content: buildSystemMessage(`🔓 Conversation reopened by **${byTag}**.`).content });
     const updated = await getConversation(conv.userId);
     if (updated) {
       await this.refreshThreadPanel(thread, updated);

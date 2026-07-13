@@ -14,3 +14,4 @@
 - [Support Inbox Pro architecture](support-inbox-pro.md) — DM help-desk with si:* namespace; key wiring points, permission model, and write-queue pattern.
 - [Support Inbox live features](support-inbox-live-features.md) — live sync/typing/read-receipt/attachments/quick-replies design; interaction-token and Discord UI-cap constraints.
 - [Discord-Native Support Inbox Channel/Thread layer](support-inbox-native-channel.md) — channel+thread UI layered on Support Inbox Pro; ManageThreads visibility trick, presence-intent avoidance, native-reply design, per-guild provisioning.
+- [Support Inbox mirrored-message plain-text format](support-inbox-mirrored-message-format.md) — ic:* thread mirror shows "Name:\nContent" plain text, no embeds; name-resolution fallback chain and scope boundary vs. si:* digest view.
