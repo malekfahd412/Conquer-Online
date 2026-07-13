@@ -41,6 +41,30 @@
           "attachments": [],
           "hasEmbeds": false,
           "hasStickers": false
+        },
+        {
+          "id": "reply_1783907474110",
+          "type": "staff_reply",
+          "content": "اهلا",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1783907474110,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
+        },
+        {
+          "id": "reply_1783907480807",
+          "type": "staff_reply",
+          "content": "بقولك",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1783907480808,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
         }
       ],
       "status": "open",
@@ -49,7 +73,7 @@
       "isArchived": false,
       "tags": [],
       "createdAt": 1783906899215,
-      "updatedAt": 1783907195802,
+      "updatedAt": 1783907534626,
       "lastMessageAt": 1783906899215,
       "unreadCount": 0,
       "userAvatar": "https://cdn.discordapp.com/avatars/727578927593291796/2b59b65bf0f18e1f1ce3435d3b8209de.webp?size=128"
@@ -83,17 +107,29 @@
           "attachments": [],
           "hasEmbeds": false,
           "hasStickers": false
+        },
+        {
+          "id": "reply_1783907445236",
+          "type": "staff_reply",
+          "content": "علفكرة بقي انت راجل فحل و ستين فحل",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1783907445237,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
         }
       ],
       "status": "open",
-      "isRead": false,
+      "isRead": true,
       "isPinned": false,
       "isArchived": false,
       "tags": [],
       "createdAt": 1783907184304,
-      "updatedAt": 1783907184307,
+      "updatedAt": 1783907445237,
       "lastMessageAt": 1783907184304,
-      "unreadCount": 1
+      "unreadCount": 0
     }
   ]
 }
