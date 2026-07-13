@@ -421,10 +421,22 @@ export class InboxChannelService {
     return getConversationByThreadId(threadId).then(c => !!c);
   }
 
-  /** Delivers reply content to the user's DM and returns the sent DM message. Throws on failure (DMs disabled, etc.) — callers catch and surface a friendly error. */
-  private async deliverDM(client: Client, uid: string, content: string, fileUrls: string[] = []): Promise<Message> {
+  /** Preserves the "DisplayName : " prefix on an existing outbound DM when its content is edited
+   *  (via the modal edit flow or an applied AI rewrite), so the user never loses the "who's
+   *  speaking" label just because the message text changed. */
+  private relabelDM(existingContent: string | null | undefined, newContent: string): string {
+    const prefixMatch = /^(.+?) :\s/.exec(existingContent ?? '');
+    return prefixMatch ? `${prefixMatch[1]} : ${newContent}` : newContent;
+  }
+
+  /** Delivers reply content to the user's DM, prefixed with the replying staff member's display
+   *  name (e.g. "Alex : Hello, how can I help?") so the user always knows who they're talking to.
+   *  Returns the sent DM message. Throws on failure (DMs disabled, etc.) — callers catch and
+   *  surface a friendly error. */
+  private async deliverDM(client: Client, uid: string, staffName: string, content: string, fileUrls: string[] = []): Promise<Message> {
     const user = await client.users.fetch(uid);
-    return user.send({ content: content || undefined, files: fileUrls.length ? fileUrls : undefined });
+    const labeled = content ? `${staffName} : ${content}` : `${staffName} :`;
+    return user.send({ content: labeled, files: fileUrls.length ? fileUrls : undefined });
   }
 
   async handleThreadMessage(message: Message, client: Client): Promise<void> {
@@ -459,7 +471,7 @@ export class InboxChannelService {
 
     let dmMsg: Message | undefined;
     try {
-      dmMsg = await this.deliverDM(client, conv.userId, raw, [...message.attachments.values()].map(a => a.url));
+      dmMsg = await this.deliverDM(client, conv.userId, staffName, raw, [...message.attachments.values()].map(a => a.url));
     } catch (err) {
       logger.error(`[InboxChannel] Failed to deliver reply to ${conv.userTag}`, err);
       await message.react('❌').catch(() => {});
@@ -666,9 +678,12 @@ export class InboxChannelService {
     const conv = await getConversation(uid);
     if (!conv) { await i.editReply({ content: '❌ Conversation not found.' }); return; }
 
+    const staffMember = await guild.members.fetch(i.user.id).catch(() => null);
+    const staffName = resolveDisplayName(staffMember, i.user, i.user.tag);
+
     let dmMsg: Message;
     try {
-      dmMsg = await this.deliverDM(i.client, uid, content);
+      dmMsg = await this.deliverDM(i.client, uid, staffName, content);
     } catch (err) {
       logger.error(`[InboxChannel] Modal reply delivery failed for ${uid}`, err);
       await i.editReply({ content: `❌ Could not DM this user. They may have DMs disabled.` });
@@ -684,8 +699,6 @@ export class InboxChannelService {
     const updated = await getConversation(uid);
     if (thread) {
       const receipt = updated ? this.computeReceipt(updated, Date.now()) : 'delivered';
-      const staffMember = await guild.members.fetch(i.user.id).catch(() => null);
-      const staffName = resolveDisplayName(staffMember, i.user, i.user.tag);
       const bar = buildReplyActionBar(uid, dmMsg.id, staffName, content, receipt);
       await thread.send({ content: bar.content, components: bar.components }).catch(() => {});
     }
@@ -764,7 +777,7 @@ export class InboxChannelService {
       const user = await i.client.users.fetch(uid);
       const dm = await user.createDM();
       const dmMsg = await dm.messages.fetch(dmMsgId);
-      await dmMsg.edit({ content });
+      await dmMsg.edit({ content: this.relabelDM(dmMsg.content, content) });
       await editStaffReplyContent(uid, dmMsgId, content);
       await i.editReply({ content: '✅ Edited — the user now sees the updated message.' });
     } catch (err) {
@@ -831,7 +844,7 @@ export class InboxChannelService {
       const user = await i.client.users.fetch(uid);
       const dm = await user.createDM();
       const dmMsg = await dm.messages.fetch(dmMsgId);
-      await dmMsg.edit({ content: rewritten });
+      await dmMsg.edit({ content: this.relabelDM(dmMsg.content, rewritten) });
       await editStaffReplyContent(uid, dmMsgId, rewritten);
       await i.update({ content: '✅ Applied — the user now sees the rewritten message.', embeds: [], components: [] });
     } catch (err) {

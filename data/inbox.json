@@ -118,6 +118,32 @@
           "hasEmbeds": false,
           "hasStickers": false,
           "dmMessageId": "1526208243536236604"
+        },
+        {
+          "id": "1526228027074416784",
+          "type": "staff_reply",
+          "content": "الو",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1783951517959,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false,
+          "dmMessageId": "1526228028009742480"
+        },
+        {
+          "id": "1526228644266119414",
+          "type": "staff_reply",
+          "content": "انت جامد وبنشكرك على مجهودك الرائع ده",
+          "authorId": "522507355233976321",
+          "authorTag": "amrart",
+          "timestamp": 1783951665129,
+          "isEdited": true,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false,
+          "dmMessageId": "1526228645209833536"
         }
       ],
       "status": "open",
@@ -126,7 +152,7 @@
       "isArchived": false,
       "tags": [],
       "createdAt": 1783906899215,
-      "updatedAt": 1783946800882,
+      "updatedAt": 1783951722899,
       "lastMessageAt": 1783946224514,
       "unreadCount": 0,
       "userAvatar": "https://cdn.discordapp.com/avatars/727578927593291796/2b59b65bf0f18e1f1ce3435d3b8209de.webp?size=128",
@@ -355,18 +381,68 @@
           "attachments": [],
           "hasEmbeds": false,
           "hasStickers": false
+        },
+        {
+          "id": "1526224904259764315",
+          "type": "user",
+          "content": "<@1523984758990831707>",
+          "authorId": "522507355233976321",
+          "authorTag": "amrart",
+          "timestamp": 1783950773198,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
+        },
+        {
+          "id": "1526224945149902888",
+          "type": "user",
+          "content": "لو راجل رد يا جبان 😂",
+          "authorId": "522507355233976321",
+          "authorTag": "amrart",
+          "timestamp": 1783950782878,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
+        },
+        {
+          "id": "1526228003401502903",
+          "type": "staff_reply",
+          "content": "الله يسامحك",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1783951512256,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false,
+          "dmMessageId": "1526228004408135750"
+        },
+        {
+          "id": "1526228915729858651",
+          "type": "staff_reply",
+          "content": "حبيبي حبيبي \nاخويا الفحل يعم",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1783951729689,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false,
+          "dmMessageId": "1526228915860013091"
         }
       ],
       "status": "open",
-      "isRead": false,
+      "isRead": true,
       "isPinned": false,
       "isArchived": false,
       "tags": [],
       "createdAt": 1783907184304,
-      "updatedAt": 1783950752299,
-      "lastMessageAt": 1783950752299,
-      "unreadCount": 3,
-      "lastSeenAt": 1783950366240,
+      "updatedAt": 1783951729689,
+      "lastMessageAt": 1783950782878,
+      "unreadCount": 0,
+      "lastSeenAt": 1783951512260,
       "userAvatar": "https://cdn.discordapp.com/avatars/522507355233976321/81675a562d24fe6e3d7da91efdd1821f.webp?size=128",
       "threadId": "1526197639966883961",
       "threadGuildId": "1213437502078062674",
@@ -1779,6 +1855,72 @@
         }
       ],
       "userAvatar": "https://cdn.discordapp.com/avatars/611333374044536833/ce48bc96a35e09015aa2fe913d13dfc7.webp?size=128"
+    },
+    {
+      "id": "723982702625423430",
+      "userId": "723982702625423430",
+      "userTag": "forsell5995",
+      "guildId": "1213437502078062674",
+      "messages": [
+        {
+          "id": "1526229271390064770",
+          "type": "user",
+          "content": "السلامع كليم",
+          "authorId": "723982702625423430",
+          "authorTag": "forsell5995",
+          "timestamp": 1783951814560,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
+        },
+        {
+          "id": "1526229329107751033",
+          "type": "staff_reply",
+          "content": "مين ؟",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1783951829415,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false,
+          "dmMessageId": "1526229334673850439"
+        }
+      ],
+      "status": "open",
+      "isRead": true,
+      "isPinned": false,
+      "isArchived": false,
+      "tags": [],
+      "createdAt": 1783951814560,
+      "updatedAt": 1783951829417,
+      "lastMessageAt": 1783951814560,
+      "unreadCount": 0,
+      "timeline": [
+        {
+          "type": "created",
+          "timestamp": 1783951814560
+        },
+        {
+          "type": "first_reply",
+          "timestamp": 1783951829415,
+          "detail": "s6.a_"
+        },
+        {
+          "type": "assigned",
+          "timestamp": 1783951829417,
+          "detail": "s6.a_"
+        }
+      ],
+      "userAvatar": "https://cdn.discordapp.com/avatars/723982702625423430/f2fe33c47307fa14d610d1e9df8b4684.webp?size=128",
+      "threadId": "1526229273722097775",
+      "threadGuildId": "1213437502078062674",
+      "headerMessageId": "1526229274900561951",
+      "aiSidebarMessageId": "1526229278923165787",
+      "assignedTo": "727578927593291796",
+      "assignedToTag": "s6.a_",
+      "lastSeenAt": 1783951829419
     }
   ]
 }
