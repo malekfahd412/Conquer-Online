@@ -143,6 +143,47 @@
               "timestamp": 1783944440204
             }
           ]
+        },
+        "522507355233976321": {
+          "userId": "522507355233976321",
+          "guildId": "1213437502078062674",
+          "firstTrackedAt": 1783965830607,
+          "status": "active",
+          "lastActivityAt": 1783965830605,
+          "totalActivityMs": 0,
+          "counts": {
+            "ticket_claimed": 0,
+            "ticket_closed": 1,
+            "ticket_reopened": 0,
+            "warn_issued": 0,
+            "unwarn_issued": 0,
+            "mute_issued": 0,
+            "unmute_issued": 0,
+            "kick_issued": 0,
+            "ban_issued": 0,
+            "tempban_issued": 0,
+            "unban_issued": 0,
+            "softban_issued": 0,
+            "purge_issued": 0,
+            "verification_approved": 0,
+            "verification_rejected": 0,
+            "security_action": 0,
+            "voice_mod_action": 0
+          },
+          "firstResponseTotalMs": 0,
+          "firstResponseSamples": 0,
+          "resolutionTotalMs": 7433,
+          "resolutionSamples": 1,
+          "warnings": [],
+          "notes": [],
+          "timeline": [
+            {
+              "id": "mrjj70lrps07jj",
+              "action": "ticket_closed",
+              "description": "🔒 Ticket Closed — Ticket #20",
+              "timestamp": 1783965830605
+            }
+          ]
         }
       },
       "shiftLog": []

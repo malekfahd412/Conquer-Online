@@ -101,6 +101,14 @@
           "action": "ticket_closed",
           "points": 10,
           "timestamp": 1783965256333
+        },
+        {
+          "id": "mrjj70ltifybm5",
+          "guildId": "1213437502078062674",
+          "userId": "522507355233976321",
+          "action": "ticket_closed",
+          "points": 10,
+          "timestamp": 1783965830609
         }
       ]
     }
