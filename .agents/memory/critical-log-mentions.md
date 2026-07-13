@@ -18,7 +18,17 @@ description: Per-log-type mention roles + Critical Only toggle; global security 
 - `lg-designer.service.ts` dispatches to `routeRoleSelect()` for `lg:setmenrole:s:*`.
 - `sc-designer.ts` `NavInteraction` type includes `RoleSelectMenuInteraction`; role submit handled before the button block.
 
+## Per-module mention role override (Security Center)
+- Each `SecurityModuleConfig` has `mentionRoleId?: string` — overrides the guild-level `securityMentionRoleId` for that specific module.
+- `ViolationOpts` has both `moduleMentionRoleId?` and `globalMentionRoleId?`; `handleViolation` resolves with `moduleMentionRoleId ?? globalMentionRoleId`.
+- All 23 `handleViolation` calls in `security-guard.ts` pass both: `globalMentionRoleId: cfg.securityMentionRoleId` and `moduleMentionRoleId: <modVar>.mentionRoleId` (correct per-module config var).
+- `sc-designer.ts` routes `sc:mod:setmenrole:<key>` / `sc:mod:setmenrole:s:<key>` / `sc:mod:clrmenrole:<key>` — must come BEFORE the generic `sc:mod:` handler in the button router.
+- `moduleStatusEmbed` shows `🔔 Mention Role` field with *(module)* or *(global fallback)* suffix for context.
+
 ## Key types/files
 - `log-store.ts`: `CRITICAL_LOG_TYPES` (Set), `mentionCriticalOnly` on `LogTypeConfig`, `resolveLogConfig` suppression logic.
-- `security-types.ts`: `securityMentionRoleId?: string` on `SecurityGuildConfig`.
+- `security-types.ts`: `securityMentionRoleId?: string` on `SecurityGuildConfig`; `mentionRoleId?: string` on `SecurityModuleConfig`.
 - `lg-ids.ts`: `setmenrole`, `setmenroleS`, `clrmenrole`, `togglecritical` ID helpers.
+
+## Watch-out: security-guard.ts variable naming
+When adding properties to `handleViolation` calls, `cfg` in that file = `SecurityGuildConfig` (guild-level). The module config uses a local variable like `raidCfg`, `modCfg`, `nukeCfg`, `spamCfg` — always read the `cfg: <varname>` property inside the block to know which variable to use.

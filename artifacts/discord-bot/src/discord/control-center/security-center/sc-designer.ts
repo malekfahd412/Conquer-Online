@@ -58,6 +58,9 @@ import { logger } from '../../../utils/logger';
 // sc:setmenrole          → show native RoleSelectMenu picker for the global alert mention role
 // sc:setmenrole:s        → RoleSelectMenu submit: save selected role as securityMentionRoleId
 // sc:clrmenrole          → clear the global security mention role
+// sc:mod:setmenrole:<k>  → show RoleSelectMenu picker for per-module mention role (overrides global)
+// sc:mod:setmenrole:s:<k>→ RoleSelectMenu submit: save per-module mentionRoleId
+// sc:mod:clrmenrole:<k>  → clear the per-module mention role (falls back to global)
 // sc:modal:edit:<key>    → modal submit: edit settings
 // sc:modal:log:<key>     → modal submit: log channel
 // sc:modal:words:<key>   → modal submit: bad words
@@ -160,6 +163,12 @@ function moduleStatusEmbed(
     ...cfg.trustedUsers.map(id => `<@${id}>`),
   ];
 
+  const mentionRoleValue = cfg.mentionRoleId
+    ? `<@&${cfg.mentionRoleId}> *(module)*`
+    : guildCfg.securityMentionRoleId
+      ? `<@&${guildCfg.securityMentionRoleId}> *(global fallback)*`
+      : '`None set`';
+
   return new EmbedBuilder()
     .setColor(cfg.enabled ? color : 0x4f545c)
     .setTitle(`${emoji} ${label}`)
@@ -170,6 +179,7 @@ function moduleStatusEmbed(
       { name: '📊 Trigger',      value: `**${cfg.actionLimit}** events in **${formatMs(cfg.timeWindowMs)}**`, inline: true },
       { name: '📋 Log Channel',  value: logCh,                                                            inline: true },
       { name: '🤖 Ignore Bots',  value: cfg.ignoreBots ? '✅ Yes' : '❌ No',                             inline: true },
+      { name: '🔔 Mention Role', value: mentionRoleValue,                                                 inline: true },
       { name: '🛡️ Trusted',      value: trusted.length ? trusted.slice(0, 8).join(' ') : '`None`',       inline: true },
       { name: '⬛ Whitelist',     value: cfg.whitelist.length ? `${cfg.whitelist.length} user(s)` : '`Empty`', inline: true },
     )
@@ -262,12 +272,22 @@ export class SecurityCenterDesigner {
     const id = interaction.customId;
 
     // ── RoleSelectMenu ───────────────────────────────────────────────────────
-    // sc:setmenrole:s — role picker submit: save selected role as securityMentionRoleId
+    // sc:setmenrole:s — role picker submit: save selected role as securityMentionRoleId (global)
     if (interaction.isRoleSelectMenu() && id === 'sc:setmenrole:s') {
       const roleId = (interaction as RoleSelectMenuInteraction).values[0] ?? undefined;
       await interaction.deferUpdate();
       await patchGuildConfig(guild.id, { securityMentionRoleId: roleId });
       await this.renderDashboard(interaction as NavInteraction, guild, 0);
+      return;
+    }
+
+    // sc:mod:setmenrole:s:<key> — per-module role picker submit
+    if (interaction.isRoleSelectMenu() && id.startsWith('sc:mod:setmenrole:s:')) {
+      const key    = id.slice('sc:mod:setmenrole:s:'.length) as SecurityModuleKey;
+      const roleId = (interaction as RoleSelectMenuInteraction).values[0] || undefined;
+      await interaction.deferUpdate();
+      await patchModuleConfig(guild.id, key, { mentionRoleId: roleId });
+      await this.renderModule(interaction as NavInteraction, guild, key);
       return;
     }
 
@@ -311,9 +331,11 @@ export class SecurityCenterDesigner {
     if (id === 'sc:emergency')       { await this.renderEmergency(btn, guild); return; }
     if (id === 'sc:emergency:on')    { await this.doEmergencyOn(btn, guild);   return; }
     if (id === 'sc:emergency:off')   { await this.doEmergencyOff(btn, guild);  return; }
-    if (id === 'sc:setmenrole')      { await this.showMentionRolePicker(btn, guild); return; }
-    if (id === 'sc:clrmenrole')      { await this.clearMentionRole(btn, guild); return; }
-    if (id.startsWith('sc:mod:'))    { await this.renderModule(btn, guild, id.slice('sc:mod:'.length) as SecurityModuleKey); return; }
+    if (id === 'sc:setmenrole')                      { await this.showMentionRolePicker(btn, guild); return; }
+    if (id === 'sc:clrmenrole')                      { await this.clearMentionRole(btn, guild); return; }
+    if (id.startsWith('sc:mod:setmenrole:'))         { await this.showModuleMentionRolePicker(btn, guild, id.slice('sc:mod:setmenrole:'.length) as SecurityModuleKey); return; }
+    if (id.startsWith('sc:mod:clrmenrole:'))         { await this.clearModuleMentionRole(btn, guild, id.slice('sc:mod:clrmenrole:'.length) as SecurityModuleKey); return; }
+    if (id.startsWith('sc:mod:'))                    { await this.renderModule(btn, guild, id.slice('sc:mod:'.length) as SecurityModuleKey); return; }
     if (id.startsWith('sc:toggle:')) { await this.doToggle(btn, guild, id.slice('sc:toggle:'.length) as SecurityModuleKey); return; }
     if (id.startsWith('sc:test:'))   { await this.renderTest(btn, guild, id.slice('sc:test:'.length) as SecurityModuleKey); return; }
 
@@ -425,15 +447,29 @@ export class SecurityCenterDesigner {
       ] : []),
     );
 
+    // Row 2: per-module mention role controls
     const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`sc:mod:setmenrole:${key}`)
+        .setLabel(cfg.mentionRoleId ? '🔔 Mention Role: Set ✅' : '🔔 Set Mention Role')
+        .setStyle(cfg.mentionRoleId ? ButtonStyle.Success : ButtonStyle.Primary),
+      ...(cfg.mentionRoleId ? [
+        new ButtonBuilder()
+          .setCustomId(`sc:mod:clrmenrole:${key}`)
+          .setLabel('🗑 Clear Mention Role')
+          .setStyle(ButtonStyle.Danger),
+      ] : []),
       new ButtonBuilder().setCustomId(`sc:test:${key}`).setLabel('🧪 Simulate').setStyle(ButtonStyle.Secondary),
+    );
+
+    const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder().setCustomId('sc:home').setLabel('🛡️ Security Center').setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId('cc:home').setLabel('🏠 CC Home').setStyle(ButtonStyle.Secondary),
     );
 
     await interaction.editReply({
       embeds:     [moduleStatusEmbed(key, cfg, guildCfg), modulePreviewEmbed(key, cfg)],
-      components: [row1, row2],
+      components: [row1, row2, row3],
     });
   }
 
@@ -538,6 +574,60 @@ export class SecurityCenterDesigner {
   private async clearMentionRole(interaction: ButtonInteraction, guild: Guild): Promise<void> {
     await patchGuildConfig(guild.id, { securityMentionRoleId: undefined });
     await this.renderDashboard(interaction, guild, 0);
+  }
+
+  private async showModuleMentionRolePicker(
+    interaction: ButtonInteraction,
+    guild: Guild,
+    key: SecurityModuleKey,
+  ): Promise<void> {
+    const guildCfg = await getGuildConfig(guild.id);
+    const cfg      = guildCfg.modules[key];
+    const { emoji, label } = MODULE_META[key];
+
+    const currentValue = cfg.mentionRoleId
+      ? `<@&${cfg.mentionRoleId}> *(module-specific)*`
+      : guildCfg.securityMentionRoleId
+        ? `_None — will use global: <@&${guildCfg.securityMentionRoleId}>_`
+        : '_None configured_';
+
+    const roleSelect = new RoleSelectMenuBuilder()
+      .setCustomId(`sc:mod:setmenrole:s:${key}`)
+      .setPlaceholder(`🔔 Select role to ping for ${label} alerts...`)
+      .setMinValues(0)
+      .setMaxValues(1);
+
+    const payload: InteractionUpdateOptions = {
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0x5865f2)
+          .setTitle(`🔔 Set Mention Role — ${emoji} ${label}`)
+          .setDescription(
+            `Pick a role to @mention specifically when **${label}** detects a violation.\n` +
+            `This **overrides** the global Security Alert Role for this module only.\n\n` +
+            `**Current:** ${currentValue}\n\n` +
+            'Select **0 roles** to clear the override (falls back to global). Select **1 role** to set.',
+          )
+          .setFooter({ text: `Security Center Pro · ${label} · Mention Role` }),
+      ],
+      components: [
+        new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(roleSelect),
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder().setCustomId(`sc:mod:${key}`).setLabel('← Module').setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder().setCustomId('sc:home').setLabel('🛡️ Security Center').setStyle(ButtonStyle.Secondary),
+        ),
+      ],
+    };
+    await interaction.editReply(payload);
+  }
+
+  private async clearModuleMentionRole(
+    interaction: ButtonInteraction,
+    guild: Guild,
+    key: SecurityModuleKey,
+  ): Promise<void> {
+    await patchModuleConfig(guild.id, key, { mentionRoleId: undefined });
+    await this.renderModule(interaction, guild, key);
   }
 
   private async doToggle(interaction: ButtonInteraction, guild: Guild, key: SecurityModuleKey): Promise<void> {

@@ -38,6 +38,11 @@ export interface SecurityModuleConfig {
   ignoreBots: boolean;
   /** Module-specific extra config (e.g. bad word list). */
   extra?: Record<string, unknown>;
+  /**
+   * Role ID to @mention in this module's alert messages.
+   * Overrides the guild-level `securityMentionRoleId` when set.
+   */
+  mentionRoleId?: string;
 }
 
 export interface SecurityGuildConfig {

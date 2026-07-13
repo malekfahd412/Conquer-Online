@@ -211,8 +211,10 @@ export interface ViolationOpts {
   module: SecurityModuleKey;
   cfg: SecurityModuleConfig;
   globalLogChannelId?: string;
-  /** Role ID to @mention as message content when the security alert is posted. */
+  /** Role ID to @mention as message content when the security alert is posted (guild-level fallback). */
   globalMentionRoleId?: string;
+  /** Role ID to @mention — overrides globalMentionRoleId when set on the specific module. */
+  moduleMentionRoleId?: string;
   executor: GuildMember | User | null;
   target?: string;
   action: string;
@@ -258,6 +260,9 @@ export async function handleViolation(opts: ViolationOpts): Promise<void> {
     await applyPunishment(guild, executor.id, cfg.punishment, `[Security] ${action}`);
   }
 
+  // Module-level mention role takes priority over the guild-level fallback.
+  const effectiveMentionRoleId = opts.moduleMentionRoleId ?? opts.globalMentionRoleId;
+
   await emitSecurityLog(guild, module, cfg, globalLogChannelId, {
     executor,
     target: opts.target,
@@ -265,7 +270,7 @@ export async function handleViolation(opts: ViolationOpts): Promise<void> {
     detail,
     punishment: punishmentApplied,
     restored,
-  }, opts.globalMentionRoleId);
+  }, effectiveMentionRoleId);
 }
 
 // ── Best-effort channel restore ───────────────────────────────────────────────
