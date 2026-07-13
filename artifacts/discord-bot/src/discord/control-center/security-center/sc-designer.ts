@@ -38,6 +38,7 @@ import {
 import {
   enableEmergencyMode,
   disableEmergencyMode,
+  emitSecurityLog,
 } from '../../../community/security/security-engine';
 import { logger } from '../../../utils/logger';
 
@@ -299,11 +300,13 @@ export class SecurityCenterDesigner {
     // ── Modal submissions ────────────────────────────────────────────────────
     if (interaction.isModalSubmit()) {
       const mi = interaction as ModalSubmitInteraction;
+      logger.info(`[SC][DEBUG] route modal submit — id=${id}`);
       if (id.startsWith('sc:modal:edit:')) {
         await mi.deferUpdate();
         await this.handleEditModal(mi, guild, id.slice('sc:modal:edit:'.length) as SecurityModuleKey);
       } else if (id.startsWith('sc:modal:log:')) {
         // handleLogModal defers internally after validation
+        logger.info(`[SC][DEBUG] route → handleLogModal`);
         await this.handleLogModal(mi, guild, id.slice('sc:modal:log:'.length) as SecurityModuleKey);
       } else if (id.startsWith('sc:modal:words:')) {
         await mi.deferUpdate();
@@ -313,6 +316,9 @@ export class SecurityCenterDesigner {
       }
       return;
     }
+
+    // ── Buttons ──────────────────────────────────────────────────────────────
+    logger.info(`[SC][DEBUG] route button — id=${id}`);
 
     // ── Buttons ──────────────────────────────────────────────────────────────
     if (!interaction.isButton()) return;
@@ -476,22 +482,56 @@ export class SecurityCenterDesigner {
   // ── Render: Test Simulation ───────────────────────────────────────────────
 
   private async renderTest(interaction: NavInteraction, guild: Guild, key: SecurityModuleKey): Promise<void> {
+    logger.info(`[SC][DEBUG] renderTest start — key=${key} guild=${guild.id}`);
     const guildCfg = await getGuildConfig(guild.id);
     const cfg      = guildCfg.modules[key];
     const { emoji, label, color, eventLabel } = MODULE_META[key];
 
+    const targetChannelId = cfg.logChannelId ?? guildCfg.securityLogChannelId;
+    logger.info(`[SC][DEBUG] renderTest resolved log channel — module=${cfg.logChannelId ?? 'none'} global=${guildCfg.securityLogChannelId ?? 'none'} → using=${targetChannelId ?? 'NONE'}`);
+
+    // Attempt to actually send the simulation embed to the configured log channel.
+    let logStatus: string;
+    if (targetChannelId) {
+      try {
+        await emitSecurityLog(
+          guild,
+          key,
+          cfg,
+          guildCfg.securityLogChannelId,
+          {
+            executor:   interaction.user,
+            target:     '#general (simulation)',
+            action:     `${eventLabel} ⚗️ SIMULATION`,
+            detail:     'Test simulation triggered via Security Center Pro.',
+          },
+        );
+        logStatus = `✅ Test log delivered to <#${targetChannelId}>`;
+        logger.info(`[SC][DEBUG] renderTest emitSecurityLog OK → channel ${targetChannelId}`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logStatus = `❌ Log send failed: ${msg}`;
+        logger.error(`[SC][DEBUG] renderTest emitSecurityLog FAILED`, err);
+      }
+    } else {
+      logStatus = '`No log channel configured — set one via 📋 Log Channel`';
+      logger.info(`[SC][DEBUG] renderTest no log channel configured`);
+    }
+
     const simEmbed = new EmbedBuilder()
       .setColor(color)
       .setTitle(`${emoji} ${label} — ⚗️ SIMULATION`)
-      .setDescription('**No real action was taken.** This is a simulated detection to preview what the log embed looks like.')
+      .setDescription(
+        '**No real action was taken.** This is a simulated detection.\n\n' +
+        `📋 **Log channel:** ${logStatus}`,
+      )
       .addFields(
-        { name: '⚡ Action',    value: eventLabel,                                  inline: true  },
-        { name: '👤 Executor',  value: '`SimUser#0000 (111111111111111111)`',        inline: true  },
-        { name: '🕐 Time',      value: `<t:${Math.floor(Date.now() / 1000)}:R>`,    inline: true  },
-        { name: '🎯 Target',    value: '`#general`',                                inline: true  },
-        { name: '📋 Detail',    value: `Simulation of **${label}** detection.`,     inline: false },
-        { name: '⚖️ Punishment', value: `\`${cfg.punishment.toUpperCase()}\``,       inline: true  },
-        { name: '♻️ Restored',   value: '`N/A`',                                     inline: true  },
+        { name: '⚡ Action',    value: eventLabel,                               inline: true  },
+        { name: '👤 Executor',  value: `<@${interaction.user.id}>`,              inline: true  },
+        { name: '🕐 Time',      value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true  },
+        { name: '🎯 Target',    value: '`#general`',                             inline: true  },
+        { name: '📋 Detail',    value: `Simulation of **${label}** detection.`,  inline: false },
+        { name: '⚖️ Punishment', value: `\`${cfg.punishment.toUpperCase()}\``,    inline: true  },
       )
       .setFooter({ text: `Security Center Pro · ${label} · ⚗️ SIMULATION` })
       .setTimestamp();
@@ -500,6 +540,7 @@ export class SecurityCenterDesigner {
       embeds:     [simEmbed],
       components: [backRow(key)],
     });
+    logger.info(`[SC][DEBUG] renderTest complete`);
   }
 
   // ── Render: Emergency Mode ────────────────────────────────────────────────
@@ -699,10 +740,14 @@ export class SecurityCenterDesigner {
   }
 
   private async showLogModal(interaction: ButtonInteraction, guild: Guild, key: SecurityModuleKey): Promise<void> {
+    logger.info(`[SC][DEBUG] showLogModal start — key=${key} guild=${guild.id}`);
     const guildCfg = await getGuildConfig(guild.id);
     const cfg      = guildCfg.modules[key];
     const { label } = MODULE_META[key];
+    logger.info(`[SC][DEBUG] showLogModal config — moduleLogCh=${cfg.logChannelId ?? 'none'} globalLogCh=${guildCfg.securityLogChannelId ?? 'none'}`);
 
+    // Discord.js enforces a 45-character max on TextInput labels.
+    // "Module Log Channel ID (blank = global fallback)" = 47 chars → was crashing here.
     const modal = new ModalBuilder()
       .setCustomId(`sc:modal:log:${key}`)
       .setTitle(`📋 Log Channel — ${label}`.slice(0, 45))
@@ -710,7 +755,7 @@ export class SecurityCenterDesigner {
         new ActionRowBuilder<TextInputBuilder>().addComponents(
           new TextInputBuilder()
             .setCustomId('log_channel_id')
-            .setLabel('Module Log Channel ID (blank = global fallback)')
+            .setLabel('Module Log Channel ID (blank=global)')   // 37 chars ≤ 45 ✓
             .setStyle(TextInputStyle.Short)
             .setValue(cfg.logChannelId ?? '')
             .setRequired(false)
@@ -719,7 +764,7 @@ export class SecurityCenterDesigner {
         new ActionRowBuilder<TextInputBuilder>().addComponents(
           new TextInputBuilder()
             .setCustomId('global_log_channel_id')
-            .setLabel('Global Security Log Channel ID (optional)')
+            .setLabel('Global Security Log Channel ID')         // 30 chars ≤ 45 ✓
             .setStyle(TextInputStyle.Short)
             .setValue(guildCfg.securityLogChannelId ?? '')
             .setRequired(false)
@@ -727,7 +772,9 @@ export class SecurityCenterDesigner {
         ),
       );
 
+    logger.info(`[SC][DEBUG] showLogModal calling showModal — customId=sc:modal:log:${key}`);
     await interaction.showModal(modal);
+    logger.info(`[SC][DEBUG] showLogModal modal shown OK`);
   }
 
   private async showWordsModal(interaction: ButtonInteraction, guild: Guild, key: SecurityModuleKey): Promise<void> {
@@ -806,8 +853,10 @@ export class SecurityCenterDesigner {
     guild: Guild,
     key: SecurityModuleKey,
   ): Promise<void> {
+    logger.info(`[SC][DEBUG] handleLogModal start — key=${key} guild=${guild.id}`);
     const rawModuleId = interaction.fields.getTextInputValue('log_channel_id').trim();
     const rawGlobalId = interaction.fields.getTextInputValue('global_log_channel_id').trim();
+    logger.info(`[SC][DEBUG] handleLogModal values — moduleId="${rawModuleId}" globalId="${rawGlobalId}"`);
 
     // Validate: must be empty (clear) or a valid Discord snowflake (17–20 digits)
     const isValidId = (s: string) => s === '' || /^\d{17,20}$/.test(s);
@@ -817,6 +866,7 @@ export class SecurityCenterDesigner {
         !isValidId(rawModuleId)  && `Module: \`${rawModuleId}\``,
         !isValidId(rawGlobalId) && `Global: \`${rawGlobalId}\``,
       ].filter(Boolean).join(', ');
+      logger.info(`[SC][DEBUG] handleLogModal validation failed — ${bad}`);
       await interaction.reply({
         content: `❌ **Invalid channel ID${!isValidId(rawModuleId) && !isValidId(rawGlobalId) ? 's' : ''}:** ${bad}\n` +
           `Channel IDs must be 17–20 digit numbers (right-click a channel → Copy Channel ID). Leave blank to clear.`,
@@ -827,13 +877,23 @@ export class SecurityCenterDesigner {
 
     const logChannelId = rawModuleId || undefined;
     const globalId     = rawGlobalId || undefined;
+    logger.info(`[SC][DEBUG] handleLogModal parsed — logChannelId=${logChannelId ?? 'undefined'} globalId=${globalId ?? 'undefined'}`);
 
+    logger.info(`[SC][DEBUG] handleLogModal deferUpdate...`);
     await interaction.deferUpdate();
+    logger.info(`[SC][DEBUG] handleLogModal deferred OK`);
 
+    logger.info(`[SC][DEBUG] handleLogModal patchModuleConfig...`);
     await patchModuleConfig(guild.id, key, { logChannelId });
-    await patchGuildConfig(guild.id, { securityLogChannelId: globalId });
+    logger.info(`[SC][DEBUG] handleLogModal patchModuleConfig OK`);
 
+    logger.info(`[SC][DEBUG] handleLogModal patchGuildConfig...`);
+    await patchGuildConfig(guild.id, { securityLogChannelId: globalId });
+    logger.info(`[SC][DEBUG] handleLogModal patchGuildConfig OK`);
+
+    logger.info(`[SC][DEBUG] handleLogModal renderModule...`);
     await this.renderModule(interaction, guild, key);
+    logger.info(`[SC][DEBUG] handleLogModal renderModule OK — done`);
   }
 
   private async handleWordsModal(
