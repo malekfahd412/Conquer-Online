@@ -34,7 +34,7 @@ export interface ToolDefinition {
 
 export interface ITool {
   readonly definition: ToolDefinition;
-  execute(params: Record<string, unknown>, guild: Guild): Promise<ToolExecuteResult>;
+  execute(params: Record<string, unknown>, guild: Guild, executorId?: string): Promise<ToolExecuteResult>;
   rollback?(params: Record<string, unknown>, data: unknown, guild: Guild): Promise<ToolRollbackResult>;
   verify?(params: Record<string, unknown>, guild: Guild): Promise<{ verified: boolean; message: string }>;
 }

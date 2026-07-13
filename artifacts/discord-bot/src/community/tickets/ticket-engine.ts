@@ -23,6 +23,7 @@ import { questionEngine } from './question-engine';
 import { transcriptEngine } from './transcript-engine';
 import { automationEngine } from './automation-engine';
 import { statisticsEngine } from './statistics-engine';
+import { staffEventBus } from '../staff/staff-events';
 import { logger } from '../../utils/logger';
 
 interface RecordData {
@@ -254,6 +255,13 @@ export class TicketEngine {
         userId,
         responseMs: ticket.firstStaffReplyAt ? undefined : Date.now() - ticket.createdAt,
       });
+      staffEventBus.emitAction({
+        guildId: ticket.guildId,
+        userId,
+        action: 'ticket_claimed',
+        firstResponseMs: ticket.firstStaffReplyAt ? undefined : Date.now() - ticket.createdAt,
+        detail: `Ticket #${ticket.number}`,
+      });
       // Defensive: legacy panels created before `claimBehaviour` existed may not carry it even
       // after `resolveTicketType` (same guard `permissionEngine` already applies via `normalizePanel`).
       if (channel?.isTextBased() && cfg.claimBehaviour?.hideFromOtherStaffOnClaim && !cfg.claimBehaviour?.keepVisible) {
@@ -284,6 +292,14 @@ export class TicketEngine {
     await automationEngine.recordClose(cfg, ticket.openerId, ticket.ticketType);
     await automationEngine.clearActivity(ticket.id);
     await statisticsEngine.record({ type: 'closed', guildId: guild.id, panelId: cfg.id, ticketId: ticket.id, userId: closedByUserId });
+    staffEventBus.emitAction({
+      guildId: guild.id,
+      userId: closedByUserId,
+      userTag: closedByTag,
+      action: 'ticket_closed',
+      resolutionMs: Date.now() - ticket.createdAt,
+      detail: `Ticket #${ticket.number}`,
+    });
     await this.logAction(guild, cfg, `🔒 Ticket **#${ticket.number}** closed by ${closedByTag}`);
 
     if (cfg.automation.autoDeleteAfterCloseMinutes > 0 && channel) {
@@ -370,6 +386,12 @@ export class TicketEngine {
     }
     await automationEngine.touchActivity(ticket.id, ticket.channelId);
     await statisticsEngine.record({ type: 'reopened', guildId: guild.id, panelId: ticket.panelId, ticketId: ticket.id, userId: reopenedByUserId });
+    staffEventBus.emitAction({
+      guildId: guild.id,
+      userId: reopenedByUserId,
+      action: 'ticket_reopened',
+      detail: `Ticket #${ticket.number}`,
+    });
     await this.logAction(guild, cfg, `🔓 Ticket **#${ticket.number}** reopened by <@${reopenedByUserId}>`);
   }
 

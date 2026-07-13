@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 export class Executor {
   constructor(private readonly toolRegistry: ToolRegistry) {}
 
-  async execute(toolCalls: ToolCall[], guild: Guild): Promise<ToolResult[]> {
+  async execute(toolCalls: ToolCall[], guild: Guild, executorId?: string): Promise<ToolResult[]> {
     const results: ToolResult[] = [];
 
     for (const toolCall of toolCalls) {
@@ -38,7 +38,7 @@ export class Executor {
 
       try {
         logger.info(`Executing tool: ${toolCall.function.name} with params: ${JSON.stringify(params)}`);
-        const result = await tool.execute(params, guild);
+        const result = await tool.execute(params, guild, executorId);
         logger.info(`Tool ${toolCall.function.name}: ${result.success ? '✅' : '❌'} ${result.message}`);
         results.push({ toolCallId: toolCall.id, toolName: toolCall.function.name, ...result });
       } catch (error) {

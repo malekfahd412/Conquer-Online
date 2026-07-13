@@ -1,6 +1,7 @@
 import { ChannelType } from 'discord.js';
 import type { Guild, VoiceChannel } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from './tool.interface';
+import { staffEventBus } from '../../community/staff/staff-events';
 
 export class DisconnectAllVoiceTool implements ITool {
   readonly definition: ToolDefinition = {
@@ -19,7 +20,7 @@ export class DisconnectAllVoiceTool implements ITool {
     examples: ['Disconnect everyone from the AFK channel', 'Clear the Gaming voice channel'],
   };
 
-  async execute(params: Record<string, unknown>, guild: Guild): Promise<ToolExecuteResult> {
+  async execute(params: Record<string, unknown>, guild: Guild, executorId?: string): Promise<ToolExecuteResult> {
     const channelName = String(params['channel'] ?? '').trim().toLowerCase();
     const channel = guild.channels.cache.find(
       c => c.type === ChannelType.GuildVoice && c.name.toLowerCase() === channelName,
@@ -37,6 +38,9 @@ export class DisconnectAllVoiceTool implements ITool {
       count++;
     }
 
+    if (executorId) {
+      staffEventBus.emitAction({ guildId: guild.id, userId: executorId, action: 'voice_mod_action', detail: `Disconnected ${count} member(s) from ${channel.name}` });
+    }
     return { success: true, message: `🚪 Disconnected **${count}** member(s) from **${channel.name}**` };
   }
 }

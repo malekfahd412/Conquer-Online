@@ -1,5 +1,6 @@
 import type { Guild } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from './tool.interface';
+import { staffEventBus } from '../../community/staff/staff-events';
 
 export class DisconnectVoiceMemberTool implements ITool {
   readonly definition: ToolDefinition = {
@@ -17,7 +18,7 @@ export class DisconnectVoiceMemberTool implements ITool {
     examples: ['Disconnect PlayerOne from voice', 'Remove DragonSlayer99 from their voice channel'],
   };
 
-  async execute(params: Record<string, unknown>, guild: Guild): Promise<ToolExecuteResult> {
+  async execute(params: Record<string, unknown>, guild: Guild, executorId?: string): Promise<ToolExecuteResult> {
     const username = String(params['username'] ?? '').trim().toLowerCase();
     if (!username) return { success: false, message: 'Username is required' };
 
@@ -33,6 +34,9 @@ export class DisconnectVoiceMemberTool implements ITool {
 
     const channelName = member.voice.channel?.name ?? 'voice channel';
     await member.voice.setChannel(null, params['reason'] ? String(params['reason']) : undefined);
+    if (executorId) {
+      staffEventBus.emitAction({ guildId: guild.id, userId: executorId, action: 'voice_mod_action', detail: `Disconnected ${member.user.tag} from ${channelName}` });
+    }
     return { success: true, message: `Disconnected **${member.user.tag}** from **${channelName}**` };
   }
 }

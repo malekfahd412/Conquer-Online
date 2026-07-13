@@ -1,5 +1,6 @@
 import type { Guild } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from './tool.interface';
+import { staffEventBus } from '../../community/staff/staff-events';
 
 export class DeafenVoiceMemberTool implements ITool {
   readonly definition: ToolDefinition = {
@@ -17,7 +18,7 @@ export class DeafenVoiceMemberTool implements ITool {
     examples: ['Deafen PlayerOne in voice', 'Server deafen DragonSlayer'],
   };
 
-  async execute(params: Record<string, unknown>, guild: Guild): Promise<ToolExecuteResult> {
+  async execute(params: Record<string, unknown>, guild: Guild, executorId?: string): Promise<ToolExecuteResult> {
     const username = String(params['username'] ?? '').trim().toLowerCase();
     const members = await guild.members.fetch();
     const member = members.find(
@@ -31,6 +32,9 @@ export class DeafenVoiceMemberTool implements ITool {
     if (member.voice.serverDeaf) return { success: false, message: `${member.user.tag} is already server-deafened` };
 
     await member.voice.setDeaf(true, params['reason'] ? String(params['reason']) : undefined);
+    if (executorId) {
+      staffEventBus.emitAction({ guildId: guild.id, userId: executorId, action: 'voice_mod_action', detail: `Server-deafened ${member.user.tag}` });
+    }
     return { success: true, message: `🔕 Server-deafened **${member.user.tag}** in voice` };
   }
 }

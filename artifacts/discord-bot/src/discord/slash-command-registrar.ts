@@ -434,6 +434,30 @@ const DELETECASE_COMMAND = {
   ],
 };
 
+// ── Staff Management Pro Commands ─────────────────────────────────────────
+
+const SHIFT_COMMAND = {
+  name: 'shift',
+  description: 'Manage your staff shift',
+  options: [
+    {
+      name: 'start',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Start your shift',
+    },
+    {
+      name: 'end',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'End your current shift',
+    },
+    {
+      name: 'status',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Show your current shift status',
+    },
+  ],
+};
+
 const PANEL_COMMAND = {
   name: 'panel',
   description: 'Open the Discord Control Center — browse and execute all 323 tools interactively',
@@ -478,6 +502,8 @@ const ALL_COMMANDS = [
   HISTORY_COMMAND,
   EDITCASE_COMMAND,
   DELETECASE_COMMAND,
+  // Staff Management Pro
+  SHIFT_COMMAND,
 ];
 
 const GUILD_ID = '1213437502078062674';

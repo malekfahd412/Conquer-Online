@@ -22,6 +22,7 @@ import {
   clearAttemptsForUser,
   type VerificationPanelConfig,
 } from './verification-store';
+import { staffEventBus } from '../../community/staff/staff-events';
 import { logger } from '../../utils/logger';
 import type { GuildMember, PartialGuildMember } from 'discord.js';
 
@@ -309,12 +310,14 @@ export class VerificationService {
       const granted = await this.grantVerified(guild, panel, userId);
       if (granted) {
         await interaction.editReply({ content: `✅ <@${userId}> approved by ${interaction.user}.`, components: [] });
+        staffEventBus.emitAction({ guildId: guild.id, userId: interaction.user.id, userTag: interaction.user.tag, action: 'verification_approved', detail: `Approved <@${userId}>` });
       } else {
         await interaction.editReply({ content: `❌ <@${userId}> approved by ${interaction.user}, but the role could not be assigned. This has been logged — check bot permissions/role hierarchy.`, components: [] });
       }
     } else {
       await this.reject(guild, panel, userId, `manually rejected by ${interaction.user.tag}`);
       await interaction.editReply({ content: `❌ <@${userId}> rejected by ${interaction.user}.`, components: [] });
+      staffEventBus.emitAction({ guildId: guild.id, userId: interaction.user.id, userTag: interaction.user.tag, action: 'verification_rejected', detail: `Rejected <@${userId}>` });
     }
   }
 

@@ -14,6 +14,7 @@ import { welcomeService } from './discord/welcome/welcome.service';
 import { serverLogService } from './discord/logging/server-log.service';
 import { verificationService } from './discord/verification/verification.service';
 import { expiryManager } from './community/moderation';
+import { reportScheduler } from './community/staff';
 
 import type { GuildChannel } from 'discord.js';
 
@@ -209,6 +210,10 @@ async function main(): Promise<void> {
   expiryManager.start().catch(error => {
     logger.error('Moderation expiry manager failed to start', error);
   });
+
+  // ── Staff Management Pro ─────────────────────────────────────────────────
+  reportScheduler.setClient(client);
+  reportScheduler.start();
 
   // ── AI Control Center ──────────────────────────────────────────────────────
   logger.info('Initializing AI Control Center...');

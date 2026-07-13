@@ -1,6 +1,7 @@
 import { GuildVerificationLevel, GuildExplicitContentFilter, ChannelType } from 'discord.js';
 import type { Guild } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from './tool.interface';
+import { staffEventBus } from '../../community/staff/staff-events';
 
 export class SecurityReportTool implements ITool {
   readonly definition: ToolDefinition = {
@@ -14,7 +15,7 @@ export class SecurityReportTool implements ITool {
     dangerous: false,
   };
 
-  async execute(_params: Record<string, unknown>, guild: Guild): Promise<ToolExecuteResult> {
+  async execute(_params: Record<string, unknown>, guild: Guild, executorId?: string): Promise<ToolExecuteResult> {
     const issues: Array<{ severity: 'critical' | 'high' | 'medium' | 'low'; message: string }> = [];
     const strengths: string[] = [];
 
@@ -91,6 +92,9 @@ export class SecurityReportTool implements ITool {
 
     if (strengths.length) { lines.push(''); lines.push('**Strengths:**'); lines.push(...strengths); }
 
+    if (executorId) {
+      staffEventBus.emitAction({ guildId: guild.id, userId: executorId, action: 'security_action', detail: `Ran security report (score ${score}/100)` });
+    }
     return { success: true, message: lines.join('\n').slice(0, 4000) };
   }
 }

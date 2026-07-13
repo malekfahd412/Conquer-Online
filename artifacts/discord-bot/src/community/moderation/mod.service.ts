@@ -14,6 +14,7 @@ import { buildCaseEmbed, buildDMEmbed, buildHistoryEmbed, buildAutoPunishEmbed }
 import { resolveLogConfig } from '../../discord/logging/log-store';
 import type { LogType } from '../../discord/logging/log-store';
 import { expiryManager } from './expiry-manager';
+import { staffEventBus } from '../staff/staff-events';
 import { logger } from '../../utils/logger';
 
 // ── Internal helpers ───────────────────────────────────────────────────────
@@ -162,6 +163,7 @@ export async function execWarn(
 
   await dmUser(target, c, guild.name, cfg.dmOnPunish);
   await sendModLog(guild, 'warn', embed);
+  staffEventBus.emitAction({ guildId: guild.id, userId: mod.id, userTag: mod.user.tag, action: 'warn_issued', detail: `Case ${c.id}` });
 
   // Check auto-punish thresholds
   if (cfg.autoPunish.enabled) {
@@ -258,6 +260,7 @@ export async function execUnwarn(
   const embed = buildCaseEmbed(updated);
   embed.setTitle('✅ Warning Removed');
   await sendModLog(guild, 'warn', embed);
+  staffEventBus.emitAction({ guildId: guild.id, userId: _mod.id, userTag: _mod.user.tag, action: 'unwarn_issued', detail: `Case ${caseId}` });
   return { case: updated };
 }
 
@@ -270,6 +273,7 @@ export async function execClearWarnings(
   const count = await clearUserWarnings(guild.id, targetId);
   const tag   = target instanceof GuildMember ? target.user.tag : target.tag;
   logger.info(`[Mod] Cleared ${count} warnings for ${tag} in ${guild.id}`);
+  staffEventBus.emitAction({ guildId: guild.id, userId: _mod.id, userTag: _mod.user.tag, action: 'unwarn_issued', detail: `Cleared ${count} warnings for ${tag}` });
   return count;
 }
 
@@ -294,6 +298,7 @@ export async function execMute(
 
   await dmUser(target, c, guild.name, cfg.dmOnPunish);
   await sendModLog(guild, 'mute', buildCaseEmbed(c));
+  staffEventBus.emitAction({ guildId: guild.id, userId: mod.id, userTag: mod.user.tag, action: 'mute_issued', detail: `Case ${c.id}` });
   return c;
 }
 
@@ -320,6 +325,7 @@ export async function execUnmute(
   const { c } = await createCase(guild, mod, target, 'unmute', effectiveReason);
 
   await sendModLog(guild, 'unmute', buildCaseEmbed(c));
+  staffEventBus.emitAction({ guildId: guild.id, userId: mod.id, userTag: mod.user.tag, action: 'unmute_issued', detail: `Case ${c.id}` });
   return c;
 }
 
@@ -339,6 +345,7 @@ export async function execKick(
   await setCaseActive(guild.id, c.id, false);
 
   await sendModLog(guild, 'kick', buildCaseEmbed({ ...c, active: false }));
+  staffEventBus.emitAction({ guildId: guild.id, userId: mod.id, userTag: mod.user.tag, action: 'kick_issued', detail: `Case ${c.id}` });
   return { ...c, active: false };
 }
 
@@ -363,6 +370,7 @@ export async function execBan(
     deleteMessageSeconds: deleteDays * 86_400,
   });
   await sendModLog(guild, 'ban', buildCaseEmbed(c));
+  staffEventBus.emitAction({ guildId: guild.id, userId: mod.id, userTag: mod.user.tag, action: 'ban_issued', detail: `Case ${c.id}` });
   return c;
 }
 
@@ -392,6 +400,7 @@ export async function execTempBan(
   expiryManager.schedule(c);
 
   await sendModLog(guild, 'tempban', buildCaseEmbed(c));
+  staffEventBus.emitAction({ guildId: guild.id, userId: mod.id, userTag: mod.user.tag, action: 'tempban_issued', detail: `Case ${c.id}` });
   return c;
 }
 
@@ -428,6 +437,7 @@ export async function execUnban(
   };
   await storeCase(c);
   await sendModLog(guild, 'unban', buildCaseEmbed(c));
+  staffEventBus.emitAction({ guildId: guild.id, userId: mod.id, userTag: mod.user.tag, action: 'unban_issued', detail: `Case ${c.id}` });
   return c;
 }
 
@@ -449,6 +459,7 @@ export async function execSoftBan(
 
   await setCaseActive(guild.id, c.id, false);
   await sendModLog(guild, 'softban', buildCaseEmbed({ ...c, active: false }));
+  staffEventBus.emitAction({ guildId: guild.id, userId: mod.id, userTag: mod.user.tag, action: 'softban_issued', detail: `Case ${c.id}` });
   return { ...c, active: false };
 }
 
@@ -481,6 +492,7 @@ export async function execPurge(
     extra: { amount: count, channelId: channel.id, targetUserId },
   };
   await storeCase(c);
+  staffEventBus.emitAction({ guildId: guild.id, userId: mod.id, userTag: mod.user.tag, action: 'purge_issued', detail: `Case ${c.id}` });
   return count;
 }
 

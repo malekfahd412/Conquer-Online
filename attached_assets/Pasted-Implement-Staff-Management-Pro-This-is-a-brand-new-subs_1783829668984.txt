@@ -1,0 +1,253 @@
+Implement Staff Management Pro.
+
+This is a brand-new subsystem integrated with Tickets, Moderation, Logs, Verification, and Security.
+
+Create a new Control Center category:
+
+👮 Staff Management
+
+========================
+Core Features
+========================
+
+Every staff member must have a persistent profile.
+
+Track:
+
+- Joined staff date
+- Current staff role
+- Status (Active / Inactive)
+- Last activity
+- Total activity time
+
+========================
+Performance Tracking
+========================
+
+Automatically track:
+
+- Tickets Claimed
+- Tickets Closed
+- Tickets Reopened
+- Average First Response Time
+- Average Resolution Time
+- Warns Issued
+- Timeouts Issued
+- Kicks Issued
+- Bans Issued
+- Messages Deleted
+- Verification Actions
+- Security Actions
+- Voice Moderation Actions
+
+========================
+Shift System
+========================
+
+Staff can:
+
+/shift start
+/shift end
+
+Track:
+
+- Current shift
+- Total shift hours
+- Weekly hours
+- Monthly hours
+
+========================
+Staff Points
+========================
+
+Configurable points:
+
+Ticket Closed
+Ticket Claimed
+Warn
+Kick
+Ban
+Timeout
+Verification
+Security Action
+
+Dashboard must allow editing point values.
+
+========================
+Leaderboard
+========================
+
+Create:
+
+Daily
+Weekly
+Monthly
+All Time
+
+Leaderboard sorted by staff points.
+
+========================
+Goals
+========================
+
+Admins can configure goals.
+
+Examples:
+
+Close 30 Tickets
+Warn 10 Members
+Work 5 Hours
+
+Track progress automatically.
+
+========================
+Reports
+========================
+
+Automatic reports:
+
+Daily Report
+
+Weekly Report
+
+Monthly Report
+
+Reports include:
+
+Top Staff
+Most Active
+Least Active
+Inactive Staff
+Goal Progress
+
+========================
+Staff Warnings
+========================
+
+Admins can issue staff warnings.
+
+Each warning contains:
+
+Reason
+Moderator
+Date
+
+Staff profile displays warning history.
+
+========================
+Staff Notes
+========================
+
+Private notes.
+
+Visible only to managers.
+
+========================
+Activity Timeline
+========================
+
+Every action becomes an event.
+
+Example:
+
+09:22 Claimed Ticket #42
+
+09:25 Closed Ticket #42
+
+09:40 Warned User
+
+09:45 Started Shift
+
+========================
+Dashboard
+========================
+
+Inside Control Center create:
+
+👮 Staff Management
+
+Pages:
+
+Overview
+
+Staff List
+
+Performance
+
+Goals
+
+Leaderboard
+
+Reports
+
+Warnings
+
+Settings
+
+========================
+Settings
+========================
+
+Configure:
+
+Tracked Roles
+
+Point Values
+
+Report Channels
+
+Report Schedule
+
+Goal Values
+
+Inactive Threshold
+
+========================
+Storage
+========================
+
+Persistent JSON storage.
+
+Separate storage for:
+
+staff.json
+
+staff-points.json
+
+staff-goals.json
+
+staff-reports.json
+
+========================
+Integration
+========================
+
+Automatically receive events from:
+
+Ticket System
+
+Moderation System
+
+Verification System
+
+Logs System
+
+Security System
+
+No duplicated tracking logic.
+
+Everything must be event-driven.
+
+========================
+Requirements
+========================
+
+Keep the implementation modular.
+
+Reuse existing architecture.
+
+No hardcoded IDs.
+
+No duplicated code.
+
+No breaking changes.

@@ -1,5 +1,6 @@
 import type { Guild } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from './tool.interface';
+import { staffEventBus } from '../../community/staff/staff-events';
 
 export class MuteVoiceMemberTool implements ITool {
   readonly definition: ToolDefinition = {
@@ -17,7 +18,7 @@ export class MuteVoiceMemberTool implements ITool {
     examples: ['Server mute PlayerOne', 'Mute DragonSlayer in voice for spamming'],
   };
 
-  async execute(params: Record<string, unknown>, guild: Guild): Promise<ToolExecuteResult> {
+  async execute(params: Record<string, unknown>, guild: Guild, executorId?: string): Promise<ToolExecuteResult> {
     const username = String(params['username'] ?? '').trim().toLowerCase();
     const members = await guild.members.fetch();
     const member = members.find(
@@ -31,6 +32,9 @@ export class MuteVoiceMemberTool implements ITool {
     if (member.voice.serverMute) return { success: false, message: `${member.user.tag} is already server-muted` };
 
     await member.voice.setMute(true, params['reason'] ? String(params['reason']) : undefined);
+    if (executorId) {
+      staffEventBus.emitAction({ guildId: guild.id, userId: executorId, action: 'voice_mod_action', detail: `Server-muted ${member.user.tag}` });
+    }
     return { success: true, message: `🔇 Server-muted **${member.user.tag}** in voice` };
   }
 }

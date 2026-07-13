@@ -17,7 +17,9 @@ import { TicketPanelDesigner, isTPInteraction } from '../discord/control-center/
 import { WelcomeCardDesigner, isWCInteraction } from '../discord/welcome/card-designer';
 import { LogsDesignerService, isLGInteraction } from '../discord/control-center/logs-designer';
 import { ModDashboardService, isMDInteraction } from '../discord/control-center/mod-dashboard/md-service';
+import { StaffDashboardService, isSMInteraction } from '../discord/control-center/staff-dashboard/sm-service';
 import { moderationHandler, MOD_COMMAND_NAMES } from '../community/moderation';
+import { staffCommandHandler, SHIFT_COMMAND_NAMES } from '../community/staff';
 import { runStartupAudit, runCCRenderAudit } from '../discord/control-center/cc-test';
 import { ticketSystem } from '../community/tickets';
 import { verificationService } from '../discord/verification/verification.service';
@@ -71,6 +73,7 @@ export class AIService {
   private readonly welcomeCardDesigner: WelcomeCardDesigner;
   private readonly logsDesigner: LogsDesignerService;
   private readonly modDashboard: ModDashboardService;
+  private readonly staffDashboard: StaffDashboardService;
   private voiceManager: VoiceManager | null = null;
 
   constructor(private readonly config: AIConfig) {
@@ -88,6 +91,7 @@ export class AIService {
     this.welcomeCardDesigner = new WelcomeCardDesigner(this.permissionManager);
     this.logsDesigner = new LogsDesignerService(this.permissionManager);
     this.modDashboard = new ModDashboardService(this.permissionManager);
+    this.staffDashboard = new StaffDashboardService(this.permissionManager);
   }
 
   async initialize(): Promise<void> {
@@ -203,6 +207,13 @@ export class AIService {
           );
           return;
         }
+        // ── Staff Management Pro commands (/shift) ─────────────────────────
+        if (SHIFT_COMMAND_NAMES.has(name)) {
+          staffCommandHandler.handle(interaction as ChatInputCommandInteraction).catch(err =>
+            logger.error(`Staff command /${name} error`, err),
+          );
+          return;
+        }
       }
 
       // ── Moderation /history pagination buttons (_hist_prev_/_hist_next_) ───
@@ -280,6 +291,22 @@ export class AIService {
         if (interaction.guild) {
           this.logsDesigner.handleInteraction(interaction, interaction.guild).catch(err =>
             logger.error('Logs Designer interaction error', err),
+          );
+        }
+        return;
+      }
+
+      // ── Staff Management Dashboard interactions (sm:* custom IDs) ─────────
+      if (
+        (interaction.isButton() && isSMInteraction(interaction.customId)) ||
+        (interaction.isStringSelectMenu() && isSMInteraction(interaction.customId)) ||
+        (interaction.isRoleSelectMenu() && isSMInteraction(interaction.customId)) ||
+        (interaction.isChannelSelectMenu() && isSMInteraction(interaction.customId)) ||
+        (interaction.isModalSubmit() && isSMInteraction(interaction.customId))
+      ) {
+        if (interaction.guild) {
+          this.staffDashboard.handleInteraction(interaction, interaction.guild).catch(err =>
+            logger.error('Staff Dashboard interaction error', err),
           );
         }
         return;
@@ -816,7 +843,7 @@ export class AIService {
     startTime: number,
   ): Promise<{ responseText: string; results: ToolResult[] }> {
     // Execute
-    const results = await this.executor.execute(toolCalls, guild);
+    const results = await this.executor.execute(toolCalls, guild, executorId);
 
     // Verify
     await this.verifier.verify(toolCalls, results, guild);

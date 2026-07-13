@@ -285,6 +285,10 @@ export class ControlCenterService {
             .setLabel('🔨 Mod System Pro')
             .setCustomId('md:dash')
             .setStyle(ButtonStyle.Danger),
+          new ButtonBuilder()
+            .setLabel('👮 Staff Management Pro')
+            .setCustomId('sm:dash')
+            .setStyle(ButtonStyle.Primary),
         ),
       );
     }

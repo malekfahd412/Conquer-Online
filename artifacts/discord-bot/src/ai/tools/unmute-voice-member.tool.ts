@@ -1,5 +1,6 @@
 import type { Guild } from 'discord.js';
 import type { ITool, ToolDefinition, ToolExecuteResult } from './tool.interface';
+import { staffEventBus } from '../../community/staff/staff-events';
 
 export class UnmuteVoiceMemberTool implements ITool {
   readonly definition: ToolDefinition = {
@@ -16,7 +17,7 @@ export class UnmuteVoiceMemberTool implements ITool {
     examples: ['Unmute PlayerOne in voice', 'Let DragonSlayer speak again'],
   };
 
-  async execute(params: Record<string, unknown>, guild: Guild): Promise<ToolExecuteResult> {
+  async execute(params: Record<string, unknown>, guild: Guild, executorId?: string): Promise<ToolExecuteResult> {
     const username = String(params['username'] ?? '').trim().toLowerCase();
     const members = await guild.members.fetch();
     const member = members.find(
@@ -30,6 +31,9 @@ export class UnmuteVoiceMemberTool implements ITool {
     if (!member.voice.serverMute) return { success: false, message: `${member.user.tag} is not server-muted` };
 
     await member.voice.setMute(false);
+    if (executorId) {
+      staffEventBus.emitAction({ guildId: guild.id, userId: executorId, action: 'voice_mod_action', detail: `Unmuted ${member.user.tag}` });
+    }
     return { success: true, message: `🔊 Unmuted **${member.user.tag}** — they can speak again` };
   }
 }
