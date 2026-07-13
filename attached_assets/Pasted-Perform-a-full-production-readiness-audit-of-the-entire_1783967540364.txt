@@ -1,0 +1,67 @@
+Perform a full production readiness audit of the entire project.
+
+Your objective is NOT to add new features.
+Your objective is to find, fix, verify, and validate every bug, runtime issue, logic error, broken flow, missing integration, edge case, and inconsistency across the entire bot.
+
+Tasks:
+
+- Scan the whole codebase.
+- Fix all TypeScript errors.
+- Fix all runtime errors.
+- Fix all broken imports/exports.
+- Fix broken interaction handlers.
+- Fix broken Discord components.
+- Fix permissions issues.
+- Fix async/race condition issues.
+- Fix database/JSON read-write issues.
+- Fix memory leaks.
+- Fix event listener issues.
+- Remove dead code.
+- Remove duplicate logic.
+- Validate every command.
+- Validate every Control Center page.
+- Validate every button, modal, select menu and interaction.
+- Validate every Ticket System flow.
+- Validate Welcome System.
+- Validate Support Inbox.
+- Validate Security Center.
+- Validate Moderation.
+- Validate Logs.
+- Validate Reviews.
+- Validate SLA.
+- Validate all startup services.
+- Validate migrations.
+- Validate configuration loading.
+- Validate file persistence.
+- Validate restart persistence.
+- Validate permissions.
+- Validate every placeholder.
+- Validate every embed.
+- Validate every navigation flow.
+
+Testing requirements:
+
+- Run a complete typecheck.
+- Run lint if available.
+- Run the project.
+- Simulate every major feature.
+- Verify there are no crashes.
+- Verify there are no unhandled promise rejections.
+- Verify there are no console errors.
+- Verify there are no Discord API errors.
+- Verify there are no invalid form body errors.
+- Verify there are no memory issues.
+
+Do not stop after fixing the first error.
+Continue scanning until no additional issues remain.
+
+At the end provide a report containing:
+
+- Bugs found
+- Bugs fixed
+- Remaining known issues (if any)
+- Files modified
+- Tests executed
+- Final production readiness status
+
+Do not claim something works unless you actually verified it by testing.
