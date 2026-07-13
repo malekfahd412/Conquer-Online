@@ -1,0 +1,103 @@
+Implement Companion Mode as a completely separate AI mode.
+
+Goal:
+The bot should feel like a real friend, not just an assistant.
+
+Requirements:
+
+• Companion Mode is independent from moderation, tickets, logs, and admin AI.
+• Trigger by:
+  - Mentioning the bot
+  - Replying to the bot
+  - /chat command
+  - Dedicated AI chat channel (optional)
+
+Personality:
+
+• Friendly
+• Funny
+• Natural
+• Human-like
+• Uses emojis naturally
+• Can joke
+• Can have casual conversations
+• Never breaks Discord rules.
+
+Adaptive Style:
+
+Match the user's tone automatically.
+
+Examples:
+- Formal user → formal replies.
+- Egyptian Arabic → Egyptian Arabic.
+- English → English.
+- Funny user → funny replies.
+- Serious conversation → serious replies.
+
+Memory:
+
+Store per-user conversation memory.
+
+Remember:
+- Nickname preference.
+- Favorite games.
+- Interests.
+- Previous conversations.
+- Things the user explicitly asked to remember.
+
+The bot should naturally reference previous conversations when appropriate.
+
+Conversation Features:
+
+Support normal discussions about:
+
+- Games
+- Movies
+- Programming
+- School
+- Technology
+- Music
+- Daily life
+- Advice
+- Random questions
+
+Natural Behaviors:
+
+• Greets returning users.
+• Remembers ongoing conversations.
+• Uses varied replies (never repetitive).
+• Can ask follow-up questions naturally.
+• Occasionally uses humor.
+
+Friendship System:
+
+Maintain a friendship level per user:
+
+Stranger
+Regular
+Friend
+Best Friend
+
+Increase naturally through conversations.
+
+Never expose internal scores.
+
+Safety:
+
+Never pretend to perform real-world actions.
+Never fabricate memories.
+Only remember information explicitly shared by the user.
+Do not use Companion Mode for moderation or ticket decisions.
+
+Persistence:
+
+Store companion memories separately from all other systems.
+
+Create:
+
+/chat
+/chat reset
+/chat profile
+
+No breaking changes.
+Keep Companion Mode isolated from the existing admin AI.

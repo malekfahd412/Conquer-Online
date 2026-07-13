@@ -225,6 +225,9 @@ export class TicketEngine {
 
     await this.logAction(guild, cfg, `🎫 Ticket **#${number}** opened by ${opener.tag} in ${channel} (type: ${ticketType})`);
 
+    // SLA: start tracking (no-op if SLA not configured for this type)
+    slaEngine.onTicketCreated(ticket).catch(err => logger.warning('[SLA] onTicketCreated error', err));
+
     return { ticket, channel };
   }
 
@@ -242,8 +245,12 @@ export class TicketEngine {
     if (!ticket) return undefined;
     if (claim && ticket.claimedBy) return ticket; // never overwrite an existing claim
 
-    const firstReply = ticket.firstStaffReplyAt ?? (claim ? Date.now() : undefined);
+    const now = Date.now();
+    const firstReply = ticket.firstStaffReplyAt ?? (claim ? now : undefined);
     const updated = await this.update(ticketId, { claimedBy: claim ? userId : undefined, firstStaffReplyAt: firstReply });
+
+    // SLA: record first staff response on claim (idempotent — only fires once per ticket)
+    if (claim) slaEngine.onFirstResponse(ticketId, userId, now).catch(err => logger.warning('[SLA] onFirstResponse error', err));
 
     const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
     if (claim) {
@@ -288,7 +295,10 @@ export class TicketEngine {
       else if (cfg.archiveCategory) await categoryEngine.moveToArchive(channel as TextChannel, cfg);
     }
 
-    await this.update(ticket.id, { status: 'closed', closedAt: Date.now(), closedBy: closedByUserId });
+    const closedAt = Date.now();
+    await this.update(ticket.id, { status: 'closed', closedAt, closedBy: closedByUserId });
+    // SLA: freeze the resolution time
+    slaEngine.onResolved(ticket.id, closedAt).catch(err => logger.warning('[SLA] onResolved error', err));
     await automationEngine.recordClose(cfg, ticket.openerId, ticket.ticketType);
     await automationEngine.clearActivity(ticket.id);
     await statisticsEngine.record({ type: 'closed', guildId: guild.id, panelId: cfg.id, ticketId: ticket.id, userId: closedByUserId });

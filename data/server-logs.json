@@ -37,7 +37,7 @@
         },
         "role_given": {
           "enabled": true,
-          "channelId": "1525477226362048542"
+          "channelId": "1525477018076971038"
         },
         "role_removed": {
           "enabled": true,
@@ -54,6 +54,27 @@
         "logs_all": {
           "enabled": true,
           "channelId": "1525473865218920488"
+        },
+        "message_edited": {
+          "enabled": true,
+          "channelId": "1525473842045128794",
+          "ignoreBots": false
+        },
+        "role_created": {
+          "enabled": true,
+          "channelId": "1525477018076971038"
+        },
+        "role_deleted": {
+          "enabled": true,
+          "channelId": "1525477018076971038"
+        },
+        "role_updated": {
+          "enabled": true,
+          "channelId": "1525477018076971038"
+        },
+        "role_permissions_updated": {
+          "enabled": true,
+          "channelId": "1525477018076971038"
         }
       }
     }

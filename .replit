@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "nix"]
+modules = ["nodejs-20", "web", "nix", "python-base-3.13"]
 
 [deployment]
 router = "application"
@@ -29,7 +29,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node node_modules/.pnpm/tsx@4.22.4/node_modules/tsx/dist/cli.mjs artifacts/discord-bot/src/index.ts"
+args = "node /home/runner/workspace/node_modules/.pnpm/tsx@4.22.4/node_modules/tsx/dist/cli.mjs artifacts/discord-bot/src/index.ts"
 
 [agent]
 stack = "BEST_EFFORT_FALLBACK"

@@ -108,6 +108,12 @@ import {
   buildQCondValueModal,
   PANELS_PER_PAGE,
 } from './tp-renderer';
+import {
+  buildReviewSection,
+  buildReviewLogChannelModal,
+  buildReviewDMMessageModal,
+} from './tp-review-renderer';
+import { DEFAULT_REVIEW_CONFIG } from '../../../community/tickets/types';
 import type { CCPayload } from '../cc-renderer';
 
 type NavInteraction = ButtonInteraction | StringSelectMenuInteraction;
@@ -343,6 +349,12 @@ export class TicketPanelDesigner {
       return;
     }
 
+    // ── Review System Designer (tp:rv:*) ─────────────────────────────────────
+    if (id.startsWith('tp:rv:')) {
+      await this.routeRVButton(interaction, guild, id);
+      return;
+    }
+
     logger.warning(`[TPD] Unrouted button custom_id: ${id}`);
     await this.safeError(interaction, new Error('This button is not wired to a handler yet.'));
   }
@@ -490,6 +502,116 @@ export class TicketPanelDesigner {
     const payload = buildTTMain(panel, ref);
     if (notice) payload.content = `ℹ️ ${notice}`;
     await this.nav(interaction, payload);
+  }
+
+  // ── Review System Designer (tp:rv:*) ────────────────────────────────────────
+
+  private async routeRVButton(interaction: ButtonInteraction, guild: Guild, id: string): Promise<void> {
+    const rest = id.slice('tp:rv:'.length); // e.g. "<panelId>" or "tog:<panelId>:<field>" or "edit:<panelId>:<field>"
+
+    if (rest.startsWith('tog:')) {
+      const inner = rest.slice('tog:'.length);
+      const colon = inner.indexOf(':');
+      const panelId = inner.slice(0, colon);
+      const field   = inner.slice(colon + 1);
+      await this.handleRVToggle(interaction, guild, panelId, field);
+      return;
+    }
+    if (rest.startsWith('edit:')) {
+      const inner = rest.slice('edit:'.length);
+      const colon = inner.indexOf(':');
+      const panelId = inner.slice(0, colon);
+      const field   = inner.slice(colon + 1);
+      await this.showRVEditModal(interaction, guild, panelId, field);
+      return;
+    }
+    // tp:rv:<panelId> — review config main page
+    await this.navReviewSection(interaction, guild, rest);
+  }
+
+  private async navReviewSection(interaction: ButtonInteraction | ModalSubmitInteraction, guild: Guild, panelId: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction as ButtonInteraction, guild, 0); return; }
+    await this.nav(interaction as ButtonInteraction, buildReviewSection(panel));
+  }
+
+  private async handleRVToggle(interaction: ButtonInteraction, guild: Guild, panelId: string, field: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) { await this.navPanelList(interaction, guild, 0); return; }
+
+    const current = { ...DEFAULT_REVIEW_CONFIG, ...(panel.reviewConfig ?? {}) };
+    let patch: Partial<typeof current> = {};
+
+    switch (field) {
+      case 'enabled':          patch = { enabled:          !current.enabled };          break;
+      case 'requireComment':   patch = { requireComment:   !current.requireComment };   break;
+      case 'anonymousReviews': patch = { anonymousReviews: !current.anonymousReviews }; break;
+      default:
+        logger.warning(`[TPD][RV] Unknown toggle field: ${field}`);
+        break;
+    }
+
+    await panelManager.update(panelId, { reviewConfig: { ...current, ...patch } });
+    const updated = await panelManager.get(panelId);
+    await this.nav(interaction, buildReviewSection(updated ?? panel));
+  }
+
+  private async showRVEditModal(interaction: ButtonInteraction, guild: Guild, panelId: string, field: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) {
+      await interaction.reply({ content: '❌ Panel not found.', flags: MessageFlags.Ephemeral });
+      return;
+    }
+    switch (field) {
+      case 'logChannel': await interaction.showModal(buildReviewLogChannelModal(panel)); break;
+      case 'dmMessage':  await interaction.showModal(buildReviewDMMessageModal(panel));  break;
+      default:
+        await interaction.reply({ content: `❌ Unknown review field: ${field}`, flags: MessageFlags.Ephemeral });
+    }
+  }
+
+  private async handleRVModal(interaction: ModalSubmitInteraction, guild: Guild, panelId: string, field: string): Promise<void> {
+    const panel = await panelManager.get(panelId);
+    if (!panel || panel.guildId !== guild.id) {
+      await this.navReply(interaction, buildFeedback(false, 'Panel not found.'));
+      return;
+    }
+
+    const current = { ...DEFAULT_REVIEW_CONFIG, ...(panel.reviewConfig ?? {}) };
+
+    try {
+      switch (field) {
+        case 'logChannel': {
+          const raw = getField(interaction, 'channelId');
+          const channelId = raw.trim() || undefined;
+          // Validate if provided
+          if (channelId && !/^\d{17,20}$/.test(channelId)) {
+            await this.navReply(interaction, buildFeedback(false, 'Invalid channel ID — paste a raw Discord channel ID (17–20 digits).', panelId));
+            return;
+          }
+          await panelManager.update(panelId, { reviewConfig: { ...current, logChannelId: channelId } });
+          break;
+        }
+        case 'dmMessage': {
+          const dmMessage = getField(interaction, 'dmMessage', true).trim();
+          if (!dmMessage) {
+            await this.navReply(interaction, buildFeedback(false, 'DM message cannot be blank.', panelId));
+            return;
+          }
+          await panelManager.update(panelId, { reviewConfig: { ...current, dmMessage } });
+          break;
+        }
+        default:
+          await this.navReply(interaction, buildFeedback(false, `Unknown review field: ${field}`, panelId));
+          return;
+      }
+    } catch (err) {
+      await this.navReply(interaction, buildFeedback(false, err instanceof Error ? err.message : 'Unexpected error.', panelId));
+      return;
+    }
+
+    const updated = await panelManager.get(panelId);
+    await this.navReply(interaction, buildReviewSection(updated ?? panel));
   }
 
   private async handleTTReset(interaction: ButtonInteraction, guild: Guild, panelId: string, ref: TicketEntryRef, section: string): Promise<void> {
@@ -1056,6 +1178,16 @@ export class TicketPanelDesigner {
     if (id.startsWith('tp:frm:prevmodal:')) {
       const [panelId, formId] = id.slice('tp:frm:prevmodal:'.length).split(':');
       await this.handleFrmPreviewSubmit(interaction, guild, panelId, formId);
+      return;
+    }
+
+    // Review System modal submits (tp:rv:modal:*)
+    if (id.startsWith('tp:rv:modal:')) {
+      const rest    = id.slice('tp:rv:modal:'.length);
+      const colon   = rest.indexOf(':');
+      const panelId = rest.slice(0, colon);
+      const field   = rest.slice(colon + 1);
+      await this.handleRVModal(interaction, guild, panelId, field);
       return;
     }
 

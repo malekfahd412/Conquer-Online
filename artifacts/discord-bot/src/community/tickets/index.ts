@@ -14,6 +14,9 @@ import {
   ButtonStyle,
   ComponentType,
   AttachmentBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
   ButtonInteraction,
   ChatInputCommandInteraction,
   type ActionRow,
@@ -24,6 +27,7 @@ import {
   type MessageActionRowComponent,
   type ModalSubmitInteraction,
   type StringSelectMenuInteraction,
+  type TextBasedChannel,
   type TextChannel,
 } from 'discord.js';
 import { runMigration } from './migration';
@@ -39,8 +43,10 @@ import { namingEngine, NamingEngine } from './naming-engine';
 import { categoryEngine, CategoryEngine } from './category-engine';
 import { transcriptEngine, TranscriptEngine } from './transcript-engine';
 import { genId } from './store';
-import type { TicketForm, TicketPanel, TicketPriority, TicketRecord } from './types';
-import { getEntry, entryRefForTicketType, resolveTicketType } from './types';
+import type { TicketForm, TicketPanel, TicketPriority, TicketRecord, TicketReviewRecord, ReviewConfig } from './types';
+import { getEntry, entryRefForTicketType, resolveTicketType, DEFAULT_REVIEW_CONFIG } from './types';
+import { reviewEngine, STAR_LABELS } from './review-engine';
+import { slaEngine } from './sla-engine';
 import { logger } from '../../utils/logger';
 
 export * from './types';
@@ -70,10 +76,13 @@ class TicketSystem {
   private sweepHandle?: NodeJS.Timeout;
   private flowSweepHandle?: NodeJS.Timeout;
   private weeklyStatsHandle?: NodeJS.Timeout;
+  private slaSweepHandle?: NodeJS.Timeout;
   /** Tracks the last time a weekly stats embed was posted per panel, so we never double-post. */
   private readonly lastWeeklyPost = new Map<string, number>();
   /** In-memory state for multi-form chains (a form's `nextRules` can route to another form before a ticket is created). */
   private readonly pendingFlows = new Map<string, PendingFormFlow>();
+  /** Pending ratings from star-button clicks; keyed `<ticketId>:<userId>`, cleared on modal submit or TTL. */
+  private readonly pendingReviews = new Map<string, 1 | 2 | 3 | 4 | 5>();
 
   async init(client: Client): Promise<void> {
     this.client = client;
@@ -86,8 +95,11 @@ class TicketSystem {
       automationEngine.ensureFile(),
       transcriptEngine.ensureFile(),
       answerEngine.ensureFile(),
+      slaEngine.ensureFile(),
+      reviewEngine.ensureFile(),
     ]);
     this.sweepHandle = automationEngine.createInactivitySweeper(ticketId => this.runTicketAutomation(ticketId));
+    this.slaSweepHandle = slaEngine.createSweeper(client);
     this.weeklyStatsHandle = setInterval(() => this.runWeeklyStatsCheck().catch(err => logger.warning('[TICKETS] Weekly stats check failed', err)), 60 * 60_000);
     this.flowSweepHandle = setInterval(() => {
       const cutoff = Date.now() - FLOW_TTL_MS;
@@ -95,13 +107,14 @@ class TicketSystem {
         if (flow.startedAt < cutoff) this.pendingFlows.delete(id);
       }
     }, 5 * 60 * 1000);
-    logger.success('[TICKETS] Ticket System Pro online — 11 engines wired (naming, category, permission, question, answer, transcript, automation, statistics, template, panel, ticket).');
+    logger.success('[TICKETS] Ticket System Pro online — 13 engines wired (naming, category, permission, question, answer, transcript, automation, statistics, template, panel, ticket, sla, review).');
   }
 
   shutdown(): void {
     if (this.sweepHandle) clearInterval(this.sweepHandle);
     if (this.flowSweepHandle) clearInterval(this.flowSweepHandle);
     if (this.weeklyStatsHandle) clearInterval(this.weeklyStatsHandle);
+    if (this.slaSweepHandle) clearInterval(this.slaSweepHandle);
   }
 
   /** Which TicketForm (if any) a given ticket-opening button/select-option starts. Falls back to the legacy `modal` when unset. */
@@ -598,6 +611,13 @@ class TicketSystem {
       if (sent) await ticketEngine.setLastLifecycleMessageId(ticket.id, sent.id);
     }
     if (!isButton) await interaction.editReply({ content: '🔒 Ticket closed.' }).catch(() => {});
+
+    // Review System: non-blocking DM to opener after close
+    if (this.client) {
+      reviewEngine.sendReviewDM(this.client, ticket, rawPanel).catch(err =>
+        logger.warning('[REVIEW] Failed to send review DM', err),
+      );
+    }
   }
 
   private async reopenTicket(interaction: ButtonInteraction | ChatInputCommandInteraction, guild: Guild, ticketId: string): Promise<void> {
@@ -867,6 +887,219 @@ class TicketSystem {
       )
       .setFooter({ text: `Ticket ID: ${ticket.id} • Panel: ${panel.name}` });
     await interaction.reply({ embeds: [embed], ephemeral: true });
+  }
+
+  // ── Review System Pro ─────────────────────────────────────────────────────
+  //
+  // These handlers run in DM context (no guild), so they are NOT gated by
+  // `interaction.guild`. They must be routed BEFORE the generic `tk:*` block
+  // in ai.service.ts which silently drops non-guild interactions.
+
+  /**
+   * Handles `tk:review:rate:<ticketId>:<rating>` button clicks (in DMs).
+   * Validates ownership + dedup, then shows the comment modal.
+   */
+  async handleReviewInteraction(interaction: ButtonInteraction): Promise<void> {
+    try {
+      const parts = interaction.customId.split(':');
+      const ticketId = parts[3];
+      const rating = parseInt(parts[4], 10) as 1 | 2 | 3 | 4 | 5;
+
+      if (rating < 1 || rating > 5) {
+        await interaction.reply({ content: '❌ Invalid rating.', ephemeral: true });
+        return;
+      }
+
+      const ticket = await ticketEngine.getById(ticketId);
+      if (!ticket) {
+        await interaction.reply({ content: '❌ This ticket no longer exists.', ephemeral: true });
+        return;
+      }
+      if (ticket.openerId !== interaction.user.id) {
+        await interaction.reply({ content: '❌ Only the ticket opener can submit a review.', ephemeral: true });
+        return;
+      }
+      if (await reviewEngine.hasReviewed(ticketId, interaction.user.id)) {
+        await interaction.reply({ content: '❌ You have already submitted a review for this ticket.', ephemeral: true });
+        return;
+      }
+
+      const rawPanel = await panelManager.get(ticket.panelId);
+      const cfg = rawPanel ? { ...DEFAULT_REVIEW_CONFIG, ...(rawPanel.reviewConfig ?? {}) } : DEFAULT_REVIEW_CONFIG;
+
+      // Store rating in memory between button click and modal submit
+      const pendingKey = `${ticketId}:${interaction.user.id}`;
+      this.pendingReviews.set(pendingKey, rating);
+
+      // Encode the DM message location in the modal customId so we can edit it after submit
+      const messageId  = interaction.message.id;
+      const channelId  = interaction.channelId;
+
+      const modal = new ModalBuilder()
+        .setCustomId(`tk:review:modal:${ticketId}:${channelId}:${messageId}`)
+        .setTitle(`You rated: ${STAR_LABELS[rating - 1]}`)
+        .addComponents(
+          new ActionRowBuilder<TextInputBuilder>().addComponents(
+            new TextInputBuilder()
+              .setCustomId('comment')
+              .setLabel(cfg.requireComment ? 'Your comment (required)' : 'Leave a comment (optional)')
+              .setStyle(TextInputStyle.Paragraph)
+              .setPlaceholder('Tell us about your experience…')
+              .setRequired(cfg.requireComment)
+              .setMaxLength(1000),
+          ),
+        );
+
+      await interaction.showModal(modal);
+    } catch (err) {
+      logger.error('[REVIEW] handleReviewInteraction error', err);
+      try {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: '❌ An error occurred processing your rating.', ephemeral: true });
+        }
+      } catch { /* ignore double-reply errors */ }
+    }
+  }
+
+  /**
+   * Handles `tk:review:modal:<ticketId>:<channelId>:<messageId>` modal submits (in DMs).
+   * Records the review, disables the star buttons, and posts the log embed.
+   */
+  async handleReviewModal(interaction: ModalSubmitInteraction): Promise<void> {
+    try {
+      const parts     = interaction.customId.split(':');
+      const ticketId  = parts[3];
+      const channelId = parts[4];
+      const messageId = parts[5];
+
+      const pendingKey = `${ticketId}:${interaction.user.id}`;
+      const rating     = this.pendingReviews.get(pendingKey);
+      this.pendingReviews.delete(pendingKey);
+
+      if (!rating) {
+        await interaction.reply({ content: '❌ Your rating session expired — please click a star again.', ephemeral: true });
+        return;
+      }
+
+      // Race-condition guard: check again after acquiring rating
+      if (await reviewEngine.hasReviewed(ticketId, interaction.user.id)) {
+        await interaction.reply({ content: '❌ You have already submitted a review for this ticket.', ephemeral: true });
+        return;
+      }
+
+      const ticket = await ticketEngine.getById(ticketId);
+      if (!ticket) {
+        await interaction.reply({ content: '❌ This ticket no longer exists.', ephemeral: true });
+        return;
+      }
+
+      let comment: string | undefined;
+      try {
+        const raw = interaction.fields.getTextInputValue('comment').trim();
+        if (raw) comment = raw;
+      } catch { /* field absent is fine — optional */ }
+
+      const rawPanel = await panelManager.get(ticket.panelId);
+      const cfg      = rawPanel ? { ...DEFAULT_REVIEW_CONFIG, ...(rawPanel.reviewConfig ?? {}) } : DEFAULT_REVIEW_CONFIG;
+
+      const review = reviewEngine.buildRecord({
+        ticket,
+        openerId:  interaction.user.id,
+        rating:    rating as 1 | 2 | 3 | 4 | 5,
+        comment,
+        anonymous: cfg.anonymousReviews,
+      });
+      await reviewEngine.save(review);
+
+      // Acknowledge the modal to the user
+      await interaction.reply({ content: `✅ Thank you for your feedback! You rated: **${STAR_LABELS[rating - 1]}**`, ephemeral: true });
+
+      // Edit the original DM message: disable all star buttons + swap embed to a "thanks" state
+      try {
+        const ch  = await interaction.client.channels.fetch(channelId).catch(() => null);
+        if (ch?.isTextBased()) {
+          const msg = await (ch as TextBasedChannel).messages.fetch(messageId).catch(() => null);
+          if (msg) {
+            const thanksEmbed = new EmbedBuilder()
+              .setColor(0x57f287)
+              .setTitle('✅ Review Submitted')
+              .setDescription(`Thank you for your feedback!\n\nYou rated ticket **#${ticket.number}**: **${STAR_LABELS[rating - 1]}**`)
+              .setTimestamp();
+            const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+              ...[1, 2, 3, 4, 5].map(n =>
+                new ButtonBuilder()
+                  .setCustomId(`tk:review:rate:${ticketId}:${n}`)
+                  .setLabel(STAR_LABELS[n - 1])
+                  .setStyle(n === rating ? ButtonStyle.Success : ButtonStyle.Secondary)
+                  .setDisabled(true),
+              ),
+            );
+            await msg.edit({ embeds: [thanksEmbed], components: [disabledRow] });
+          }
+        }
+      } catch (editErr) {
+        logger.warning('[REVIEW] Could not edit DM message after review submit', editErr);
+      }
+
+      // Post to log channel (non-blocking)
+      if (cfg.logChannelId && this.client) {
+        this.postReviewLog(review, cfg).catch(err =>
+          logger.warning('[REVIEW] Failed to post review log', err),
+        );
+      }
+    } catch (err) {
+      logger.error('[REVIEW] handleReviewModal error', err);
+      try {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: '❌ An error occurred saving your review.', ephemeral: true });
+        }
+      } catch { /* ignore */ }
+    }
+  }
+
+  /** Posts the review log embed to the configured log channel. */
+  private async postReviewLog(review: TicketReviewRecord, cfg: ReviewConfig): Promise<void> {
+    if (!this.client || !cfg.logChannelId) return;
+    const guild = await this.client.guilds.fetch(review.guildId).catch(() => null);
+    if (!guild) return;
+    const ch = await guild.channels.fetch(cfg.logChannelId).catch(() => null);
+    if (!ch?.isTextBased()) return;
+
+    const fmtMs = (ms?: number): string => {
+      if (!ms || ms <= 0) return '_N/A_';
+      const secs = Math.round(ms / 1000);
+      if (secs < 60) return `${secs}s`;
+      const mins = Math.floor(secs / 60);
+      if (mins < 60) return `${mins}m ${secs % 60}s`;
+      const hours = Math.floor(mins / 60);
+      return `${hours}h ${mins % 60}m`;
+    };
+
+    const ratingColor = review.rating >= 4 ? 0x57f287 : review.rating >= 3 ? 0xfee75c : 0xed4245;
+
+    const embed = new EmbedBuilder()
+      .setColor(ratingColor)
+      .setTitle(`⭐ New Review — Ticket #${review.ticketNumber}`)
+      .addFields(
+        { name: '👤 User',              value: review.anonymous ? '_Anonymous_' : `<@${review.openerId}>`,       inline: true },
+        { name: '🎫 Ticket',            value: `#${review.ticketNumber}`,                                        inline: true },
+        { name: '🏷️ Ticket Type',       value: review.ticketType,                                                inline: true },
+        { name: '⭐ Rating',            value: STAR_LABELS[review.rating - 1],                                   inline: true },
+        { name: '🙋 Claimed By',        value: review.claimedBy ? `<@${review.claimedBy}>` : '_Unclaimed_',     inline: true },
+        { name: '🔒 Closed By',         value: review.closedBy  ? `<@${review.closedBy}>` : '_Unknown_',        inline: true },
+        { name: '⏱ Response Time',      value: fmtMs(review.responseTimeMs),                                     inline: true },
+        { name: '✅ Resolution Time',    value: fmtMs(review.resolutionTimeMs),                                   inline: true },
+        { name: '📅 Review Submitted',   value: `<t:${Math.floor(review.reviewedAt / 1000)}:R>`,                 inline: true },
+      )
+      .setTimestamp(review.reviewedAt)
+      .setFooter({ text: `Ticket ID: ${review.ticketId} · Panel ID: ${review.panelId}` });
+
+    if (review.comment) {
+      embed.addFields({ name: '💬 Comment', value: review.comment.slice(0, 1024), inline: false });
+    }
+
+    await (ch as TextChannel).send({ embeds: [embed] });
+    logger.info(`[REVIEW] Posted log for ticket #${review.ticketNumber} (rating ${review.rating}★)`);
   }
 
   private async replyError(interaction: ButtonInteraction | ModalSubmitInteraction | StringSelectMenuInteraction | ChatInputCommandInteraction): Promise<void> {

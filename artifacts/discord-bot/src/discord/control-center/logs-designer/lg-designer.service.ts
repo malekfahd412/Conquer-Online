@@ -8,6 +8,7 @@ import {
 import type {
   ButtonInteraction,
   StringSelectMenuInteraction,
+  RoleSelectMenuInteraction,
   ModalSubmitInteraction,
   Guild,
   TextChannel,
@@ -29,6 +30,7 @@ import {
   buildLogsDashboard,
   buildCategoryView,
   buildLogTypeDetail,
+  buildRolePickerView,
   buildSetChannelModal,
   buildSetColorModal,
   buildSetMentionsModal,
@@ -74,6 +76,7 @@ export class LogsDesignerService {
 
     try {
       if (interaction.isButton())               await this.routeButton(interaction, guild);
+      else if (interaction.isRoleSelectMenu())  await this.routeRoleSelect(interaction, guild);
       else if (interaction.isStringSelectMenu()) await this.routeSelect(interaction, guild);
       else if (interaction.isModalSubmit())      await this.routeModal(interaction, guild);
     } catch (err) {
@@ -119,11 +122,45 @@ export class LogsDesignerService {
         break;
       }
       case 'setmentions': {
+        // Legacy modal-based mention setter — still supported for compat
         if (parts[2] !== 'm') {
           const type = tail as LogType;
           const cfg  = await getGuildLogConfig(guild.id);
           await interaction.showModal(buildSetMentionsModal(type, cfg.types[type]?.mentionRoles));
         }
+        break;
+      }
+      case 'setmenrole': {
+        // New native role-picker view — replaces the message with a RoleSelectMenu
+        if (parts[2] !== 's') {
+          const type    = tail as LogType;
+          const cfg     = await getGuildLogConfig(guild.id);
+          const payload = buildRolePickerView(type, cfg.types[type]?.mentionRoles);
+          await interaction.deferUpdate();
+          await interaction.editReply(payload);
+        }
+        break;
+      }
+      case 'clrmenrole': {
+        const type = tail as LogType;
+        await setTypeConfig(guild.id, type, { mentionRoles: [] });
+        logger.info(`[Logs] ${type} mentionRoles cleared for guild ${guild.id}`);
+        const cfg     = await getGuildLogConfig(guild.id);
+        const payload = buildLogTypeDetail(type, cfg);
+        await interaction.deferUpdate();
+        await interaction.editReply(payload);
+        break;
+      }
+      case 'togglecritical': {
+        const type       = tail as LogType;
+        const cfg        = await getGuildLogConfig(guild.id);
+        const next       = !(cfg.types[type]?.mentionCriticalOnly ?? false);
+        await setTypeConfig(guild.id, type, { mentionCriticalOnly: next });
+        logger.info(`[Logs] ${type} mentionCriticalOnly → ${next} for guild ${guild.id}`);
+        const updated    = await getGuildLogConfig(guild.id);
+        const payload    = buildLogTypeDetail(type, updated);
+        await interaction.deferUpdate();
+        await interaction.editReply(payload);
         break;
       }
       case 'setignoreu': {
@@ -144,6 +181,26 @@ export class LogsDesignerService {
       }
       default:
         await this.showDashboard(interaction, guild);
+    }
+  }
+
+  // ── Role Select Menu ───────────────────────────────────────────────────────
+
+  private async routeRoleSelect(
+    interaction: RoleSelectMenuInteraction,
+    guild: Guild,
+  ): Promise<void> {
+    const id = interaction.customId;
+    // lg:setmenrole:s:<type>  — role picker submit
+    if (id.startsWith('lg:setmenrole:s:')) {
+      const type         = id.slice('lg:setmenrole:s:'.length) as LogType;
+      const mentionRoles = interaction.values; // array of selected role IDs (0–5)
+      await setTypeConfig(guild.id, type, { mentionRoles });
+      logger.info(`[Logs] ${type} mentionRoles (picker) → [${mentionRoles.join(',')}] for guild ${guild.id}`);
+      const cfg     = await getGuildLogConfig(guild.id);
+      const payload = buildLogTypeDetail(type, cfg);
+      await interaction.deferUpdate();
+      await interaction.editReply(payload);
     }
   }
 

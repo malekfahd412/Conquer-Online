@@ -1,0 +1,57 @@
+{
+  "reviews": [
+    {
+      "id": "rev_1783887038627_u7etm",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1783886962039_wj2ly",
+      "ticketNumber": 7,
+      "ticketType": "store",
+      "openerId": "727578927593291796",
+      "closedBy": "727578927593291796",
+      "rating": 5,
+      "comment": "Test",
+      "anonymous": true,
+      "resolutionTimeMs": 6978,
+      "reviewedAt": 1783887038627,
+      "ticketCreatedAt": 1783886962275,
+      "ticketClosedAt": 1783886969253
+    },
+    {
+      "id": "rev_1783896010979_7ftit",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1783895951242_mttq7",
+      "ticketNumber": 8,
+      "ticketType": "support",
+      "openerId": "727578927593291796",
+      "claimedBy": "727578927593291796",
+      "closedBy": "727578927593291796",
+      "rating": 2,
+      "comment": "Fuck",
+      "anonymous": false,
+      "responseTimeMs": 8982,
+      "resolutionTimeMs": 26147,
+      "reviewedAt": 1783896010979,
+      "ticketCreatedAt": 1783895951582,
+      "ticketClosedAt": 1783895977729
+    },
+    {
+      "id": "rev_1783898481739_d73yv",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1783898450541_2i1cu",
+      "ticketNumber": 9,
+      "ticketType": "Staff",
+      "openerId": "727578927593291796",
+      "closedBy": "727578927593291796",
+      "rating": 1,
+      "comment": "sss",
+      "anonymous": false,
+      "resolutionTimeMs": 4565,
+      "reviewedAt": 1783898481739,
+      "ticketCreatedAt": 1783898450761,
+      "ticketClosedAt": 1783898455326
+    }
+  ]
+}

@@ -251,6 +251,14 @@ export class ControlCenterService {
             .setLabel('🎨 Ticket Panel Designer')
             .setCustomId('tp:list')
             .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setLabel('📈 Ticket SLA')
+            .setCustomId('sla:home')
+            .setStyle(ButtonStyle.Success),
+          new ButtonBuilder()
+            .setLabel('⭐ Review Analytics')
+            .setCustomId('ra:home')
+            .setStyle(ButtonStyle.Secondary),
         ),
       );
     }
@@ -289,6 +297,16 @@ export class ControlCenterService {
             .setLabel('👮 Staff Management Pro')
             .setCustomId('sm:dash')
             .setStyle(ButtonStyle.Primary),
+        ),
+      );
+    }
+    if (category === 'security') {
+      payload.components.push(
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setLabel('🛡️ Security Center')
+            .setCustomId('sc:home')
+            .setStyle(ButtonStyle.Danger),
         ),
       );
     }

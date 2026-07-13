@@ -38,6 +38,11 @@ import { VoiceDiagnostics } from '../voice/VoiceDiagnostics';
 import type { VoicePersonality } from '../voice/VoiceConversation';
 import type { VoiceModuleConfig } from '../config/config';
 import { logger } from '../utils/logger';
+import { slaDesigner, isSLAInteraction } from '../discord/control-center/sla-designer';
+import { reviewAnalyticsDesigner, isRAInteraction, securityCenterDesigner, isSCInteraction } from '../discord/control-center';
+import { SecurityGuard } from '../discord/security/security-guard';
+import { CompanionService } from '../companion/companion.service';
+import { FRIENDSHIP_LABELS, FRIENDSHIP_EMOJIS } from '../companion/companion-store';
 
 export interface AIConfig {
   serverName: string;
@@ -75,6 +80,8 @@ export class AIService {
   private readonly modDashboard: ModDashboardService;
   private readonly staffDashboard: StaffDashboardService;
   private voiceManager: VoiceManager | null = null;
+  private readonly companionService: CompanionService;
+  private readonly securityGuard: SecurityGuard;
 
   constructor(private readonly config: AIConfig) {
     this.permissionManager = new PermissionManager(config.adminRole);
@@ -125,6 +132,8 @@ export class AIService {
 
   start(client: Client): void {
     ticketSystem.init(client).catch(err => logger.error('[TICKETS] Ticket System Pro failed to initialize', err));
+    this.companionService.ensureStore().catch(err => logger.warning('[COMPANION] Failed to initialize store', err));
+    this.securityGuard.start(client);
 
     client.on('messageCreate', message => {
       this.onMessage(message, client).catch(error => {
@@ -197,6 +206,12 @@ export class AIService {
           }
           ticketSystem.handleSlashCommand(ticketInteraction, ticketInteraction.guild).catch(err =>
             logger.error('Ticket slash command error', err),
+          );
+          return;
+        }
+        if (name === 'chat') {
+          this.onChatCommand(interaction as ChatInputCommandInteraction).catch(err =>
+            logger.error('Chat companion command error', err),
           );
           return;
         }
@@ -285,6 +300,7 @@ export class AIService {
       // ── Logs Designer interactions (lg:* custom IDs) ───────────────────────
       if (
         (interaction.isButton() && isLGInteraction(interaction.customId)) ||
+        (interaction.isRoleSelectMenu() && isLGInteraction(interaction.customId)) ||
         (interaction.isStringSelectMenu() && isLGInteraction(interaction.customId)) ||
         (interaction.isModalSubmit() && isLGInteraction(interaction.customId))
       ) {
@@ -748,10 +764,38 @@ export class AIService {
 
     const inAiChannel = this.config.chatChannelId ? message.channelId === this.config.chatChannelId : false;
     const mentionsBot = message.mentions.has(botUser.id);
-    if (!inAiChannel && !mentionsBot) return;
+    const inCompanionChannel = this.companionService.isCompanionChannel(message.channelId);
+
+    // Check if this is a reply to a bot message (lazy — only checked if relevant)
+    let isReplyToBot = false;
+    if (!inAiChannel && !mentionsBot && message.reference?.messageId) {
+      try {
+        const ref = await (message.channel as GuildTextBasedChannel).messages.fetch(message.reference.messageId);
+        isReplyToBot = ref.author.id === botUser.id;
+      } catch { /* not critical */ }
+    }
+
+    if (!inAiChannel && !mentionsBot && !inCompanionChannel && !isReplyToBot) return;
 
     const member = message.member ?? await message.guild.members.fetch(message.author.id);
-    if (!this.permissionManager.isAdmin(member)) return;
+    const isAdmin = this.permissionManager.isAdmin(member);
+
+    // Non-admin path → always companion
+    if (!isAdmin) {
+      if (mentionsBot || inCompanionChannel || isReplyToBot) {
+        await this.processCompanion(message, botUser.id);
+      }
+      return;
+    }
+
+    // Admin + companion channel or reply to bot (but NOT the AI channel) → companion
+    if (!inAiChannel && !mentionsBot && (inCompanionChannel || isReplyToBot)) {
+      await this.processCompanion(message, botUser.id);
+      return;
+    }
+
+    // Admin AI path (requires admin + AI channel or admin mentioning bot)
+    if (!inAiChannel && !mentionsBot) return;
 
     const content = message.content
       .replace(`<@${botUser.id}>`, '')
@@ -826,6 +870,82 @@ export class AIService {
       logger.error('AI execution error', error);
       const errMsg = error instanceof Error ? error.message : 'Unknown error';
       await message.reply(`❌ An error occurred: ${errMsg}`).catch(() => {});
+    }
+  }
+
+  // ── Companion Mode ────────────────────────────────────────────────────────
+
+  /** Handles a message-based companion trigger (mention, reply, or companion channel). */
+  private async processCompanion(message: Message, botUserId: string): Promise<void> {
+    const content = message.content
+      .replace(`<@${botUserId}>`, '')
+      .replace(`<@!${botUserId}>`, '')
+      .trim();
+    if (!content || !message.guild) return;
+
+    try {
+      if (message.channel.isTextBased()) {
+        await (message.channel as GuildTextBasedChannel).sendTyping().catch(() => {});
+      }
+      const reply = await this.companionService.chat(message.author.id, message.guild.id, content);
+      await message.reply(reply).catch(() => message.channel.send(reply).catch(() => {}));
+    } catch (err) {
+      logger.error('[COMPANION] processCompanion error', err);
+      await message.reply("Sorry, I got confused for a second 😅 Try again?").catch(() => {});
+    }
+  }
+
+  /** Handles the /chat slash command (talk, reset, profile subcommands). */
+  private async onChatCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used inside a server.', ephemeral: true });
+      return;
+    }
+
+    const sub = interaction.options.getSubcommand();
+    const userId = interaction.user.id;
+    const guildId = interaction.guild.id;
+
+    if (sub === 'talk') {
+      const userMessage = interaction.options.getString('message', true);
+      await interaction.deferReply();
+      try {
+        const reply = await this.companionService.chat(userId, guildId, userMessage);
+        await interaction.editReply(reply);
+      } catch (err) {
+        logger.error('[COMPANION] /chat talk error', err);
+        await interaction.editReply("Something went wrong on my end 😅 Give it another try!").catch(() => {});
+      }
+
+    } else if (sub === 'reset') {
+      await this.companionService.reset(userId, guildId);
+      await interaction.reply({ content: "🧹 Our conversation has been reset! Starting fresh 😊", ephemeral: true });
+
+    } else if (sub === 'profile') {
+      const profile = await this.companionService.getProfile(userId, guildId);
+      const levelEmoji = FRIENDSHIP_EMOJIS[profile.friendshipLevel];
+      const levelLabel = FRIENDSHIP_LABELS[profile.friendshipLevel];
+
+      const embed = new EmbedBuilder()
+        .setColor(0x5865f2)
+        .setTitle(`${levelEmoji} Your Companion Profile`)
+        .addFields(
+          { name: '💙 Friendship Level', value: `**${levelLabel}** (${profile.conversationCount} conversation${profile.conversationCount !== 1 ? 's' : ''})`, inline: true },
+          { name: '🎮 Games', value: profile.favoriteGames.length ? profile.favoriteGames.map(g => `• ${g}`).join('\n') : '_None yet_', inline: true },
+          { name: '⭐ Interests', value: profile.interests.length ? profile.interests.map(i => `• ${i}`).join('\n') : '_None yet_', inline: true },
+          { name: '📝 Things I Remember', value: profile.memorandums.length ? profile.memorandums.slice(0, 5).map(m => `• ${m}`).join('\n') : '_Nothing yet_', inline: false },
+        );
+
+      if (profile.nickname) {
+        embed.setDescription(`I know you as **${profile.nickname}** 👋`);
+      }
+      if (profile.lastSeenAt) {
+        embed.setFooter({ text: `Last chat: ${new Date(profile.lastSeenAt).toLocaleDateString()}` });
+      }
+
+      await interaction.reply({ embeds: [embed], ephemeral: true });
+    } else {
+      await interaction.reply({ content: 'Use `/chat talk <message>`, `/chat reset`, or `/chat profile`.', ephemeral: true });
     }
   }
 

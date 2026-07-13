@@ -5,6 +5,7 @@ import {
   ButtonStyle,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
+  RoleSelectMenuBuilder,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -12,6 +13,7 @@ import {
 import {
   LOG_CATEGORIES,
   LOG_TYPE_META,
+  CRITICAL_LOG_TYPES,
   getCategoryForType,
   type LogType,
   type GuildLogConfig,
@@ -22,7 +24,8 @@ import { CC } from '../cc-ids';
 
 type AnyRow =
   | ActionRowBuilder<ButtonBuilder>
-  | ActionRowBuilder<StringSelectMenuBuilder>;
+  | ActionRowBuilder<StringSelectMenuBuilder>
+  | ActionRowBuilder<RoleSelectMenuBuilder>;
 
 export interface LGPayload {
   content: string;
@@ -191,11 +194,18 @@ export function buildLogTypeDetail(type: LogType, cfg: GuildLogConfig): LGPayloa
   }
 
   // Format setting values for display
-  const colorVal   = typeCfg.color !== undefined ? colorHex(typeCfg.color) : '_Default_';
-  const mentionsVal = roleList(typeCfg.mentionRoles);
-  const ignUsersVal = idList(typeCfg.ignoreUsers);
-  const ignRolesVal = roleList(typeCfg.ignoreRoles);
-  const ignBotsVal  = typeCfg.ignoreBots ? '✅ Yes' : '❌ No';
+  const colorVal       = typeCfg.color !== undefined ? colorHex(typeCfg.color) : '_Default_';
+  const mentionsVal    = roleList(typeCfg.mentionRoles);
+  const ignUsersVal    = idList(typeCfg.ignoreUsers);
+  const ignRolesVal    = roleList(typeCfg.ignoreRoles);
+  const ignBotsVal     = typeCfg.ignoreBots ? '✅ Yes' : '❌ No';
+  const criticalOnly   = typeCfg.mentionCriticalOnly ?? false;
+  const isCriticalType = CRITICAL_LOG_TYPES.has(type);
+  const hasMentions    = Boolean(typeCfg.mentionRoles?.length);
+
+  const criticalFieldValue = criticalOnly
+    ? `✅ Yes — pings only for critical events${!isCriticalType ? '\n⚠️ This type is *not* critical — role will be suppressed' : ''}`
+    : '❌ No — pings for all events';
 
   const canTest = isEnabled && (
     typeCfg.channelId !== undefined ||
@@ -207,21 +217,24 @@ export function buildLogTypeDetail(type: LogType, cfg: GuildLogConfig): LGPayloa
     .setTitle(`${meta.emoji} ${meta.label}`)
     .setDescription(meta.description)
     .addFields(
-      { name: '🔘 Status',          value: isEnabled ? '✅ Enabled' : '❌ Disabled', inline: true },
+      { name: '🔘 Status',          value: isEnabled ? '✅ Enabled' : '❌ Disabled',             inline: true },
       { name: '📢 Channel',         value: typeCfg.channelId ? `<#${typeCfg.channelId}>` : '_not set_', inline: true },
-      { name: '🎨 Embed Color',     value: colorVal, inline: true },
-      { name: '🤖 Ignore Bots',     value: ignBotsVal, inline: true },
-      { name: '🔔 Mention Roles',   value: mentionsVal, inline: true },
-      { name: '🚫 Ignore Users',    value: ignUsersVal, inline: true },
-      { name: '🔇 Ignore Roles',    value: ignRolesVal, inline: true },
-      { name: '📌 Routing',         value: routingDesc, inline: false },
+      { name: '🎨 Embed Color',     value: colorVal,                                              inline: true },
+      { name: '🤖 Ignore Bots',     value: ignBotsVal,                                            inline: true },
+      { name: '🔔 Mention Role',    value: mentionsVal,                                           inline: true },
+      { name: '🚨 Critical Only',   value: criticalFieldValue,                                    inline: true },
+      { name: '🚫 Ignore Users',    value: ignUsersVal,                                           inline: true },
+      { name: '🔇 Ignore Roles',    value: ignRolesVal,                                           inline: true },
+      { name: '📌 Routing',         value: routingDesc,                                           inline: false },
     )
     .setFooter({ text: 'All changes save instantly • Use Test Log to verify the channel' });
 
-  const toggleLabel = isEnabled ? '❌ Disable' : '✅ Enable';
-  const toggleStyle = isEnabled ? ButtonStyle.Danger : ButtonStyle.Success;
-  const botsLabel   = typeCfg.ignoreBots ? '🤖 Bots: OFF' : '🤖 Bots: ON';
-  const botsStyle   = typeCfg.ignoreBots ? ButtonStyle.Danger : ButtonStyle.Secondary;
+  const toggleLabel   = isEnabled ? '❌ Disable' : '✅ Enable';
+  const toggleStyle   = isEnabled ? ButtonStyle.Danger : ButtonStyle.Success;
+  const botsLabel     = typeCfg.ignoreBots ? '🤖 Bots: OFF' : '🤖 Bots: ON';
+  const botsStyle     = typeCfg.ignoreBots ? ButtonStyle.Danger : ButtonStyle.Secondary;
+  const criticalLabel = criticalOnly ? '🚨 Critical: ON' : '🚨 Critical: OFF';
+  const criticalStyle = criticalOnly ? ButtonStyle.Danger : ButtonStyle.Secondary;
 
   // Row 1: core enable/channel controls
   const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -231,11 +244,13 @@ export function buildLogTypeDetail(type: LogType, cfg: GuildLogConfig): LGPayloa
     btn(botsLabel,         LG.toggleBots(type),  botsStyle),
   );
 
-  // Row 2: ignore / mention controls
+  // Row 2: mention role + ignore controls (5 buttons max)
   const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    btn('🔔 Mention Roles',  LG.setmentions(type), ButtonStyle.Secondary),
-    btn('🚫 Ignore Users',   LG.setignoreu(type),  ButtonStyle.Secondary),
-    btn('🔇 Ignore Roles',   LG.setignorer(type),  ButtonStyle.Secondary),
+    btn('🔔 Set Mention Role', LG.setmenrole(type),     ButtonStyle.Primary),
+    btn('🗑 Clear Mention',    LG.clrmenrole(type),     ButtonStyle.Danger, !hasMentions),
+    btn(criticalLabel,          LG.togglecritical(type), criticalStyle),
+    btn('🚫 Ignore Users',     LG.setignoreu(type),     ButtonStyle.Secondary),
+    btn('🔇 Ignore Roles',     LG.setignorer(type),     ButtonStyle.Secondary),
   );
 
   // Row 3: preview & test
@@ -248,6 +263,51 @@ export function buildLogTypeDetail(type: LogType, cfg: GuildLogConfig): LGPayloa
     content: '',
     embeds: [embed],
     components: [row1, row2, row3, backRow(type)],
+  };
+}
+
+// ── Role Picker View ───────────────────────────────────────────────────────
+// Replaces the type detail message with an inline RoleSelectMenuBuilder so
+// admins can pick roles without a modal. Cancel re-renders the type detail.
+
+export function buildRolePickerView(type: LogType, currentRoles: string[] | undefined): LGPayload {
+  const meta       = LOG_TYPE_META[type];
+  const isCritical = CRITICAL_LOG_TYPES.has(type);
+  const current    = currentRoles?.length
+    ? currentRoles.map(id => `<@&${id}>`).join(' ')
+    : '_None_';
+
+  const embed = new EmbedBuilder()
+    .setColor(meta.color)
+    .setTitle(`🔔 Set Mention Role — ${meta.emoji} ${meta.label}`)
+    .setDescription(
+      `Select the role(s) to @mention when **${meta.label}** fires.\n` +
+      `The mention is sent alongside the embed, so the role is notified.\n\n` +
+      `**Current:** ${current}\n\n` +
+      (isCritical
+        ? '✅ This is a **critical** log type (ban/kick/timeout).'
+        : '⬜ This is a **standard** log type. Use the 🚨 Critical Only toggle to limit pings to critical events.'),
+    )
+    .addFields(
+      { name: 'ℹ️ Tip', value: 'Select **0 roles** to clear the current mention. Up to **5 roles** allowed.', inline: false },
+    )
+    .setFooter({ text: 'Changes save on role select • Use ← Cancel to go back without saving' });
+
+  const roleSelect = new RoleSelectMenuBuilder()
+    .setCustomId(LG.setmenroleS(type))
+    .setPlaceholder('🔔 Select role(s) to mention...')
+    .setMinValues(0)
+    .setMaxValues(5);
+
+  return {
+    content: '',
+    embeds:  [embed],
+    components: [
+      new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(roleSelect),
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        btn('← Cancel', LG.type(type), ButtonStyle.Secondary),
+      ),
+    ],
   };
 }
 
