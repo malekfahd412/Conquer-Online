@@ -506,13 +506,29 @@ const ALL_COMMANDS = [
   SHIFT_COMMAND,
 ];
 
+const GUILD_IDS = [
+  '1213437502078062674', // Main server
+  '1525253442153615443', // Test server
+];
+
 export async function registerSlashCommands(token: string, clientId: string): Promise<void> {
   const rest = new REST({ version: '10' }).setToken(token);
 
+  // Clear any previously registered global commands
   try {
-    await rest.put(Routes.applicationCommands(clientId), { body: ALL_COMMANDS });
-    logger.success(`Registered ${ALL_COMMANDS.length} commands globally — may take up to 1 hour to appear in all servers`);
+    await rest.put(Routes.applicationCommands(clientId), { body: [] });
+    logger.info('Cleared global commands');
   } catch (error) {
-    logger.error('Failed to register global commands', error);
+    logger.error('Failed to clear global commands', error);
+  }
+
+  // Register guild-specifically to each server (instant, isolated)
+  for (const guildId of GUILD_IDS) {
+    try {
+      await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: ALL_COMMANDS });
+      logger.success(`Registered ${ALL_COMMANDS.length} commands in guild ${guildId}`);
+    } catch (error) {
+      logger.error(`Failed to register commands in guild ${guildId}`, error);
+    }
   }
 }
