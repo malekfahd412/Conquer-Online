@@ -43,6 +43,12 @@
       "lastClosedAt": 1783961829483
     }
   ],
-  "activity": [],
+  "activity": [
+    {
+      "ticketId": "ticket_1783965740644_qwzs9",
+      "channelId": "1526287683893071962",
+      "lastActivityAt": 1783965741039
+    }
+  ],
   "log": []
 }

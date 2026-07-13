@@ -43,7 +43,7 @@
         "managerOverride": true,
         "adminOverride": true
       },
-      "namingScheme": "support-{counter}",
+      "namingScheme": "{displayname}-{counter}",
       "ticketLimit": 1,
       "cooldown": 0,
       "priority": "normal",
@@ -139,7 +139,7 @@
         "managerOverride": true,
         "adminOverride": true
       },
-      "namingScheme": "support-{counter}",
+      "namingScheme": "{displayname}-{counter}",
       "ticketLimit": 1,
       "cooldown": 0,
       "priority": "normal",

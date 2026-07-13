@@ -30,7 +30,7 @@ import {
   type TextBasedChannel,
   type TextChannel,
 } from 'discord.js';
-import { runMigration, runNamingMigrationV2 } from './migration';
+import { runMigration, runNamingMigrationV2, runNamingMigrationV3 } from './migration';
 import { panelManager, PanelManager } from './panel-manager';
 import { ticketEngine, TicketEngine } from './ticket-engine';
 import { permissionEngine } from './permission-engine';
@@ -90,6 +90,7 @@ class TicketSystem {
     this.client = client;
     await runMigration();
     await runNamingMigrationV2();
+    await runNamingMigrationV3();
     await Promise.all([
       panelManager.ensureFile(),
       ticketEngine.ensureFile(),

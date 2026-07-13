@@ -30,11 +30,14 @@ function randomToken(): string {
 export class NamingEngine {
   render(scheme: string, ctx: NamingContext): string {
     const pad2 = (n: number) => String(n).padStart(2, '0');
+    // {displayname} falls back to {username} when the display name contains only
+    // non-ASCII characters (e.g. Arabic, CJK) that would be stripped by sanitize().
+    const safeDisplayName = this.asciify(ctx.displayName) || this.asciify(ctx.username) || ctx.userId;
     const replacements: Record<string, string> = {
       '{user}': ctx.username,
       '{username}': ctx.username,
       '{userid}': ctx.userId,
-      '{displayname}': ctx.displayName,
+      '{displayname}': safeDisplayName,
       '{ticket}': ctx.ticketId,
       '{counter}': pad4(ctx.counter),
       '{number}': pad4(ctx.counter),
@@ -53,6 +56,20 @@ export class NamingEngine {
     }
 
     return this.sanitize(name);
+  }
+
+  /**
+   * Strips a string down to ASCII-safe channel-name characters.
+   * Returns an empty string if nothing ASCII survives (e.g. an all-Arabic name).
+   */
+  private asciify(value: string): string {
+    return value
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-_]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 
   /** Discord channel names must be lowercase, dash-separated, <= 100 chars. Public: also used to sanitize manual renames (e.g. `/ticket rename`). */

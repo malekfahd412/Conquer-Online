@@ -509,10 +509,10 @@ export function slugifyTicketTypeLabel(label: string): string {
 export function resolveTicketType(panel: TicketPanel, ticketType: string): ResolvedTicketConfig {
   const ref = entryRefForTicketType(panel, ticketType);
   const entry = ref ? getEntry(panel, ref) : undefined;
-  // The channel-naming default is no longer the generic panel-wide scheme — each
-  // ticket type names its own channels from its button/option label (e.g. "Report
-  // Player" -> "report-player-{counter}") unless it has its own explicit override.
-  const defaultNamingScheme = entry ? `${slugifyTicketTypeLabel(entry.label)}-{counter}` : panel.namingScheme;
+  // The panel-level namingScheme is always the default. Per-type overrides (o.namingScheme)
+  // take priority when explicitly set. This ensures admins who set {displayname}-{counter}
+  // on a panel always get that scheme regardless of button/option labels.
+  const defaultNamingScheme = panel.namingScheme;
 
   const o = entry?.overrides;
   if (!o) return { ...panel, namingScheme: defaultNamingScheme, resolvedFor: ref };
@@ -713,6 +713,8 @@ export interface TicketSettings {
   defaultEmbedColor: number;
   defaultNamingScheme: string;
   defaultTicketLimit: number;
+  /** Set once the one-time naming-scheme migration v3 (label-based schemes → {displayname}-{counter}) has run. */
+  migratedNamingSchemeV3?: boolean;
   /** Set once the one-time naming-scheme migration (ticket-{counter} → {displayname}-{counter}) has run. */
   migratedNamingSchemeV2?: boolean;
 }

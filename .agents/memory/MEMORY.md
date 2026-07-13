@@ -17,3 +17,4 @@
 - [Support Inbox mirrored-message plain-text format](support-inbox-mirrored-message-format.md) — ic:* thread mirror shows "Name:\nContent" plain text, no embeds; name-resolution fallback chain and scope boundary vs. si:* digest view.
 - [Ticket Review DM config](ticket-review-dm-config.md) — review DM defaults to disabled per panel; panelManager.get() returns raw unnormalized panels, so config reads must use the merge pattern, not raw `??` fallback.
 - [Ticket Review DM interaction routing](ticket-review-dm-routing.md) — DM-only tk:review:* buttons/modals need their own un-gated router branch placed before the guild-gated tk:* block, or they fail silently.
+- [Ticket naming migration startup order](ticket-naming-migration-order.md) — panelManager.list() returns empty during init() migrations because ensureFile() hasn't run yet; update data/tickets/panels.json directly if a migration flag was set prematurely.

@@ -431,6 +431,14 @@
       "ticketId": "ticket_1783965025002_xxk1o",
       "userId": "727578927593291796",
       "timestamp": 1783965258409
+    },
+    {
+      "type": "opened",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1783965740644_qwzs9",
+      "userId": "727578927593291796",
+      "timestamp": 1783965741041
     }
   ]
 }

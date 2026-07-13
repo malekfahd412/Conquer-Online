@@ -210,6 +210,42 @@ export async function runNamingMigrationV2(): Promise<void> {
   });
 }
 
+/**
+ * One-time, idempotent migration: rewrite any panel whose namingScheme does
+ * NOT contain a user-identity variable ({displayname}, {user}, {username},
+ * {userid}) to "{displayname}-{counter}".  This catches label-derived schemes
+ * like "support-{counter}" that were auto-generated before the panel-level
+ * naming scheme was respected in resolveTicketType.
+ * Tracked by `migratedNamingSchemeV3` in settings.json so it never re-runs.
+ */
+export async function runNamingMigrationV3(): Promise<void> {
+  const settings = await settingsStore.read();
+  if (settings.migratedNamingSchemeV3) return;
+
+  const USER_VARS = ['{displayname}', '{user}', '{username}', '{userid}'];
+  const NEW = '{displayname}-{counter}';
+
+  const panels = await panelManager.list();
+  let count = 0;
+  for (const panel of panels) {
+    const scheme = panel.namingScheme ?? '';
+    const hasUserVar = USER_VARS.some(v => scheme.includes(v));
+    if (!hasUserVar) {
+      await panelManager.update(panel.id, { namingScheme: NEW });
+      logger.info(`[TICKETS] Naming migration v3: "${scheme}" → "${NEW}" on panel ${panel.id}`);
+      count++;
+    }
+  }
+
+  if (count > 0) {
+    logger.success(`[TICKETS] Naming migration v3: updated ${count} panel(s) to "${NEW}".`);
+  } else {
+    logger.info('[TICKETS] Naming migration v3: no panels needed updating.');
+  }
+
+  await settingsStore.mutate(data => { data.migratedNamingSchemeV3 = true; });
+}
+
 export async function runMigration(): Promise<void> {
   const settings = await settingsStore.read();
   if (settings.migratedFromLegacy) return;
