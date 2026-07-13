@@ -55,6 +55,10 @@ export const SI = {
   aiTranslate:   (uid: string): string => `si:ai:tr:${uid}`,
   aiRewrite:     (uid: string): string => `si:ai:rw:${uid}`,
   aiRewriteSubmit: (uid: string): string => `si:ai:rw_s:${uid}`,
+
+  /** Open the "DM any user by ID" composer modal */
+  DM_OPEN:   'si:dm',
+  DM_SUBMIT: 'si:dm_s',
 } as const;
 
 export function isSIInteraction(id: string): boolean {

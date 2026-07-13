@@ -29,6 +29,18 @@
           "attachments": [],
           "hasEmbeds": false,
           "hasStickers": false
+        },
+        {
+          "id": "dm_1783907195801",
+          "type": "staff_reply",
+          "content": "مسا مسا",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1783907195802,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
         }
       ],
       "status": "open",
@@ -37,10 +49,51 @@
       "isArchived": false,
       "tags": [],
       "createdAt": 1783906899215,
-      "updatedAt": 1783906972748,
+      "updatedAt": 1783907195802,
       "lastMessageAt": 1783906899215,
       "unreadCount": 0,
       "userAvatar": "https://cdn.discordapp.com/avatars/727578927593291796/2b59b65bf0f18e1f1ce3435d3b8209de.webp?size=128"
+    },
+    {
+      "id": "522507355233976321",
+      "userId": "522507355233976321",
+      "userTag": "amrart",
+      "guildId": "1213437502078062674",
+      "messages": [
+        {
+          "id": "init_1783907184303",
+          "type": "user",
+          "content": "",
+          "authorId": "522507355233976321",
+          "authorTag": "amrart",
+          "timestamp": 1783907184304,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
+        },
+        {
+          "id": "dm_1783907184302",
+          "type": "staff_reply",
+          "content": "مسا مسا",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1783907184307,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
+        }
+      ],
+      "status": "open",
+      "isRead": false,
+      "isPinned": false,
+      "isArchived": false,
+      "tags": [],
+      "createdAt": 1783907184304,
+      "updatedAt": 1783907184307,
+      "lastMessageAt": 1783907184304,
+      "unreadCount": 1
     }
   ]
 }

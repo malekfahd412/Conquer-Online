@@ -45,6 +45,7 @@ import {
   buildTagModal,
   buildSearchModal,
   buildRewriteModal,
+  buildDMComposerModal,
   buildInfoEmbed,
 } from './inbox-renderer';
 import { getGeminiClient, AI_MODEL } from '../../../ai/gemini-client';
@@ -156,8 +157,9 @@ export class InboxService {
   private async routeButton(i: ButtonInteraction, _guild: Guild): Promise<void> {
     const id = i.customId;
 
-    if (id === SI.HOME) { await this.showInboxList(i, 'newest', 'all', 0); return; }
-    if (id === SI.SEARCH) { await i.showModal(buildSearchModal()); return; }
+    if (id === SI.HOME)    { await this.showInboxList(i, 'newest', 'all', 0); return; }
+    if (id === SI.SEARCH)  { await i.showModal(buildSearchModal()); return; }
+    if (id === SI.DM_OPEN) { await i.showModal(buildDMComposerModal()); return; }
 
     // si:list:<sort>:<filter>:<page>
     if (id.startsWith('si:list:')) {
@@ -312,6 +314,7 @@ export class InboxService {
     const id = i.customId;
 
     if (id === SI.SEARCH_SUBMIT)             { await this.handleSearch(i);            return; }
+    if (id === SI.DM_SUBMIT)                 { await this.handleDMCompose(i, guild);  return; }
     if (id.startsWith('si:reply_s:'))        { await this.handleReply(i, id.slice('si:reply_s:'.length), guild); return; }
     if (id.startsWith('si:note_s:'))         { await this.handleNote(i, id.slice('si:note_s:'.length)); return; }
     if (id.startsWith('si:tag_s:'))          { await this.handleTag(i, id.slice('si:tag_s:'.length)); return; }
@@ -407,6 +410,48 @@ export class InboxService {
     const tags = await addTag(uid, tag);
     logger.info(`[Inbox] Tag "${tag}" added to ${uid} by ${i.user.tag}`);
     await i.editReply({ content: `✅ Tag **${tag}** added. Tags: ${tags.join(', ') || 'none'}` });
+  }
+
+  // ── DM Composer (message any user by ID) ─────────────────────────────────
+
+  private async handleDMCompose(i: ModalSubmitInteraction, guild: Guild): Promise<void> {
+    await i.deferReply({ flags: MessageFlags.Ephemeral });
+
+    const targetId = i.fields.getTextInputValue('user_id').trim();
+    const content  = i.fields.getTextInputValue('content').trim();
+
+    if (!content) { await i.editReply({ content: '❌ Message cannot be empty.' }); return; }
+
+    // Fetch user and send
+    let userTag = targetId;
+    try {
+      const client = (i as unknown as { client: Client }).client;
+      const user   = await client.users.fetch(targetId);
+      userTag = user.tag;
+      await user.send({ content });
+    } catch (err) {
+      logger.error(`[Inbox] DM composer failed for ${targetId}`, err);
+      await i.editReply({
+        content: `❌ Could not send message to \`${targetId}\`. They may have DMs disabled, or the ID is invalid.\n\`${err instanceof Error ? err.message : String(err)}\``,
+      });
+      return;
+    }
+
+    // Save the outbound message to the inbox (create conversation first if it doesn't exist)
+    const msgId = `dm_${Date.now()}`;
+    try {
+      const existing = await getConversation(targetId);
+      if (!existing) {
+        // Bootstrap a conversation record so we have somewhere to attach the reply
+        await addUserMessage(targetId, userTag, guild.id, '', [], { msgId: `init_${Date.now()}` });
+      }
+      await addStaffReply(targetId, i.user.id, i.user.tag, content, [], { msgId });
+    } catch (err2) {
+      logger.error('[Inbox] Could not record outbound DM in conversation', err2);
+    }
+
+    logger.info(`[Inbox] DM sent to ${userTag} (${targetId}) by ${i.user.tag}`);
+    await i.editReply({ content: `✅ Message sent to **${userTag}**.` });
   }
 
   // ── Search ────────────────────────────────────────────────────────────────

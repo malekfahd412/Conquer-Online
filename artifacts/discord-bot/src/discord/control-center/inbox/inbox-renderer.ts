@@ -151,7 +151,7 @@ export function buildInboxList(
     }
   }
 
-  // Pagination + search + home
+  // Pagination + search + DM + home
   rows.push(
     new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
@@ -167,6 +167,10 @@ export function buildInboxList(
       new ButtonBuilder()
         .setCustomId(SI.SEARCH)
         .setLabel('🔍 Search')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(SI.DM_OPEN)
+        .setLabel('✉️ Message User')
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
         .setCustomId(CC.HOME)
@@ -497,6 +501,33 @@ export function buildSearchModal(): ModalBuilder {
           .setRequired(true)
           .setMaxLength(100)
           .setPlaceholder('Search by username, user ID, or message content…'),
+      ),
+    );
+}
+
+export function buildDMComposerModal(): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(SI.DM_SUBMIT)
+    .setTitle('Message a User by ID')
+    .addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('user_id')
+          .setLabel('User ID')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setMinLength(17)
+          .setMaxLength(20)
+          .setPlaceholder('e.g. 123456789012345678'),
+      ),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('content')
+          .setLabel('Message')
+          .setStyle(TextInputStyle.Paragraph)
+          .setRequired(true)
+          .setMaxLength(1900)
+          .setPlaceholder('Type the message to send…'),
       ),
     );
 }
