@@ -125,6 +125,14 @@
           "action": "ticket_closed",
           "points": 10,
           "timestamp": 1783965918422
+        },
+        {
+          "id": "mrjjdzboqvm8b0",
+          "guildId": "1213437502078062674",
+          "userId": "522507355233976321",
+          "action": "ticket_closed",
+          "points": 10,
+          "timestamp": 1783966155540
         }
       ]
     }

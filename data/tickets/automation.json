@@ -47,9 +47,15 @@
       "panelId": "panel_1783810288179_l0nm0",
       "userId": "522507355233976321",
       "ticketType": "store",
-      "lastClosedAt": 1783965830603
+      "lastClosedAt": 1783966155535
     }
   ],
-  "activity": [],
+  "activity": [
+    {
+      "ticketId": "ticket_1783966034386_8930h",
+      "channelId": "1526288915647168593",
+      "lastActivityAt": 1783966034729
+    }
+  ],
   "log": []
 }
