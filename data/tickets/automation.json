@@ -5,7 +5,7 @@
       "panelId": "panel_1783810288179_l0nm0",
       "userId": "727578927593291796",
       "ticketType": "store",
-      "lastClosedAt": 1783965256328
+      "lastClosedAt": 1783965918416
     },
     {
       "guildId": "1213437502078062674",
@@ -50,12 +50,6 @@
       "lastClosedAt": 1783965830603
     }
   ],
-  "activity": [
-    {
-      "ticketId": "ticket_1783965740644_qwzs9",
-      "channelId": "1526287683893071962",
-      "lastActivityAt": 1783965741039
-    }
-  ],
+  "activity": [],
   "log": []
 }

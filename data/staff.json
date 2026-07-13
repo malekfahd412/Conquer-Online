@@ -12,11 +12,11 @@
           "guildId": "1213437502078062674",
           "firstTrackedAt": 1783904981848,
           "status": "active",
-          "lastActivityAt": 1783965256330,
+          "lastActivityAt": 1783965918418,
           "totalActivityMs": 0,
           "counts": {
             "ticket_claimed": 0,
-            "ticket_closed": 8,
+            "ticket_closed": 10,
             "ticket_reopened": 0,
             "warn_issued": 0,
             "unwarn_issued": 0,
@@ -35,11 +35,23 @@
           },
           "firstResponseTotalMs": 0,
           "firstResponseSamples": 0,
-          "resolutionTotalMs": 274962,
-          "resolutionSamples": 8,
+          "resolutionTotalMs": 440957,
+          "resolutionSamples": 10,
           "warnings": [],
           "notes": [],
           "timeline": [
+            {
+              "id": "mrjj8wd06sdj9o",
+              "action": "ticket_closed",
+              "description": "🔒 Ticket Closed — Ticket #21",
+              "timestamp": 1783965918418
+            },
+            {
+              "id": "mrjj8j10dcu5no",
+              "action": "ticket_closed",
+              "description": "🔒 Ticket Closed — Ticket #19",
+              "timestamp": 1783965901137
+            },
             {
               "id": "mrjiuphohrxisd",
               "action": "ticket_closed",
