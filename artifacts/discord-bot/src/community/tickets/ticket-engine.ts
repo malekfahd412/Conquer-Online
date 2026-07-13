@@ -23,6 +23,7 @@ import { questionEngine } from './question-engine';
 import { transcriptEngine } from './transcript-engine';
 import { automationEngine } from './automation-engine';
 import { statisticsEngine } from './statistics-engine';
+import { slaEngine } from './sla-engine';
 import { staffEventBus } from '../staff/staff-events';
 import { logger } from '../../utils/logger';
 

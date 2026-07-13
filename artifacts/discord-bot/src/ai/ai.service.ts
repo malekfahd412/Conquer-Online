@@ -42,6 +42,7 @@ import { slaDesigner, isSLAInteraction } from '../discord/control-center/sla-des
 import { reviewAnalyticsDesigner, isRAInteraction, securityCenterDesigner, isSCInteraction, staffProgressDesigner, isSPInteraction } from '../discord/control-center';
 import { SecurityGuard } from '../discord/security/security-guard';
 import { CompanionService } from '../companion/companion.service';
+import { getGeminiClient, AI_MODEL } from './gemini-client';
 import { FRIENDSHIP_LABELS, FRIENDSHIP_EMOJIS } from '../companion/companion-store';
 
 export interface AIConfig {
@@ -99,6 +100,24 @@ export class AIService {
     this.logsDesigner = new LogsDesignerService(this.permissionManager);
     this.modDashboard = new ModDashboardService(this.permissionManager);
     this.staffDashboard = new StaffDashboardService(this.permissionManager);
+    this.securityGuard = new SecurityGuard();
+    this.companionService = new CompanionService({
+      serverName: config.serverName,
+      callAI: async messages => {
+        const client = getGeminiClient();
+        if (!client) return 'Sorry, the AI is not configured right now — ask an admin to set GEMINI_API_KEY.';
+        const systemMsg = messages.find(m => m.role === 'system');
+        const contents = messages
+          .filter(m => m.role !== 'system')
+          .map(m => ({ role: m.role === 'assistant' ? 'model' as const : 'user' as const, parts: [{ text: m.content }] }));
+        const response = await client.models.generateContent({
+          model: AI_MODEL,
+          contents,
+          config: systemMsg ? { systemInstruction: systemMsg.content } : undefined,
+        });
+        return response.text ?? "Sorry, I couldn't come up with a reply.";
+      },
+    });
   }
 
   async initialize(): Promise<void> {
