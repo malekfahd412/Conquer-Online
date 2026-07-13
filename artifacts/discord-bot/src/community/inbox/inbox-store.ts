@@ -13,6 +13,9 @@ import type {
   InboxMessageType,
   InboxSortMode,
   InboxFilterMode,
+  ConversationBadgeStatus,
+  TimelineEvent,
+  TimelineEventType,
 } from './types';
 
 export type {
@@ -24,6 +27,9 @@ export type {
   InboxMessageType,
   InboxSortMode,
   InboxFilterMode,
+  ConversationBadgeStatus,
+  TimelineEvent,
+  TimelineEventType,
 };
 
 const DATA_PATH = path.join(process.cwd(), 'data', 'inbox.json');
@@ -78,9 +84,11 @@ function findOrCreate(data: InboxData, userId: string, userTag: string, guildId:
       updatedAt: now,
       lastMessageAt: now,
       unreadCount: 0,
+      timeline: [{ type: 'created', timestamp: now }],
     };
     data.conversations.push(conv);
   }
+  if (!conv.timeline) conv.timeline = [{ type: 'created', timestamp: conv.createdAt }];
   return conv;
 }
 
@@ -151,11 +159,13 @@ export async function addStaffReply(
   staffTag: string,
   content: string,
   attachments: InboxAttachment[],
-  options: { msgId: string },
+  options: { msgId: string; dmMessageId?: string },
 ): Promise<InboxConversation> {
   return mutate(data => {
     const conv = data.conversations.find(c => c.id === userId);
     if (!conv) throw new Error(`Conversation for ${userId} not found`);
+
+    const isFirstReply = !conv.messages.some(m => m.type === 'staff_reply');
 
     conv.messages.push({
       id: options.msgId,
@@ -168,10 +178,86 @@ export async function addStaffReply(
       attachments,
       hasEmbeds: false,
       hasStickers: false,
+      dmMessageId: options.dmMessageId,
     });
 
     conv.updatedAt = Date.now();
+    if (isFirstReply) pushTimeline(conv, 'first_reply', staffTag);
     return conv;
+  });
+}
+
+/** Edits the content of a previously-sent staff reply (message action: 📝 Edit Staff Reply). */
+export async function editStaffReplyContent(userId: string, dmMessageId: string, newContent: string): Promise<InboxMessage | undefined> {
+  return mutate(data => {
+    const conv = data.conversations.find(c => c.id === userId);
+    const msg = conv?.messages.find(m => m.type === 'staff_reply' && m.dmMessageId === dmMessageId);
+    if (!msg) return undefined;
+    msg.content = newContent;
+    msg.isEdited = true;
+    if (conv) conv.updatedAt = Date.now();
+    return msg;
+  });
+}
+
+/** Marks a previously-sent staff reply as deleted (message action: 🗑 Delete Reply). Keeps the log entry, does not erase history. */
+export async function markStaffReplyDeleted(userId: string, dmMessageId: string): Promise<InboxMessage | undefined> {
+  return mutate(data => {
+    const conv = data.conversations.find(c => c.id === userId);
+    const msg = conv?.messages.find(m => m.type === 'staff_reply' && m.dmMessageId === dmMessageId);
+    if (!msg) return undefined;
+    msg.isDeleted = true;
+    if (conv) conv.updatedAt = Date.now();
+    return msg;
+  });
+}
+
+/** Toggles the pinned flag on a specific message (message action: ⭐ Pin). Returns the new state, or undefined if not found. */
+export async function toggleMessagePinned(userId: string, messageId: string): Promise<boolean | undefined> {
+  return mutate(data => {
+    const conv = data.conversations.find(c => c.id === userId);
+    const msg = conv?.messages.find(m => m.id === messageId || m.dmMessageId === messageId);
+    if (!msg) return undefined;
+    msg.isPinned = !msg.isPinned;
+    return msg.isPinned;
+  });
+}
+
+// ── Timeline ──────────────────────────────────────────────────────────────────
+
+function pushTimeline(conv: InboxConversation, type: TimelineEventType, detail?: string): void {
+  if (!conv.timeline) conv.timeline = [];
+  conv.timeline.push({ type, timestamp: Date.now(), detail });
+}
+
+export async function addTimelineEvent(userId: string, type: TimelineEventType, detail?: string): Promise<void> {
+  await mutate(data => {
+    const conv = data.conversations.find(c => c.id === userId);
+    if (conv) pushTimeline(conv, type, detail);
+  });
+}
+
+/** Discord-native inbox: display-only badge derived from existing fields — see ConversationBadgeStatus. */
+export function computeBadgeStatus(conv: InboxConversation): ConversationBadgeStatus {
+  if (conv.isArchived) return 'archived';
+  if (conv.status === 'closed') return 'closed';
+  const lastMsg = conv.messages[conv.messages.length - 1];
+  if (lastMsg?.type === 'user') return 'waiting_for_staff';
+  if (conv.assignedTo) return 'claimed';
+  return lastMsg?.type === 'staff_reply' ? 'waiting_for_user' : 'waiting_for_staff';
+}
+
+export async function setHeaderMessageId(userId: string, messageId: string): Promise<void> {
+  await mutate(data => {
+    const conv = data.conversations.find(c => c.id === userId);
+    if (conv) conv.headerMessageId = messageId;
+  });
+}
+
+export async function setAiSidebarMessageId(userId: string, messageId: string): Promise<void> {
+  await mutate(data => {
+    const conv = data.conversations.find(c => c.id === userId);
+    if (conv) conv.aiSidebarMessageId = messageId;
   });
 }
 
@@ -200,6 +286,7 @@ export async function addStaffNote(
     });
 
     conv.updatedAt = Date.now();
+    pushTimeline(conv, 'note', staffTag);
     return conv;
   });
 }
@@ -241,7 +328,11 @@ export async function toggleArchive(userId: string): Promise<boolean> {
 export async function setStatus(userId: string, status: 'open' | 'closed'): Promise<void> {
   await mutate(data => {
     const conv = data.conversations.find(c => c.id === userId);
-    if (conv) { conv.status = status; conv.updatedAt = Date.now(); }
+    if (conv) {
+      conv.status = status;
+      conv.updatedAt = Date.now();
+      pushTimeline(conv, status === 'closed' ? 'closed' : 'reopened');
+    }
   });
 }
 
@@ -256,6 +347,7 @@ export async function assignTo(
       conv.assignedTo    = staffId;
       conv.assignedToTag = staffTag;
       conv.updatedAt     = Date.now();
+      if (staffId && staffTag) pushTimeline(conv, 'assigned', staffTag);
     }
   });
 }

@@ -86,6 +86,14 @@ export class TicketEngine {
     return data.tickets.filter(t => t.guildId === guildId);
   }
 
+  /** All tickets (open + closed) ever opened by a user in a guild, newest first. Used by the Support Inbox conversation header. */
+  async getAllForUser(guildId: string, userId: string): Promise<TicketRecord[]> {
+    const data = await store.read();
+    return data.tickets
+      .filter(t => t.guildId === guildId && t.openerId === userId)
+      .sort((a, b) => b.createdAt - a.createdAt);
+  }
+
   private async update(ticketId: string, patch: Partial<TicketRecord>): Promise<TicketRecord | undefined> {
     return store.mutate(data => {
       const ticket = data.tickets.find(t => t.id === ticketId);

@@ -1,0 +1,36 @@
+{
+  "guilds": {
+    "1213437502078062674": {
+      "guildId": "1213437502078062674",
+      "pointValues": {
+        "ticket_claimed": 5,
+        "ticket_closed": 10,
+        "ticket_reopened": 0,
+        "warn_issued": 3,
+        "unwarn_issued": 1,
+        "mute_issued": 4,
+        "unmute_issued": 2,
+        "kick_issued": 6,
+        "ban_issued": 8,
+        "tempban_issued": 7,
+        "unban_issued": 2,
+        "softban_issued": 6,
+        "purge_issued": 2,
+        "verification_approved": 2,
+        "verification_rejected": 1,
+        "security_action": 3,
+        "voice_mod_action": 2
+      },
+      "transactions": [
+        {
+          "id": "mrj6gjnzf25ohw",
+          "guildId": "1213437502078062674",
+          "userId": "611333374044536833",
+          "action": "ticket_closed",
+          "points": 10,
+          "timestamp": 1783944440207
+        }
+      ]
+    }
+  }
+}

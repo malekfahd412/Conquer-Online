@@ -45,7 +45,7 @@ import { transcriptEngine, TranscriptEngine } from './transcript-engine';
 import { genId } from './store';
 import type { TicketForm, TicketPanel, TicketPriority, TicketRecord, TicketReviewRecord, ReviewConfig } from './types';
 import { getEntry, entryRefForTicketType, resolveTicketType, DEFAULT_REVIEW_CONFIG } from './types';
-import { reviewEngine, STAR_LABELS } from './review-engine';
+import { reviewEngine, ReviewEngine, STAR_LABELS } from './review-engine';
 import { slaEngine } from './sla-engine';
 import { logger } from '../../utils/logger';
 
@@ -71,6 +71,8 @@ class TicketSystem {
   readonly categories: CategoryEngine = categoryEngine;
   readonly transcripts: TranscriptEngine = transcriptEngine;
   readonly answers: AnswerEngine = answerEngine;
+  /** Ticket reviews, exposed for external consumers like the Support Inbox conversation header. */
+  readonly reviews: ReviewEngine = reviewEngine;
 
   private client?: Client;
   private sweepHandle?: NodeJS.Timeout;

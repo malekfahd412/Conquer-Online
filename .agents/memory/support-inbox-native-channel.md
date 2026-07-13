@@ -21,3 +21,15 @@ Staff typing a normal message directly in a conversation thread is treated as th
 
 ## Multi-guild auto-provisioning
 The dashboard channel is auto-created and its ID persisted per-guild (not a single global env var), because the bot can be a member of more than one guild — assuming "the" guild for a shared feature silently breaks on the second guild. Any new per-guild singleton resource (channel, pinned message, etc.) should key its persisted pointer by guild ID from the start, even if only one guild is active during initial testing.
+
+## Pin/Edit/Delete ownership boundary
+A bot can only truly edit/delete/pin a Discord message it authored. For staff replies (bot-sent DMs) actions operate on the real DM message via `user.createDM()` → `dm.messages.fetch(dmMessageId)`, so the effect is genuinely visible to the user (pin shows in their real DM pinned list, edits/deletes are real). For inbound user DMs, the bot never owns the message, so actions instead operate on the thread-mirrored copy only — edit/delete are disabled entirely for those (only pin/copy-ID/reply/rewrite make sense).
+
+**Why:** presenting an action button that silently no-ops (or errors) on the real user message would be worse than not offering it — the ownership boundary must decide which actions are even shown per message type, not just how they're implemented.
+
+## Approximation limits worth remembering
+- **Read receipts ("Seen")**: Discord exposes no real read-state API for bot DMs. Approximated as "the user has sent any message since this reply" — good enough as a heuristic, not literally true.
+- **Typing/viewing presence**: same honesty convention as staff-activity.ts — button/message activity = "viewing" (~2 min window), `typingStart` events = "typing" (~10s window); both are activity proxies, not real presence.
+- **Voice messages / stickers**: discord.js bot API can't reproduce a true voice-message flag or sticker resource in an outbound DM; voice notes are detected via `attachment.waveform` + `.duration` and relabeled "🎤 Voice message", stickers are re-uploaded as plain image files. Attachments generally are re-uploaded as native files (not embed links) so Discord renders its own media players.
+- **"Copy ID"**: no clipboard access from a bot — implemented as an ephemeral code-block reply the staff member copies manually.
+These limits are inherent to the Discord bot API, not implementation gaps — don't attempt a "real" version without a very different (e.g. user-token/selfbot) approach, which is out of scope.

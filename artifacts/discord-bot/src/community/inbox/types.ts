@@ -43,11 +43,49 @@ export interface InboxMessage {
   replyToContent?: string;
   /** Simplified snapshots of any embeds attached to the original Discord message */
   embedSnapshots?: InboxEmbedSnapshot[];
+  /** Discord-native inbox: for `staff_reply`, the ID of the message the bot sent in the user's DM
+   *  (as opposed to `id`, which for thread-typed replies is the staff member's own thread message
+   *  ID). Editing/deleting a reply always targets this DM message, since it's the one the bot — and
+   *  therefore the bot itself — actually owns and can mutate. */
+  dmMessageId?: string;
+  /** Discord-native inbox: message actions (⭐ Pin) toggle this; also mirrored onto the underlying
+   *  Discord message via message.pin()/unpin() where the bot has permission to do so. */
+  isPinned?: boolean;
+  /** Discord-native inbox: set when a staff reply is deleted via the 🗑 message action. The DM
+   *  message itself is deleted from Discord; this just keeps the log honest instead of erasing history. */
+  isDeleted?: boolean;
 }
 
 export type ConversationStatus = 'open' | 'closed';
 export type InboxSortMode    = 'newest' | 'oldest' | 'unread';
 export type InboxFilterMode  = 'all' | 'unread' | 'pinned' | 'archived';
+
+/** Discord-native inbox: display-only status badge, derived from `status`/`isArchived`/`assignedTo`/
+ *  last-message-author rather than stored — keeps `ConversationStatus` (used by the ephemeral /panel
+ *  UI too) unchanged so this is purely additive. See `computeBadgeStatus()` in inbox-store.ts. */
+export type ConversationBadgeStatus =
+  | 'archived'
+  | 'closed'
+  | 'waiting_for_staff'
+  | 'waiting_for_user'
+  | 'claimed';
+
+/** Discord-native inbox: one entry in a conversation's auto-generated activity timeline. */
+export type TimelineEventType =
+  | 'created'
+  | 'first_reply'
+  | 'assigned'
+  | 'voice_session'
+  | 'note'
+  | 'closed'
+  | 'reopened';
+
+export interface TimelineEvent {
+  type: TimelineEventType;
+  timestamp: number;
+  /** Free-form context, e.g. the staff tag for `assigned`/`note` events. */
+  detail?: string;
+}
 
 export interface InboxConversation {
   /** Unique ID — same as userId (one conversation per user) */
@@ -76,6 +114,12 @@ export interface InboxConversation {
   threadId?: string;
   /** Discord-native inbox: ID of the guild the thread lives in (same as guildId in practice, kept for clarity) */
   threadGuildId?: string;
+  /** Discord-native inbox: auto-generated activity timeline (Created, First Reply, Assigned, Voice Session, Notes, Closed, Reopened). */
+  timeline: TimelineEvent[];
+  /** Discord-native inbox: ID of the pinned "Conversation Header" message in the thread, so it can be edited in place instead of recreated. */
+  headerMessageId?: string;
+  /** Discord-native inbox: ID of the pinned "AI Sidebar" message in the thread. */
+  aiSidebarMessageId?: string;
 }
 
 export interface InboxData {

@@ -27,6 +27,13 @@
       "userId": "727578927593291796",
       "ticketType": "Staff",
       "lastClosedAt": 1783898455328
+    },
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "userId": "1407085985166135336",
+      "ticketType": "support",
+      "lastClosedAt": 1783944440202
     }
   ],
   "activity": [
@@ -34,11 +41,6 @@
       "ticketId": "ticket_1783812841380_700oy",
       "channelId": "1525646377533706460",
       "lastActivityAt": 1783812841649
-    },
-    {
-      "ticketId": "ticket_1783944104072_b5ytq",
-      "channelId": "1526196932970807367",
-      "lastActivityAt": 1783944104436
     }
   ],
   "log": []

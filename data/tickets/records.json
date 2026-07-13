@@ -195,7 +195,7 @@
       "ticketType": "support",
       "channelId": "1526196932970807367",
       "openerId": "1407085985166135336",
-      "status": "open",
+      "status": "closed",
       "number": 10,
       "priority": "normal",
       "answers": {},
@@ -204,7 +204,10 @@
       "participantIds": [
         "1407085985166135336"
       ],
-      "headerMessageId": "1526196934363320504"
+      "headerMessageId": "1526196934363320504",
+      "closedAt": 1783944440201,
+      "closedBy": "611333374044536833",
+      "lastLifecycleMessageId": "1526198342650957904"
     }
   ],
   "counters": {

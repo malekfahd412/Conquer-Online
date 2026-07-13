@@ -131,6 +131,33 @@
           "attachments": [],
           "hasEmbeds": false,
           "hasStickers": false
+        },
+        {
+          "id": "1526197637701828648",
+          "type": "user",
+          "content": "جامد انت بتكلمني منين 😂",
+          "authorId": "522507355233976321",
+          "authorTag": "amrart",
+          "timestamp": 1783944272553,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false,
+          "replyToId": "1526193883363409941",
+          "replyToContent": "Amr"
+        },
+        {
+          "id": "1526203703361667215",
+          "type": "staff_reply",
+          "content": "من البوت يمعلم",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1783945718591,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false,
+          "dmMessageId": "1526203704082956368"
         }
       ],
       "status": "open",
@@ -139,10 +166,53 @@
       "isArchived": false,
       "tags": [],
       "createdAt": 1783907184304,
-      "updatedAt": 1783939381034,
-      "lastMessageAt": 1783907184304,
+      "updatedAt": 1783945718593,
+      "lastMessageAt": 1783944272553,
       "unreadCount": 0,
-      "lastSeenAt": 1783939458843
+      "lastSeenAt": 1783945718602,
+      "userAvatar": "https://cdn.discordapp.com/avatars/522507355233976321/81675a562d24fe6e3d7da91efdd1821f.webp?size=128",
+      "threadId": "1526197639966883961",
+      "threadGuildId": "1213437502078062674",
+      "assignedTo": "727578927593291796",
+      "assignedToTag": "s6.a_",
+      "timeline": [
+        {
+          "type": "assigned",
+          "timestamp": 1783945718593,
+          "detail": "s6.a_"
+        }
+      ],
+      "headerMessageId": "1526203709174972477"
+    },
+    {
+      "id": "1407085985166135336",
+      "userId": "1407085985166135336",
+      "userTag": "copra0742_90723",
+      "guildId": "1213437502078062674",
+      "messages": [
+        {
+          "id": "1526198520644894906",
+          "type": "user",
+          "content": "5",
+          "authorId": "1407085985166135336",
+          "authorTag": "copra0742_90723",
+          "timestamp": 1783944482999,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
+        }
+      ],
+      "status": "open",
+      "isRead": false,
+      "isPinned": false,
+      "isArchived": false,
+      "tags": [],
+      "createdAt": 1783944482999,
+      "updatedAt": 1783944482999,
+      "lastMessageAt": 1783944482999,
+      "unreadCount": 1,
+      "userAvatar": "https://cdn.discordapp.com/avatars/1407085985166135336/a476eba9486e5e43fcc80d8e6e6c3008.webp?size=128"
     }
   ]
 }
