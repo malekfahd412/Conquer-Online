@@ -147,6 +147,153 @@
         }
       },
       "securityMentionRoleId": "1216032049794777160"
+    },
+    "1525253442153615443": {
+      "guildId": "1525253442153615443",
+      "emergencyMode": false,
+      "emergencyLockedChannels": [],
+      "modules": {
+        "anti_raid": {
+          "enabled": false,
+          "punishment": "timeout",
+          "actionLimit": 5,
+          "timeWindowMs": 10000,
+          "ignoreBots": true,
+          "whitelist": [],
+          "trustedRoles": [],
+          "trustedUsers": []
+        },
+        "anti_nuke": {
+          "enabled": false,
+          "punishment": "timeout",
+          "actionLimit": 5,
+          "timeWindowMs": 10000,
+          "ignoreBots": true,
+          "whitelist": [],
+          "trustedRoles": [],
+          "trustedUsers": []
+        },
+        "anti_bot_add": {
+          "enabled": false,
+          "punishment": "timeout",
+          "actionLimit": 5,
+          "timeWindowMs": 10000,
+          "ignoreBots": true,
+          "whitelist": [],
+          "trustedRoles": [],
+          "trustedUsers": []
+        },
+        "anti_channel": {
+          "enabled": false,
+          "punishment": "timeout",
+          "actionLimit": 5,
+          "timeWindowMs": 10000,
+          "ignoreBots": true,
+          "whitelist": [],
+          "trustedRoles": [],
+          "trustedUsers": []
+        },
+        "anti_role": {
+          "enabled": true,
+          "punishment": "timeout",
+          "actionLimit": 5,
+          "timeWindowMs": 10000,
+          "ignoreBots": true,
+          "whitelist": [],
+          "trustedRoles": [],
+          "trustedUsers": []
+        },
+        "anti_webhook": {
+          "enabled": false,
+          "punishment": "timeout",
+          "actionLimit": 5,
+          "timeWindowMs": 10000,
+          "ignoreBots": true,
+          "whitelist": [],
+          "trustedRoles": [],
+          "trustedUsers": []
+        },
+        "anti_emoji_sticker": {
+          "enabled": false,
+          "punishment": "timeout",
+          "actionLimit": 5,
+          "timeWindowMs": 10000,
+          "ignoreBots": true,
+          "whitelist": [],
+          "trustedRoles": [],
+          "trustedUsers": []
+        },
+        "anti_invite_spam": {
+          "enabled": false,
+          "punishment": "timeout",
+          "actionLimit": 5,
+          "timeWindowMs": 10000,
+          "ignoreBots": true,
+          "whitelist": [],
+          "trustedRoles": [],
+          "trustedUsers": []
+        },
+        "anti_link_spam": {
+          "enabled": false,
+          "punishment": "timeout",
+          "actionLimit": 5,
+          "timeWindowMs": 10000,
+          "ignoreBots": true,
+          "whitelist": [],
+          "trustedRoles": [],
+          "trustedUsers": []
+        },
+        "anti_mention_spam": {
+          "enabled": false,
+          "punishment": "timeout",
+          "actionLimit": 5,
+          "timeWindowMs": 10000,
+          "ignoreBots": true,
+          "whitelist": [],
+          "trustedRoles": [],
+          "trustedUsers": []
+        },
+        "anti_ghost_ping": {
+          "enabled": false,
+          "punishment": "timeout",
+          "actionLimit": 5,
+          "timeWindowMs": 10000,
+          "ignoreBots": true,
+          "whitelist": [],
+          "trustedRoles": [],
+          "trustedUsers": []
+        },
+        "anti_mass_dm": {
+          "enabled": false,
+          "punishment": "timeout",
+          "actionLimit": 5,
+          "timeWindowMs": 10000,
+          "ignoreBots": true,
+          "whitelist": [],
+          "trustedRoles": [],
+          "trustedUsers": []
+        },
+        "anti_bad_words": {
+          "enabled": false,
+          "punishment": "timeout",
+          "actionLimit": 5,
+          "timeWindowMs": 10000,
+          "ignoreBots": true,
+          "whitelist": [],
+          "trustedRoles": [],
+          "trustedUsers": []
+        },
+        "anti_scam_link": {
+          "enabled": false,
+          "punishment": "timeout",
+          "actionLimit": 5,
+          "timeWindowMs": 10000,
+          "ignoreBots": true,
+          "whitelist": [],
+          "trustedRoles": [],
+          "trustedUsers": []
+        }
+      }
     }
   },
   "events": []

@@ -551,6 +551,22 @@
       "ticketId": "ticket_1783966034386_8930h",
       "userId": "727578927593291796",
       "timestamp": 1783976603307
+    },
+    {
+      "type": "opened",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1783979168347_mqnv8",
+      "userId": "727578927593291796",
+      "timestamp": 1783979168567
+    },
+    {
+      "type": "closed",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1783979168347_mqnv8",
+      "userId": "727578927593291796",
+      "timestamp": 1783979172120
     }
   ]
 }
