@@ -226,6 +226,7 @@ async function main(): Promise<void> {
     enablePlanPreview: config.ai.enablePlanPreview,
     enableReflection: config.ai.enableReflection,
     voice: config.voice,
+    supportStaffRoleId: config.ai.supportStaffRoleId,
   });
   await aiService.initialize();
   aiService.start(client);

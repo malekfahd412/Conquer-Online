@@ -314,6 +314,16 @@ export class ControlCenterService {
         ),
       );
     }
+    if (category === 'members') {
+      payload.components.push(
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setLabel('📥 Support Inbox')
+            .setCustomId('si:home')
+            .setStyle(ButtonStyle.Primary),
+        ),
+      );
+    }
 
     const uiGenMs = Date.now() - tUi;
     await this.nav(interaction, payload, `category:${category}`, { uiGen: uiGenMs });

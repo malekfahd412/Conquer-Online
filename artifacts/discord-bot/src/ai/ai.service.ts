@@ -4,6 +4,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   GuildMember,
+  MessageFlags,
   type Client,
   type Message,
   type GuildTextBasedChannel,
@@ -41,6 +42,7 @@ import { logger } from '../utils/logger';
 import { slaDesigner, isSLAInteraction } from '../discord/control-center/sla-designer';
 import { reviewAnalyticsDesigner, isRAInteraction, securityCenterDesigner, isSCInteraction, staffProgressDesigner, isSPInteraction } from '../discord/control-center';
 import { SecurityGuard } from '../discord/security/security-guard';
+import { InboxService, isSIInteraction } from '../discord/control-center/inbox';
 import { CompanionService } from '../companion/companion.service';
 import { getGeminiClient, AI_MODEL } from './gemini-client';
 import { FRIENDSHIP_LABELS, FRIENDSHIP_EMOJIS } from '../companion/companion-store';
@@ -53,6 +55,8 @@ export interface AIConfig {
   enablePlanPreview: boolean;
   enableReflection: boolean;
   voice?: VoiceModuleConfig;
+  /** Role ID whose members can access the Support Inbox (in addition to admin). */
+  supportStaffRoleId?: string;
 }
 
 type ButtonCallback = () => Promise<void>;
@@ -83,6 +87,7 @@ export class AIService {
   private voiceManager: VoiceManager | null = null;
   private readonly companionService: CompanionService;
   private readonly securityGuard: SecurityGuard;
+  private readonly inboxService: InboxService;
 
   constructor(private readonly config: AIConfig) {
     this.permissionManager = new PermissionManager(config.adminRole);
@@ -101,6 +106,7 @@ export class AIService {
     this.modDashboard = new ModDashboardService(this.permissionManager);
     this.staffDashboard = new StaffDashboardService(this.permissionManager);
     this.securityGuard = new SecurityGuard();
+    this.inboxService = new InboxService(this.permissionManager, config.supportStaffRoleId);
     this.companionService = new CompanionService({
       serverName: config.serverName,
       callAI: async messages => {
@@ -154,6 +160,15 @@ export class AIService {
     this.companionService.ensureStore().catch(err => logger.warning('[COMPANION] Failed to initialize store', err));
     this.securityGuard.start(client);
 
+    // ── Support Inbox: capture all inbound DMs ─────────────────────────────
+    client.on('messageCreate', message => {
+      if (!message.guild && !message.author.bot) {
+        this.inboxService.onDirectMessage(message, client).catch(err =>
+          logger.error('[Inbox] DM capture error', err),
+        );
+      }
+    });
+
     client.on('messageCreate', message => {
       this.onMessage(message, client).catch(error => {
         logger.error('AI message handler error', error);
@@ -206,9 +221,24 @@ export class AIService {
           return;
         }
         if (name === 'panel') {
-          this.controlCenter.handlePanelCommand(interaction as ChatInputCommandInteraction).catch(err =>
-            logger.error('Control Center panel error', err),
-          );
+          const panelInteraction = interaction as ChatInputCommandInteraction;
+          (async () => {
+            if (!panelInteraction.guild) {
+              await panelInteraction.reply({ content: '❌ This command only works inside a server.', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            try {
+              const member = panelInteraction.member instanceof GuildMember
+                ? panelInteraction.member as GuildMember
+                : await panelInteraction.guild.members.fetch(panelInteraction.user.id);
+              // Support staff who are NOT full admins get direct inbox access
+              if (this.inboxService.isSupportStaff(member) && !this.permissionManager.isAdmin(member)) {
+                await this.inboxService.handlePanelCommand(panelInteraction);
+                return;
+              }
+            } catch { /* fall through to normal CC */ }
+            await this.controlCenter.handlePanelCommand(panelInteraction);
+          })().catch(err => logger.error('Control Center panel error', err));
           return;
         }
         if (name === 'cc-test') {
@@ -399,6 +429,19 @@ export class AIService {
         if (interaction.guild) {
           verificationService.handleModal(interaction, interaction.guild).catch(err =>
             logger.error('Verification modal error', err),
+          );
+        }
+        return;
+      }
+
+      // ── Support Inbox interactions (si:* custom IDs) ───────────────────────
+      if (
+        (interaction.isButton() && isSIInteraction(interaction.customId)) ||
+        (interaction.isModalSubmit() && isSIInteraction(interaction.customId))
+      ) {
+        if (interaction.guild) {
+          this.inboxService.handleInteraction(interaction, interaction.guild).catch(err =>
+            logger.error('Support Inbox interaction error', err),
           );
         }
         return;

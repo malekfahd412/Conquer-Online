@@ -11,3 +11,4 @@
 - [Verification reset on leave/rejoin](verification-leave-rejoin-reset.md) — clear a member's verification attempts on guildMemberRemove so rejoining doesn't hit a stale "already verified" block.
 - [Welcome Card system](welcome-card-system.md) — canvas join-image feature toggled by presence of `card.backgroundImage`; coordinate semantics, shared text styling, and local background upload approach.
 - [Staff Management Pro architecture](staff-management-pro.md) — event-bus decoupling from Tickets/Moderation/Verification/voice tools; dashboard entry-point workaround for zero-tool CC categories; executorId plumbing.
+- [Support Inbox Pro architecture](support-inbox-pro.md) — DM help-desk with si:* namespace; key wiring points, permission model, and write-queue pattern.

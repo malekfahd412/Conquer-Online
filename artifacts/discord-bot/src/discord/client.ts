@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { logger } from '../utils/logger';
 
 export function createDiscordClient(): Client {
@@ -12,6 +12,12 @@ export function createDiscordClient(): Client {
       GatewayIntentBits.GuildModeration,
       GatewayIntentBits.GuildEmojisAndStickers,
       GatewayIntentBits.GuildInvites,
+      GatewayIntentBits.DirectMessages,
+    ],
+    partials: [
+      // Required to receive DMs that haven't been cached yet
+      Partials.Channel,
+      Partials.Message,
     ],
   });
 }

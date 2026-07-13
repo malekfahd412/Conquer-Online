@@ -28,6 +28,8 @@ export interface AIModuleConfig {
   enablePlanPreview: boolean;
   enableReflection: boolean;
   enableObserver: boolean;
+  /** Role ID whose members can access Support Inbox (in addition to the admin role). */
+  supportStaffRoleId: string | undefined;
 }
 
 export interface VoiceModuleConfig {
@@ -160,6 +162,7 @@ export function loadConfig(): AppConfig {
       enablePlanPreview: parseBoolean('AI_PLAN_PREVIEW', true),
       enableReflection: parseBoolean('AI_REFLECTION', false),
       enableObserver: parseBoolean('AI_OBSERVER', true),
+      supportStaffRoleId: optionalEnv('SUPPORT_STAFF_ROLE_ID'),
     },
     voice: {
       sttProvider,
