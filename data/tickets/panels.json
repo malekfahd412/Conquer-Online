@@ -314,7 +314,7 @@
         "adminOverride": true
       },
       "namingScheme": "{displayname}-{counter}",
-      "ticketLimit": 1,
+      "ticketLimit": 50,
       "cooldown": 0,
       "priority": "normal",
       "modal": {
@@ -343,8 +343,8 @@
       "id": "panel_1783810288179_l0nm0",
       "guildId": "1213437502078062674",
       "createdAt": 1783810288179,
-      "updatedAt": 1783887183148,
-      "messageId": "1525642857296433185",
+      "updatedAt": 1783965215372,
+      "messageId": "1526285113338368014",
       "reviewConfig": {
         "enabled": true,
         "dmMessage": "Thank you for contacting our support team! We would love to hear about your experience.",

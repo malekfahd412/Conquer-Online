@@ -96,8 +96,8 @@ export class SecurityGuard {
     });
 
     // ── Anti Webhook ──────────────────────────────────────────────────────────
-    client.on('webhookUpdate', (channel: TextChannel) => {
-      this.onWebhookUpdate(channel).catch(err => logger.error('[Security] webhookUpdate error', err));
+    client.on('webhooksUpdate', (channel: TextChannel) => {
+      this.onWebhookUpdate(channel).catch(err => logger.error('[Security] webhooksUpdate error', err));
     });
 
     // ── Anti Emoji / Sticker ──────────────────────────────────────────────────

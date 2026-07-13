@@ -98,7 +98,7 @@ export class GuildObserver {
       this.sendObservationLog('🗑️ Event Deleted', `**${event.name}** was deleted`, 0xed4245).catch(() => {});
     });
 
-    client.on('webhookUpdate', channel => {
+    client.on('webhooksUpdate', channel => {
       const name = 'name' in channel ? (channel as GuildChannel).name : 'unknown';
       logger.info(`[Observer] Webhook updated in #${name}`);
     });

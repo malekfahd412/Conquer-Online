@@ -2249,14 +2249,14 @@
         }
       ],
       "status": "open",
-      "isRead": false,
+      "isRead": true,
       "isPinned": false,
       "isArchived": false,
       "tags": [],
       "createdAt": 1783946540250,
       "updatedAt": 1783947046116,
       "lastMessageAt": 1783947046116,
-      "unreadCount": 2,
+      "unreadCount": 0,
       "timeline": [
         {
           "type": "created",
@@ -2272,7 +2272,8 @@
       "threadId": "1526209273510629568",
       "threadGuildId": "1213437502078062674",
       "headerMessageId": "1526209274571919422",
-      "aiSidebarMessageId": "1526209277931290770"
+      "aiSidebarMessageId": "1526209277931290770",
+      "lastSeenAt": 1783964941036
     },
     {
       "id": "611333374044536833",

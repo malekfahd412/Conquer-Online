@@ -77,6 +77,30 @@
           "action": "ticket_closed",
           "points": 10,
           "timestamp": 1783961829490
+        },
+        {
+          "id": "mrjhtpgbbvlphl",
+          "guildId": "1213437502078062674",
+          "userId": "727578927593291796",
+          "action": "ticket_closed",
+          "points": 10,
+          "timestamp": 1783963530011
+        },
+        {
+          "id": "mrjiufgh0zkot1",
+          "guildId": "1213437502078062674",
+          "userId": "727578927593291796",
+          "action": "ticket_closed",
+          "points": 10,
+          "timestamp": 1783965243329
+        },
+        {
+          "id": "mrjiuphpwob75s",
+          "guildId": "1213437502078062674",
+          "userId": "727578927593291796",
+          "action": "ticket_closed",
+          "points": 10,
+          "timestamp": 1783965256333
         }
       ]
     }

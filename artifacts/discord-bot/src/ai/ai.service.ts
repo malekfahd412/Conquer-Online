@@ -414,6 +414,21 @@ export class AIService {
         return;
       }
 
+      // ── Security Center interactions (sc:* custom IDs) ────────────────────
+      if (
+        (interaction.isButton() && isSCInteraction(interaction.customId)) ||
+        (interaction.isStringSelectMenu() && isSCInteraction(interaction.customId)) ||
+        (interaction.isRoleSelectMenu() && isSCInteraction(interaction.customId)) ||
+        (interaction.isModalSubmit() && isSCInteraction(interaction.customId))
+      ) {
+        if (interaction.guild) {
+          securityCenterDesigner.handleInteraction(interaction, interaction.guild).catch(err =>
+            logger.error('Security Center interaction error', err),
+          );
+        }
+        return;
+      }
+
       // ── Ticket Review DM interactions (tk:review:* custom IDs) ────────────
       // These fire in the user's DM (no guild), so they must be routed here,
       // BEFORE the generic `tk:*` block below which drops any interaction

@@ -137,6 +137,23 @@
       "reviewedAt": 1783961789432,
       "ticketCreatedAt": 1783961775352,
       "ticketClosedAt": 1783961779854
+    },
+    {
+      "id": "rev_1783963543307_t50rc",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1783963524733_y2t4t",
+      "ticketNumber": 16,
+      "ticketType": "store",
+      "openerId": "727578927593291796",
+      "closedBy": "727578927593291796",
+      "rating": 5,
+      "comment": "test",
+      "anonymous": false,
+      "resolutionTimeMs": 4890,
+      "reviewedAt": 1783963543307,
+      "ticketCreatedAt": 1783963525111,
+      "ticketClosedAt": 1783963530001
     }
   ]
 }
