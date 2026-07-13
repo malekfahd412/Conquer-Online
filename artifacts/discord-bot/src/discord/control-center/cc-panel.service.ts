@@ -96,7 +96,7 @@ export class ControlCenterService {
       timings.categoryGen = Date.now() - t;
 
       t = Date.now();
-      const payload = buildDashboard(toolCount, counts);
+      const payload = this.buildDashboardPayload();
       timings.uiGen = Date.now() - t;
 
       t = Date.now();
@@ -235,7 +235,17 @@ export class ControlCenterService {
   // ── Navigation ─────────────────────────────────────────────────────────────
 
   private buildDashboardPayload() {
-    return buildDashboard(this.cache.toolCount, this.cache.categoryCounts);
+    const payload = buildDashboard(this.cache.toolCount, this.cache.categoryCounts);
+    // Inject Support Inbox Pro shortcut onto the main dashboard
+    payload.components.push(
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId('si:home')
+          .setLabel('📥 Support Inbox')
+          .setStyle(ButtonStyle.Primary),
+      ),
+    );
+    return payload;
   }
 
   private async navToCategory(interaction: NavInteraction, category: CategoryKey, page: number): Promise<void> {
