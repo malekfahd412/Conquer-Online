@@ -94,7 +94,7 @@ export class ControlCenterService {
       timings.registryLoad = Date.now() - t;
 
       t = Date.now();
-      const counts = this.cache.categoryCounts;
+      void this.cache.categoryCounts;
       timings.categoryGen = Date.now() - t;
 
       t = Date.now();

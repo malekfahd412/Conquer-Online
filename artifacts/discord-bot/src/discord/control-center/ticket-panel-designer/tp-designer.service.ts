@@ -1621,7 +1621,7 @@ export class TicketPanelDesigner {
     const style = validStyles.find(s => s.toLowerCase() === styleRaw.toLowerCase()) ?? 'Primary';
 
     const updated = await panelManager.update(panelId, {
-      button: { ...panel.button, label, style: style as TicketButtonConfig['style'], emoji: emoji || undefined, ticketType, categoryId: categoryId || undefined },
+      button: { ...panel.button, label, style: style as TicketButtonConfig['style'], emoji: emoji || undefined, ticketType, overrides: categoryId ? { ...(panel.button.overrides ?? {}), openCategory: categoryId } : panel.button.overrides },
     });
 
     if (!updated) {
@@ -1659,7 +1659,7 @@ export class TicketPanelDesigner {
     };
     const style = colorMap[styleRaw.toLowerCase()] ?? 'Primary';
 
-    const newBtn: TicketButtonConfig = { label, style, emoji: emoji || undefined, ticketType, categoryId: categoryId || undefined };
+    const newBtn: TicketButtonConfig = { label, style, emoji: emoji || undefined, ticketType, ...(categoryId ? { overrides: { openCategory: categoryId } } : {}) };
     const updated = await panelManager.update(panelId, { additionalButtons: [...panel.additionalButtons, newBtn] });
 
     if (!updated) {
@@ -1691,7 +1691,7 @@ export class TicketPanelDesigner {
     const style = colorMap[styleRaw.toLowerCase()] ?? 'Primary';
 
     const newButtons = [...panel.additionalButtons];
-    newButtons[idx] = { ...newButtons[idx], label, style, emoji: emoji || undefined, ticketType, categoryId: categoryId || undefined };
+    newButtons[idx] = { ...newButtons[idx], label, style, emoji: emoji || undefined, ticketType, overrides: categoryId ? { ...(newButtons[idx].overrides ?? {}), openCategory: categoryId } : newButtons[idx].overrides };
     const updated = await panelManager.update(panelId, { additionalButtons: newButtons });
 
     if (!updated) {
@@ -1732,7 +1732,7 @@ export class TicketPanelDesigner {
     const emoji       = getField(interaction, 'emoji',       false);
     const categoryId  = getField(interaction, 'categoryId',  false);
 
-    const newOpt: TicketSelectMenuOption = { label, value: ticketType, ticketType, description: description || undefined, emoji: emoji || undefined, categoryId: categoryId || undefined };
+    const newOpt: TicketSelectMenuOption = { label, value: ticketType, ticketType, description: description || undefined, emoji: emoji || undefined, ...(categoryId ? { overrides: { openCategory: categoryId } } : {}) };
     const newMenu = { placeholder: panel.selectMenu?.placeholder, options: [...currentOpts, newOpt] };
     const updated = await panelManager.update(panelId, { selectMenu: newMenu });
 
@@ -1757,7 +1757,7 @@ export class TicketPanelDesigner {
     const categoryId  = getField(interaction, 'categoryId',  false);
 
     const newOpts = [...panel.selectMenu.options];
-    newOpts[idx] = { ...newOpts[idx], label, value: ticketType, ticketType, description: description || undefined, emoji: emoji || undefined, categoryId: categoryId || undefined };
+    newOpts[idx] = { ...newOpts[idx], label, value: ticketType, ticketType, description: description || undefined, emoji: emoji || undefined, overrides: categoryId ? { ...(newOpts[idx].overrides ?? {}), openCategory: categoryId } : newOpts[idx].overrides };
     const updated = await panelManager.update(panelId, { selectMenu: { ...panel.selectMenu, options: newOpts } });
 
     if (!updated) {

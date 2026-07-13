@@ -14,7 +14,6 @@ import {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
-  MessageFlags,
   type Interaction,
   type Guild,
   type ButtonInteraction,
@@ -253,15 +252,12 @@ export class SecurityCenterDesigner {
       await this.route(interaction as ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction | RoleSelectMenuInteraction, guild);
     } catch (err) {
       logger.error('[SC] Interaction error', err);
-      const msg = {
-        content:    '❌ An error occurred in Security Center. Please try again.',
-        embeds:     [],
-        components: [],
-        flags:      MessageFlags.Ephemeral,
-      };
       const i = interaction as ButtonInteraction;
-      if (i.deferred || i.replied) await i.editReply(msg).catch(() => {});
-      else await i.reply(msg).catch(() => {});
+      if (i.deferred || i.replied) {
+        await i.editReply({ content: '❌ An error occurred in Security Center. Please try again.', embeds: [], components: [] }).catch(() => {});
+      } else {
+        await i.reply({ content: '❌ An error occurred in Security Center. Please try again.', embeds: [], components: [], ephemeral: true }).catch(() => {});
+      }
     }
   }
 

@@ -371,7 +371,7 @@ class TicketSystem {
     if (nextForm) {
       this.pendingFlows.set(flowId, { panelId, ticketType, answers: mergedAnswers, formIds: usedFormIds, startedAt: flow.startedAt });
       const knownAnswers2 = { [TICKET_TYPE_ANSWER_KEY]: ticketType, ...mergedAnswers };
-      await interaction.showModal(questionEngine.buildFormModal(`tk:form:${panelId}:${ticketType}:${nextForm.id}:${flowId}`, nextForm, knownAnswers2));
+      await (interaction as unknown as { showModal: (modal: unknown) => Promise<void> }).showModal(questionEngine.buildFormModal(`tk:form:${panelId}:${ticketType}:${nextForm.id}:${flowId}`, nextForm, knownAnswers2));
       return;
     }
 

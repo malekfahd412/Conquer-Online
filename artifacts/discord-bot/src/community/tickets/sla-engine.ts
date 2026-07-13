@@ -228,6 +228,7 @@ export class SLAEngine {
     const openRecords = data.records.filter(r => !r.resolvedAt);
 
     for (const rec of openRecords) {
+      try {
       const cfg = data.guildConfigs.find(c => c.guildId === rec.guildId);
       if (!cfg?.enabled) continue;
       const typeCfg = cfg.types[`${rec.panelId}:${rec.ticketType}`];
@@ -271,6 +272,9 @@ export class SLAEngine {
           const g = await getGuild(); if (g) await this.sendNotification(g, rec, typeCfg, 'Resolution', 'breached', 0);
           await store.mutate(d => { const r = d.records.find(x => x.id === rec.id); if (r) { r.resolutionBreachedAt = now; r.resolutionStatus = 'breached'; } });
         }
+      }
+      } catch (err) {
+        logger.warning(`[SLA] Sweep error for ticket ${rec.ticketId} in guild ${rec.guildId}`, err);
       }
     }
   }

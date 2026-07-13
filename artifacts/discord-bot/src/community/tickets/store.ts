@@ -30,14 +30,14 @@ export class JsonStore<T> {
   }
 
   async read(): Promise<T> {
-    if (this.cache !== undefined) return this.cache;
+    if (this.cache !== undefined) return JSON.parse(JSON.stringify(this.cache)) as T;
     try {
       const raw = await fs.readFile(this.filePath, 'utf-8');
       this.cache = JSON.parse(raw) as T;
     } catch {
       this.cache = this.defaultValue();
     }
-    return this.cache;
+    return JSON.parse(JSON.stringify(this.cache)) as T;
   }
 
   /** Read-modify-write, serialized so concurrent callers never clobber each other. */

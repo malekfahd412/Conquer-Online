@@ -280,10 +280,9 @@ export class PermissionEngine {
 
   /** Restores support/manager/admin role overwrites when a ticket is unclaimed. `cfg` should be the ticket-type-resolved config. */
   async restoreStaffAccess(channel: TextChannel, guild: Guild, cfg: TicketPanel, openerId: string): Promise<void> {
+    // Fully restore all overwrites as originally built — replaces any claim/hide mutations.
     const overwrites = this.buildOverwrites(guild, cfg, openerId);
-    for (const ow of overwrites) {
-      await channel.permissionOverwrites.edit(ow as Parameters<typeof channel.permissionOverwrites.edit>[0], {}).catch(() => {});
-    }
+    await channel.permissionOverwrites.set(overwrites).catch(() => {});
   }
 
   /**

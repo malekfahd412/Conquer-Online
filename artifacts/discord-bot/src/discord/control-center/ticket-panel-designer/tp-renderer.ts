@@ -1439,7 +1439,7 @@ export function buildSmOptionModal(_panelId: string, existingOpt: TicketSelectMe
       row(ti('ticketType',  'Ticket Type',   TextInputStyle.Short, existingOpt?.ticketType  || '', 'Internal key, e.g. billing', true, 50)),
       row(ti('description', 'Description',   TextInputStyle.Short, existingOpt?.description || '', 'Shown under the label (optional)', false, 100)),
       row(ti('emoji',       'Emoji',         TextInputStyle.Short, existingOpt?.emoji       || '', '🎫 (optional)', false, 32)),
-      row(ti('categoryId',  'Category ID',   TextInputStyle.Short, existingOpt?.categoryId  || '', 'Discord category ID for this ticket (optional)', false, 20)),
+      row(ti('categoryId',  'Category ID',   TextInputStyle.Short, existingOpt?.overrides?.openCategory  || '', 'Discord category ID for this ticket (optional)', false, 20)),
     );
 }
 

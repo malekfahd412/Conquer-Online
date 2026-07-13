@@ -51,14 +51,21 @@ export async function updateGuildModConfig(
   return data.guilds[guildId];
 }
 
+// Serialized write queue so concurrent allocateCaseId calls never produce duplicate IDs.
+let caseIdQueue: Promise<unknown> = Promise.resolve();
+
 /** Allocate the next case number and return the full ID string, e.g. "MOD-0042". */
-export async function allocateCaseId(guildId: string): Promise<string> {
-  const data = await load();
-  const current = data.guilds[guildId] ?? makeDefaultConfig(guildId);
-  const num = current.nextCaseNumber;
-  current.nextCaseNumber = num + 1;
-  data.guilds[guildId] = current;
-  await save(data);
-  const prefix = current.casePrefix || 'MOD';
-  return `${prefix}-${String(num).padStart(4, '0')}`;
+export function allocateCaseId(guildId: string): Promise<string> {
+  const result = caseIdQueue.then(async () => {
+    const data = await load();
+    const current = data.guilds[guildId] ?? makeDefaultConfig(guildId);
+    const num = current.nextCaseNumber;
+    current.nextCaseNumber = num + 1;
+    data.guilds[guildId] = current;
+    await save(data);
+    const prefix = current.casePrefix || 'MOD';
+    return `${prefix}-${String(num).padStart(4, '0')}`;
+  });
+  caseIdQueue = result.then(() => undefined, () => undefined);
+  return result;
 }

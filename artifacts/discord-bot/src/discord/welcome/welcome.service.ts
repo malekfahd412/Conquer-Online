@@ -78,10 +78,10 @@ export class WelcomeService {
               if (embedHasContent) embeds.push(embed);
             }
 
-            // Social buttons
+            // Social buttons (Discord caps at 5 buttons per action row)
             const components = cfg.buttons.length
               ? [new ActionRowBuilder<ButtonBuilder>().addComponents(
-                  cfg.buttons.map(b => new ButtonBuilder().setLabel(b.label).setURL(b.url).setStyle(ButtonStyle.Link).setEmoji(b.emoji ?? '🔗')),
+                  cfg.buttons.slice(0, 5).map(b => new ButtonBuilder().setLabel(b.label).setURL(b.url).setStyle(ButtonStyle.Link).setEmoji(b.emoji ?? '🔗')),
                 )]
               : [];
 

@@ -156,12 +156,18 @@ export class TicketEngine {
     });
 
     const overwrites = permissionEngine.buildOverwrites(guild, cfg, opener.id);
-    const channel = (await guild.channels.create({
-      name,
-      parent: cfg.openCategory,
-      permissionOverwrites: overwrites,
-      topic: `Ticket for ${opener.tag} • Type: ${ticketType} • Panel: ${cfg.id}`,
-    })) as TextChannel;
+    let channel: TextChannel;
+    try {
+      channel = (await guild.channels.create({
+        name,
+        parent: cfg.openCategory,
+        permissionOverwrites: overwrites,
+        topic: `Ticket for ${opener.tag} • Type: ${ticketType} • Panel: ${cfg.id}`,
+      })) as TextChannel;
+    } catch (err) {
+      logger.error('[TICKETS] Failed to create ticket channel (missing permissions or rate limit?)', err);
+      throw err;
+    }
 
     const ticket: TicketRecord = {
       id: ticketId,
@@ -322,8 +328,17 @@ export class TicketEngine {
     await this.logAction(guild, cfg, `🔒 Ticket **#${ticket.number}** closed by ${closedByTag}`);
 
     if (cfg.automation.autoDeleteAfterCloseMinutes > 0 && channel) {
-      setTimeout(() => {
-        channel.delete().catch(err => logger.warning(`[TICKETS] Auto-delete failed for ${channel.id}`, err));
+      const ticketIdToDelete = ticket.id;
+      const channelToDelete = channel;
+      setTimeout(async () => {
+        try {
+          // Re-read ticket to guard against reopen during the delay window
+          const current = await this.getById(ticketIdToDelete);
+          if (!current || current.status !== 'closed') return;
+          await channelToDelete.delete();
+        } catch (err) {
+          logger.warning(`[TICKETS] Auto-delete failed for ${channelToDelete.id}`, err);
+        }
       }, cfg.automation.autoDeleteAfterCloseMinutes * 60_000);
     }
   }

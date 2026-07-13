@@ -102,10 +102,6 @@ class CompanionStore {
     return p;
   }
 
-  private profileKey(userId: string, guildId: string): string {
-    return `${userId}:${guildId}`;
-  }
-
   async getProfile(userId: string, guildId: string): Promise<CompanionProfile> {
     const data = await this.read();
     return (

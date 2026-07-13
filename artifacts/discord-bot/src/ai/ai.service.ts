@@ -39,8 +39,7 @@ import { VoiceDiagnostics } from '../voice/VoiceDiagnostics';
 import type { VoicePersonality } from '../voice/VoiceConversation';
 import type { VoiceModuleConfig } from '../config/config';
 import { logger } from '../utils/logger';
-import { slaDesigner, isSLAInteraction } from '../discord/control-center/sla-designer';
-import { reviewAnalyticsDesigner, isRAInteraction, securityCenterDesigner, isSCInteraction, staffProgressDesigner, isSPInteraction } from '../discord/control-center';
+import { securityCenterDesigner, isSCInteraction, staffProgressDesigner, isSPInteraction } from '../discord/control-center';
 import { SecurityGuard } from '../discord/security/security-guard';
 import { InboxService, isSIInteraction } from '../discord/control-center/inbox';
 import { InboxChannelService, isICInteraction } from '../discord/control-center/inbox-channel';
@@ -1033,7 +1032,7 @@ export class AIService {
         await (message.channel as GuildTextBasedChannel).sendTyping().catch(() => {});
       }
       const reply = await this.companionService.chat(message.author.id, message.guild.id, content);
-      await message.reply(reply).catch(() => message.channel.send(reply).catch(() => {}));
+      await message.reply(reply).catch(() => ('send' in message.channel ? (message.channel as { send: (content: string) => Promise<unknown> }).send(reply).catch(() => {}) : Promise.resolve()));
     } catch (err) {
       logger.error('[COMPANION] processCompanion error', err);
       await message.reply("Sorry, I got confused for a second 😅 Try again?").catch(() => {});

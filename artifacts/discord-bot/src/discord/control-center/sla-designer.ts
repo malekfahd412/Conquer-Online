@@ -17,7 +17,7 @@ import {
   type ButtonInteraction,
   type ModalSubmitInteraction,
 } from 'discord.js';
-import { slaEngine, formatMs, computeSLAStatus, DEFAULT_SLA_TYPE_CONFIG, type SLATypeConfig } from '../../community/tickets/sla-engine';
+import { slaEngine, formatMs, DEFAULT_SLA_TYPE_CONFIG, type SLATypeConfig } from '../../community/tickets/sla-engine';
 import { panelManager } from '../../community/tickets/panel-manager';
 import type { TicketPanel } from '../../community/tickets/types';
 import { logger } from '../../utils/logger';
@@ -106,11 +106,10 @@ export class SLADesigner {
     } catch (err) {
       logger.error('[SLA] Interaction error', err);
       if (interaction.isRepliable()) {
-        const payload = { content: '❌ An error occurred in the SLA Designer.', flags: MessageFlags.Ephemeral };
         if ((interaction as ButtonInteraction).deferred || (interaction as ButtonInteraction).replied) {
-          await (interaction as ButtonInteraction).editReply(payload).catch(() => {});
+          await (interaction as ButtonInteraction).editReply({ content: '❌ An error occurred in the SLA Designer.' }).catch(() => {});
         } else {
-          await (interaction as ButtonInteraction).reply(payload).catch(() => {});
+          await (interaction as ButtonInteraction).reply({ content: '❌ An error occurred in the SLA Designer.', ephemeral: true }).catch(() => {});
         }
       }
     }
@@ -154,7 +153,7 @@ export class SLADesigner {
   private async navHome(interaction: ButtonInteraction, guild: Guild): Promise<void> {
     await interaction.deferUpdate();
     const dash = await slaEngine.getDashboard(guild.id);
-    const cfg = await slaEngine.getGuildConfig(guild.id);
+    await slaEngine.getGuildConfig(guild.id);
 
     const statusLine = dash.enabled
       ? (dash.breached > 0 ? '🚨 Active SLA Breaches!' : dash.critical > 0 ? '🔴 Critical SLA Alerts' : dash.warned > 0 ? '⚠️ SLA Warnings Active' : '✅ All SLAs On Track')
@@ -424,7 +423,6 @@ export class SLADesigner {
 
   private async navStats(interaction: ButtonInteraction, guild: Guild): Promise<void> {
     await interaction.deferUpdate();
-    const panels = await panelManager.list(guild.id);
     const openRecs = await slaEngine.getOpenRecords(guild.id);
     const history  = await slaEngine.getHistory(guild.id, 100);
     const closed   = history.filter(r => r.resolvedAt);

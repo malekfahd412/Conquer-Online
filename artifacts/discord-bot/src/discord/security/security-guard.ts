@@ -134,6 +134,9 @@ export class SecurityGuard {
       this.onMessageDelete(message).catch(err => logger.error('[Security] messageDelete error', err));
     });
 
+    // Periodically prune stale ghost-ping cache entries to prevent memory growth
+    setInterval(pruneCache, MENTION_CACHE_TTL);
+
     logger.success('[Security] Security Guard activated — 14 modules ready');
   }
 

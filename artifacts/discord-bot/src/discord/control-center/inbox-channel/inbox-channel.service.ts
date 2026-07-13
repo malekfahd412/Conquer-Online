@@ -208,9 +208,13 @@ export class InboxChannelService {
       const msg = await channel.messages.fetch(data.dashboardMessageId).catch(() => null);
       if (msg) return;
     }
-    const placeholder = await channel.send({ content: '📥 Setting up the Support Inbox dashboard…' });
-    await setDashboardMessageId(guild.id, placeholder.id);
-    await placeholder.pin().catch(() => {});
+    try {
+      const placeholder = await channel.send({ content: '📥 Setting up the Support Inbox dashboard…' });
+      await setDashboardMessageId(guild.id, placeholder.id);
+      await placeholder.pin().catch(() => {});
+    } catch (err) {
+      logger.warning('[InboxChannel] Failed to create dashboard placeholder', err);
+    }
   }
 
   async refreshDashboard(guild: Guild): Promise<void> {
@@ -435,7 +439,10 @@ export class InboxChannelService {
    *  surface a friendly error. */
   private async deliverDM(client: Client, uid: string, staffName: string, content: string, fileUrls: string[] = []): Promise<Message> {
     const user = await client.users.fetch(uid);
-    const labeled = content ? `${staffName} : ${content}` : `${staffName} :`;
+    const prefix = staffName ? `${staffName} : ` : '';
+    const maxContent = 2000 - prefix.length;
+    const safe = content ? content.slice(0, maxContent) : '';
+    const labeled = safe ? `${prefix}${safe}` : prefix.trimEnd() || '\u200b';
     return user.send({ content: labeled, files: fileUrls.length ? fileUrls : undefined });
   }
 

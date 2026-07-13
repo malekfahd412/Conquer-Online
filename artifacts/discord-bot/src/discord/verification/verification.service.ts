@@ -298,6 +298,10 @@ export class VerificationService {
         await interaction.editReply({ content: '❌ Verification succeeded but the role could not be assigned. Please contact a staff member — this has been logged.', components: [] });
       }
     } else {
+      // Track failed emoji attempt in the same way as the modal handler so fail counts are accurate
+      const attempt = await getAttempt(guild.id, panel.id, interaction.user.id);
+      const fails = attempt ? await incrementFail(attempt.id) : 0;
+      await upsertAttempt({ guildId: guild.id, panelId: panel.id, userId: interaction.user.id, status: 'pending', method: panel.method, failCount: fails + 1 });
       await interaction.editReply({ content: '❌ Wrong emoji. Click the verify button to try again.', components: [] });
     }
   }

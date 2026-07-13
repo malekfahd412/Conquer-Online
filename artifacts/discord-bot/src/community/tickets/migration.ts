@@ -144,6 +144,7 @@ function convertPanel(legacy: LegacyPanel): TicketPanel {
       autoDeleteAfterCloseMinutes: legacy.autoDelete ? 1 / 6 : 0, // legacy auto-delete fired 10s after close
       cooldownSeconds: 0,
       reminderMinutes: 0,
+      ageWarnMinutes: 0,
     },
     statistics: { trackResponseTime: true, trackClaims: true },
     createdAt: legacy.createdAt,
@@ -187,7 +188,7 @@ export async function runNamingMigrationV2(): Promise<void> {
   const OLD = 'ticket-{counter}';
   const NEW = '{displayname}-{counter}';
 
-  const panels = await panelManager.list();
+  const panels = await panelManager.getAll();
   let count = 0;
   for (const panel of panels) {
     if (panel.namingScheme === OLD) {
@@ -225,7 +226,7 @@ export async function runNamingMigrationV3(): Promise<void> {
   const USER_VARS = ['{displayname}', '{user}', '{username}', '{userid}'];
   const NEW = '{displayname}-{counter}';
 
-  const panels = await panelManager.list();
+  const panels = await panelManager.getAll();
   let count = 0;
   for (const panel of panels) {
     const scheme = panel.namingScheme ?? '';

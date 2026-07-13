@@ -115,9 +115,18 @@ export class TranscriptEngine {
     if (cfg.transcript.enabled && targetChannelId) {
       const tc = await guild.channels.fetch(targetChannelId).catch(() => null);
       if (tc?.isTextBased()) {
-        const files = cfg.transcript.formats.includes('html')
-          ? [new AttachmentBuilder(Buffer.from(result.html, 'utf-8'), { name: `ticket-${ticket.number}.html` })]
-          : [new AttachmentBuilder(Buffer.from(result.markdown, 'utf-8'), { name: `ticket-${ticket.number}.md` })];
+        // Deliver all requested formats (html and/or markdown)
+        const files: AttachmentBuilder[] = [];
+        if (cfg.transcript.formats.includes('html')) {
+          files.push(new AttachmentBuilder(Buffer.from(result.html, 'utf-8'), { name: `ticket-${ticket.number}.html` }));
+        }
+        if (cfg.transcript.formats.includes('markdown')) {
+          files.push(new AttachmentBuilder(Buffer.from(result.markdown, 'utf-8'), { name: `ticket-${ticket.number}.md` }));
+        }
+        if (files.length === 0) {
+          // Fallback: deliver markdown if no format explicitly enabled
+          files.push(new AttachmentBuilder(Buffer.from(result.markdown, 'utf-8'), { name: `ticket-${ticket.number}.md` }));
+        }
         await (tc as TextChannel).send({ content: `📄 Transcript for ticket #${ticket.number} (closed by ${closedByTag})`, files }).catch(err =>
           logger.warning('[TICKETS] TranscriptEngine failed to deliver transcript', err),
         );
@@ -128,8 +137,11 @@ export class TranscriptEngine {
     if (cfg.transcript.dmUser) {
       const opener = await guild.members.fetch(ticket.openerId).catch(() => null);
       if (opener) {
-        const file = new AttachmentBuilder(Buffer.from(result.html, 'utf-8'), { name: `ticket-${ticket.number}.html` });
-        await opener.send({ content: `📄 Here is the transcript for your ticket #${ticket.number}.`, files: [file] }).catch(() => {});
+        // DM the preferred format (html first, then markdown)
+        const dmFile = cfg.transcript.formats.includes('html')
+          ? new AttachmentBuilder(Buffer.from(result.html, 'utf-8'), { name: `ticket-${ticket.number}.html` })
+          : new AttachmentBuilder(Buffer.from(result.markdown, 'utf-8'), { name: `ticket-${ticket.number}.md` });
+        await opener.send({ content: `📄 Here is the transcript for your ticket #${ticket.number}.`, files: [dmFile] }).catch(() => {});
       }
     }
 
