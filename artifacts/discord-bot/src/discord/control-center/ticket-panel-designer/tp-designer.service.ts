@@ -1432,7 +1432,7 @@ export class TicketPanelDesigner {
       staffPerms: { ...DEFAULT_STAFF_PERMS },
       visibility: 'private',
       claimBehaviour: { ...DEFAULT_CLAIM_BEHAVIOUR },
-      namingScheme: 'ticket-{counter}',
+      namingScheme: '{displayname}-{counter}',
       ticketLimit: 1,
       cooldown: 0,
       priority: 'normal',

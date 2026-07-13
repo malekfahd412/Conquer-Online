@@ -20,7 +20,7 @@ export class CreateTicketPanelTool implements ITool {
         transcriptChannel: { type: 'string', description: 'Channel to post closed-ticket transcripts (optional)' },
         logChannel: { type: 'string', description: 'Channel to post ticket open/close logs (optional)' },
         maxTicketsPerUser: { type: 'number', description: 'Max simultaneously open tickets per user (default 1)' },
-        namingFormat: { type: 'string', description: 'Ticket channel naming format, supports {counter} {username} {userid} {displayname} {date} {time} (default: ticket-{counter})' },
+        namingFormat: { type: 'string', description: 'Ticket channel naming format, supports {counter} {username} {userid} {displayname} {date} {time} (default: {displayname}-{counter})' },
       },
       required: ['channel', 'title', 'description', 'buttonLabel', 'ticketType'],
     },
@@ -70,7 +70,7 @@ export class CreateTicketPanelTool implements ITool {
       transcript: { enabled: !!transcriptChannelId, channelId: transcriptChannelId, formats: ['html'], dmUser: false },
       logChannelId,
       ticketLimit: Number(params['maxTicketsPerUser'] ?? 1),
-      namingScheme: String(params['namingFormat'] ?? 'ticket-{counter}'),
+      namingScheme: String(params['namingFormat'] ?? '{displayname}-{counter}'),
     });
 
     await ticketSystem.panels.publish(guild, panel);

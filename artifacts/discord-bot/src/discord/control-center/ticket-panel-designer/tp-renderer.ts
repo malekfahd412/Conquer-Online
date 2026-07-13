@@ -1273,7 +1273,7 @@ export function buildEditNamingModal(panel: TicketPanel): ModalBuilder {
     .setCustomId(TP.modal(panel.id, 'naming'))
     .setTitle('Ticket Naming Scheme')
     .addComponents(
-      row(ti('namingScheme', 'Naming Scheme', TextInputStyle.Short, panel.namingScheme, 'e.g. ticket-{counter} or support-{username}', true, 90)),
+      row(ti('namingScheme', 'Naming Scheme', TextInputStyle.Short, panel.namingScheme, 'e.g. {displayname}-{counter} or support-{username}', true, 90)),
     );
 }
 

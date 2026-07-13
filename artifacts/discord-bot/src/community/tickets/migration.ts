@@ -74,7 +74,7 @@ export const settingsStore = new JsonStore<TicketSettings>('settings.json', () =
   schemaVersion: 1,
   migratedFromLegacy: false,
   defaultEmbedColor: 0x5865f2,
-  defaultNamingScheme: 'ticket-{counter}',
+  defaultNamingScheme: '{displayname}-{counter}',
   defaultTicketLimit: 1,
 }));
 

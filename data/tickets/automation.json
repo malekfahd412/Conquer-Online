@@ -5,7 +5,7 @@
       "panelId": "panel_1783810288179_l0nm0",
       "userId": "727578927593291796",
       "ticketType": "store",
-      "lastClosedAt": 1783886969257
+      "lastClosedAt": 1783961779855
     },
     {
       "guildId": "1213437502078062674",
@@ -26,7 +26,7 @@
       "panelId": "panel_1783810288179_l0nm0",
       "userId": "727578927593291796",
       "ticketType": "Staff",
-      "lastClosedAt": 1783898455328
+      "lastClosedAt": 1783952622505
     },
     {
       "guildId": "1213437502078062674",
@@ -34,14 +34,15 @@
       "userId": "1407085985166135336",
       "ticketType": "support",
       "lastClosedAt": 1783944440202
-    }
-  ],
-  "activity": [
+    },
     {
-      "ticketId": "ticket_1783812841380_700oy",
-      "channelId": "1525646377533706460",
-      "lastActivityAt": 1783812841649
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "userId": "631930445218578433",
+      "ticketType": "store",
+      "lastClosedAt": 1783961829483
     }
   ],
+  "activity": [],
   "log": []
 }

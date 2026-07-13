@@ -91,7 +91,7 @@
       "ticketType": "store",
       "channelId": "1525646377533706460",
       "openerId": "631930445218578433",
-      "status": "open",
+      "status": "closed",
       "number": 5,
       "priority": "normal",
       "answers": {},
@@ -100,7 +100,10 @@
       "participantIds": [
         "631930445218578433"
       ],
-      "headerMessageId": "1525646378284613766"
+      "headerMessageId": "1525646378284613766",
+      "closedAt": 1783961829482,
+      "closedBy": "611333374044536833",
+      "lastLifecycleMessageId": "1526271278129090632"
     },
     {
       "id": "ticket_1783828544280_9injb",
@@ -208,9 +211,114 @@
       "closedAt": 1783944440201,
       "closedBy": "611333374044536833",
       "lastLifecycleMessageId": "1526198342650957904"
+    },
+    {
+      "id": "ticket_1783952618683_s6rc9",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketType": "Staff",
+      "channelId": "1526232645967806625",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 11,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783952618907,
+      "lastActivityAt": 1783952618907,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "headerMessageId": "1526232646685036661",
+      "closedAt": 1783952622502,
+      "closedBy": "727578927593291796",
+      "lastLifecycleMessageId": "1526232662908604447"
+    },
+    {
+      "id": "ticket_1783960810281_zixlh",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketType": "store",
+      "channelId": "1526267004204351538",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 12,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783960810607,
+      "lastActivityAt": 1783960810607,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "headerMessageId": "1526267005169307800",
+      "closedAt": 1783960815590,
+      "closedBy": "727578927593291796",
+      "lastLifecycleMessageId": "1526267025708679332"
+    },
+    {
+      "id": "ticket_1783961616281_v8f8m",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketType": "store",
+      "channelId": "1526270384469708930",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 13,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783961616454,
+      "lastActivityAt": 1783961616454,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "headerMessageId": "1526270385329410129",
+      "closedAt": 1783961626142,
+      "closedBy": "727578927593291796",
+      "lastLifecycleMessageId": "1526270425762365531"
+    },
+    {
+      "id": "ticket_1783961661352_3oiou",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketType": "store",
+      "channelId": "1526270573708312647",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 14,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783961661591,
+      "lastActivityAt": 1783961661591,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "headerMessageId": "1526270574488195123",
+      "closedAt": 1783961670678,
+      "closedBy": "727578927593291796",
+      "lastLifecycleMessageId": "1526270612505624668"
+    },
+    {
+      "id": "ticket_1783961775145_p4zbg",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketType": "store",
+      "channelId": "1526271050906730516",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 15,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783961775352,
+      "lastActivityAt": 1783961775352,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "headerMessageId": "1526271051506389053",
+      "closedAt": 1783961779854,
+      "closedBy": "727578927593291796",
+      "lastLifecycleMessageId": "1526271070523494521"
     }
   ],
   "counters": {
-    "1213437502078062674": 11
+    "1213437502078062674": 15
   }
 }

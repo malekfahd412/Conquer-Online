@@ -16,3 +16,4 @@
 - [Discord-Native Support Inbox Channel/Thread layer](support-inbox-native-channel.md) — channel+thread UI layered on Support Inbox Pro; ManageThreads visibility trick, presence-intent avoidance, native-reply design, per-guild provisioning.
 - [Support Inbox mirrored-message plain-text format](support-inbox-mirrored-message-format.md) — ic:* thread mirror shows "Name:\nContent" plain text, no embeds; name-resolution fallback chain and scope boundary vs. si:* digest view.
 - [Ticket Review DM config](ticket-review-dm-config.md) — review DM defaults to disabled per panel; panelManager.get() returns raw unnormalized panels, so config reads must use the merge pattern, not raw `??` fallback.
+- [Ticket Review DM interaction routing](ticket-review-dm-routing.md) — DM-only tk:review:* buttons/modals need their own un-gated router branch placed before the guild-gated tk:* block, or they fail silently.

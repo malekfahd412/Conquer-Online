@@ -12,11 +12,11 @@
           "guildId": "1213437502078062674",
           "firstTrackedAt": 1783904981848,
           "status": "active",
-          "lastActivityAt": 1783904981848,
+          "lastActivityAt": 1783961779858,
           "totalActivityMs": 0,
           "counts": {
             "ticket_claimed": 0,
-            "ticket_closed": 0,
+            "ticket_closed": 5,
             "ticket_reopened": 0,
             "warn_issued": 0,
             "unwarn_issued": 0,
@@ -35,11 +35,41 @@
           },
           "firstResponseTotalMs": 0,
           "firstResponseSamples": 0,
-          "resolutionTotalMs": 0,
-          "resolutionSamples": 0,
+          "resolutionTotalMs": 31875,
+          "resolutionSamples": 5,
           "warnings": [],
           "notes": [],
           "timeline": [
+            {
+              "id": "mrjgs711flrml3",
+              "action": "ticket_closed",
+              "description": "🔒 Ticket Closed — Ticket #15",
+              "timestamp": 1783961779858
+            },
+            {
+              "id": "mrjgpusci846wb",
+              "action": "ticket_closed",
+              "description": "🔒 Ticket Closed — Ticket #14",
+              "timestamp": 1783961670683
+            },
+            {
+              "id": "mrjgowf7fvr3z3",
+              "action": "ticket_closed",
+              "description": "🔒 Ticket Closed — Ticket #13",
+              "timestamp": 1783961626145
+            },
+            {
+              "id": "mrjg7izv3992v5",
+              "action": "ticket_closed",
+              "description": "🔒 Ticket Closed — Ticket #12",
+              "timestamp": 1783960815593
+            },
+            {
+              "id": "mrjbbx659a3mj6",
+              "action": "ticket_closed",
+              "description": "🔒 Ticket Closed — Ticket #11",
+              "timestamp": 1783952622507
+            },
             {
               "id": "mriiytegyf3xul",
               "action": "shift_start",
@@ -54,11 +84,11 @@
           "guildId": "1213437502078062674",
           "firstTrackedAt": 1783944440206,
           "status": "active",
-          "lastActivityAt": 1783944440204,
+          "lastActivityAt": 1783961829484,
           "totalActivityMs": 0,
           "counts": {
             "ticket_claimed": 0,
-            "ticket_closed": 1,
+            "ticket_closed": 2,
             "ticket_reopened": 0,
             "warn_issued": 0,
             "unwarn_issued": 0,
@@ -77,11 +107,17 @@
           },
           "firstResponseTotalMs": 0,
           "firstResponseSamples": 0,
-          "resolutionTotalMs": 335770,
-          "resolutionSamples": 1,
+          "resolutionTotalMs": 149323608,
+          "resolutionSamples": 2,
           "warnings": [],
           "notes": [],
           "timeline": [
+            {
+              "id": "mrjgt9birvh33o",
+              "action": "ticket_closed",
+              "description": "🔒 Ticket Closed — Ticket #5",
+              "timestamp": 1783961829484
+            },
             {
               "id": "mrj6gjnynqocqi",
               "action": "ticket_closed",

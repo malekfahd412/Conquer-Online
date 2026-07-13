@@ -32,7 +32,7 @@ export function defaultPanelFields(): PanelDefaultFields {
     closedCategory: undefined,
     archiveCategory: undefined,
     logChannelId: undefined,
-    namingScheme: 'ticket-{counter}',
+    namingScheme: '{displayname}-{counter}',
     ticketLimit: 1,
     cooldown: 0,
     priority: 'normal',

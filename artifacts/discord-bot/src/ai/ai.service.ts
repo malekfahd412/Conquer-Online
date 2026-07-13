@@ -414,6 +414,23 @@ export class AIService {
         return;
       }
 
+      // ── Ticket Review DM interactions (tk:review:* custom IDs) ────────────
+      // These fire in the user's DM (no guild), so they must be routed here,
+      // BEFORE the generic `tk:*` block below which drops any interaction
+      // without `interaction.guild`.
+      if (interaction.isButton() && interaction.customId.startsWith('tk:review:rate:')) {
+        ticketSystem.handleReviewInteraction(interaction).catch(err =>
+          logger.error('Ticket review interaction error', err),
+        );
+        return;
+      }
+      if (interaction.isModalSubmit() && interaction.customId.startsWith('tk:review:modal:')) {
+        ticketSystem.handleReviewModal(interaction).catch(err =>
+          logger.error('Ticket review modal error', err),
+        );
+        return;
+      }
+
       // ── Ticket system interactions (tk:* custom IDs) ───────────────────────
       if (interaction.isButton() && interaction.customId.startsWith('tk:')) {
         if (interaction.guild) {

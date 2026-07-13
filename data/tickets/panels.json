@@ -313,7 +313,7 @@
         "managerOverride": true,
         "adminOverride": true
       },
-      "namingScheme": "ticket-{counter}",
+      "namingScheme": "{displayname}-{counter}",
       "ticketLimit": 1,
       "cooldown": 0,
       "priority": "normal",
