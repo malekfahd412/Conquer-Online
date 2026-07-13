@@ -155,7 +155,7 @@ export function loadConfig(): AppConfig {
     dataSource,
     mssql,
     api,
-    updateIntervalMs: Math.max(5000, parseInt(process.env['UPDATE_INTERVAL_MS'] ?? '30000', 10) || 30000),
+    updateIntervalMs: Math.max(3000, parseInt(process.env['UPDATE_INTERVAL_MS'] ?? '3000', 10) || 3000),
     ai: {
       provider: aiProvider,
       adminRole: optionalEnv('ROLE_ADMIN') ?? '',
