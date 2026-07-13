@@ -367,16 +367,11 @@ export class InboxService {
     if (!conv)                     { await i.editReply({ content: '❌ Conversation not found.' }); return; }
     if (conv.status === 'closed')  { await i.editReply({ content: '❌ Conversation is closed. Reopen it first.' }); return; }
 
-    // Send the actual DM
+    // Send the actual DM as a plain message
     try {
       const client = (i as unknown as { client: Client }).client;
       const user   = await client.users.fetch(uid);
-      const embed  = new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setDescription(content)
-        .setFooter({ text: `Support reply from ${guild.name}` })
-        .setTimestamp();
-      await user.send({ embeds: [embed] });
+      await user.send({ content });
     } catch (err) {
       logger.error(`[Inbox] Failed to DM user ${uid}`, err);
       await i.editReply({ content: `❌ Could not DM this user. They may have DMs disabled.\n\`${err instanceof Error ? err.message : String(err)}\`` });

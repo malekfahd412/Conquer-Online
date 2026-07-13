@@ -1,0 +1,46 @@
+{
+  "conversations": [
+    {
+      "id": "727578927593291796",
+      "userId": "727578927593291796",
+      "userTag": "s6.a_",
+      "guildId": "1213437502078062674",
+      "messages": [
+        {
+          "id": "1526040883428851752",
+          "type": "user",
+          "content": "Hello",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1783906899215,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
+        },
+        {
+          "id": "reply_1783906972747",
+          "type": "staff_reply",
+          "content": "Hi , How can i assest you ?",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1783906972748,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
+        }
+      ],
+      "status": "open",
+      "isRead": true,
+      "isPinned": false,
+      "isArchived": false,
+      "tags": [],
+      "createdAt": 1783906899215,
+      "updatedAt": 1783906972748,
+      "lastMessageAt": 1783906899215,
+      "unreadCount": 0,
+      "userAvatar": "https://cdn.discordapp.com/avatars/727578927593291796/2b59b65bf0f18e1f1ce3435d3b8209de.webp?size=128"
+    }
+  ]
+}
