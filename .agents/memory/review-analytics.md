@@ -21,8 +21,11 @@ Entry point `ra:home` → redirects to `ov:al`. Parsing: `id.split(':')` → `[r
 - Period filter affects: totalReviews, avgRating, distribution, staffStats, typeStats, topRated, mostReviewed
 - Trend (today/week/month/all-time) is ALWAYS computed from the full guild dataset regardless of filter — provides a stable reference point.
 
-## Routing in ai.service.ts
-`isRAInteraction(id)` → routes to `reviewAnalyticsDesigner.handleInteraction(interaction, guild)`. Placed after SLA block, before review DM block. Requires guild (CC-only, never DM).
+## Routing (CONFIRMED WIRED)
+`reviewAnalyticsDesigner` and `isRAInteraction` are exported from `discord/control-center/index.ts`.
+Import in `ai.service.ts`: added to the existing `'../discord/control-center'` import line.
+Routing block handles `isButton()` only (RA has no modals).
+Placed after SLA block, before sc:* block. Requires guild (CC-only, never DM).
 
 ## Leaderboard qualification
 Staff need ≥ 2 reviews to appear in Top Rated / bestStaff / worstStaff. No minimum for Most Reviewed. This prevents single-review noise from dominating the leaderboard.

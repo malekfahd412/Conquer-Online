@@ -299,13 +299,17 @@ export class SecurityCenterDesigner {
     // ── Modal submissions ────────────────────────────────────────────────────
     if (interaction.isModalSubmit()) {
       const mi = interaction as ModalSubmitInteraction;
-      await mi.deferUpdate();
       if (id.startsWith('sc:modal:edit:')) {
+        await mi.deferUpdate();
         await this.handleEditModal(mi, guild, id.slice('sc:modal:edit:'.length) as SecurityModuleKey);
       } else if (id.startsWith('sc:modal:log:')) {
+        // handleLogModal defers internally after validation
         await this.handleLogModal(mi, guild, id.slice('sc:modal:log:'.length) as SecurityModuleKey);
       } else if (id.startsWith('sc:modal:words:')) {
+        await mi.deferUpdate();
         await this.handleWordsModal(mi, guild, id.slice('sc:modal:words:'.length) as SecurityModuleKey);
+      } else {
+        await mi.deferUpdate();
       }
       return;
     }
@@ -802,8 +806,29 @@ export class SecurityCenterDesigner {
     guild: Guild,
     key: SecurityModuleKey,
   ): Promise<void> {
-    const logChannelId = interaction.fields.getTextInputValue('log_channel_id').trim() || undefined;
-    const globalId     = interaction.fields.getTextInputValue('global_log_channel_id').trim() || undefined;
+    const rawModuleId = interaction.fields.getTextInputValue('log_channel_id').trim();
+    const rawGlobalId = interaction.fields.getTextInputValue('global_log_channel_id').trim();
+
+    // Validate: must be empty (clear) or a valid Discord snowflake (17–20 digits)
+    const isValidId = (s: string) => s === '' || /^\d{17,20}$/.test(s);
+
+    if (!isValidId(rawModuleId) || !isValidId(rawGlobalId)) {
+      const bad = [
+        !isValidId(rawModuleId)  && `Module: \`${rawModuleId}\``,
+        !isValidId(rawGlobalId) && `Global: \`${rawGlobalId}\``,
+      ].filter(Boolean).join(', ');
+      await interaction.reply({
+        content: `❌ **Invalid channel ID${!isValidId(rawModuleId) && !isValidId(rawGlobalId) ? 's' : ''}:** ${bad}\n` +
+          `Channel IDs must be 17–20 digit numbers (right-click a channel → Copy Channel ID). Leave blank to clear.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const logChannelId = rawModuleId || undefined;
+    const globalId     = rawGlobalId || undefined;
+
+    await interaction.deferUpdate();
 
     await patchModuleConfig(guild.id, key, { logChannelId });
     await patchGuildConfig(guild.id, { securityLogChannelId: globalId });

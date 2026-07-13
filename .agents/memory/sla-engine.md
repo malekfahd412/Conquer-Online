@@ -27,8 +27,11 @@ ticket types in custom IDs use `encodeURIComponent(ticketType).slice(0, 50)` (sl
 ## CC button
 Added `📈 Ticket SLA` button alongside `🎨 Ticket Panel Designer` in tickets category (cc-panel.service.ts navToCategory)
 
-## Router
-`sla:*` routed in ai.service.ts before the `tk:*` block; `isSLAInteraction` function exported from sla-designer.ts
+## Router (CONFIRMED WIRED)
+`sla:*` routing is in `ai.service.ts` — import comes directly from `'../discord/control-center/sla-designer'`
+(NOT from the control-center index, which doesn't export it).
+Routing block handles both `isButton()` and `isModalSubmit()` for sla:* custom IDs.
+Placed after sp:* block, before sc:* block.
 
 **Why:**
 Keeping SLA engine separate from statistics-engine.ts avoids coupling two different concerns. SLA is compliance-tracking, stats is aggregate reporting.
