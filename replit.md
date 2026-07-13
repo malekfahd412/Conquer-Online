@@ -7,6 +7,16 @@ Ticket Panel Designer: each ticket button and select-menu option now has its own
 
 Auto-Role on Join: the Control Center's **Welcome/Goodbye** category (`/panel` → Welcome/Goodbye) now has a "🎭 Set Auto-Role" button that opens a native Discord role-select menu — pick up to 10 roles (or none, to clear) and they're saved as the guild's auto-role list. Every new member who joins gets those roles immediately, independent of whether welcome messages themselves are enabled/configured. Backed by the existing `autoRoleIds` field in `data/welcome.json` (previously only settable via AI chat command); the join handler in `welcome.service.ts` now applies auto-roles before checking the welcome-enabled flag.
 
+**Discord-Native Support Inbox (July 13, 2026):** a second, additive interface on top of Support Inbox Pro (the ephemeral `/panel` inbox is untouched and still works for search/tags/quick replies). Every guild the bot is in now gets a `#📥-support-inbox` channel (auto-created and remembered — or set `CHANNEL_SUPPORT_INBOX` to use an existing channel instead) containing:
+- A live pinned **dashboard embed** listing open conversations, unread count, and staff "active now" count, with a 🔄 Refresh button.
+- One **private thread per user conversation**, auto-created on their first DM. Inbound DMs are mirrored into the thread as embeds (avatar, timestamp, attachments); staff just type plain messages in the thread and they're delivered straight to the user's DM (reacted ✅/❌), or prefix with `!note ` for an internal-only note (reacted 📝). First replier auto-claims the conversation.
+- A pinned **thread control panel** with 💬 Reply, 📝 Internal Note, 🤖 AI Assist, 📞 Voice Support, 📋 Summary, 🔒 Close/Reopen buttons.
+- Typing in a thread bridges to a "typing…" indicator in the user's DM; staff reacting 👀 on a mirrored user message marks it read.
+- Any support-staff-role member automatically sees every conversation thread (granted `ManageThreads` on the parent channel — Discord's native behavior for private threads — instead of manually inviting members to each one).
+- "Staff active now" is an in-memory approximation (staff who replied/interacted in the last 10 minutes), not true Discord presence — the privileged Presence Intent was deliberately not added since it risks breaking bot login if not separately approved in the Developer Portal.
+- Voice Support creates a temporary staff+user voice channel with a 1-hour invite DMed to the user (bots can't place real Discord voice calls to DMs) and auto-deletes it after an hour.
+- New optional env var: `CHANNEL_SUPPORT_INBOX` (override the auto-created dashboard channel ID).
+
 Note: after each fresh import, `pnpm install` must be run manually before the Discord Bot workflow will start (node_modules is not preserved across imports), and secrets need to be re-added since they are not carried over either.
 
 
@@ -52,6 +62,8 @@ A Discord bot that serves as a live server status dashboard **and** an AI-powere
 | `MSSQL_SERVER`, `MSSQL_DATABASE`, `MSSQL_USER`, `MSSQL_PASSWORD` | — | MSSQL credentials (when `DATA_SOURCE=mssql`) |
 | `GAME_SERVER_API_URL` | — | REST API URL (when `DATA_SOURCE=api`) |
 | `SERVER_WEBSITE`, `FACEBOOK_URL`, `WHATSAPP_URL`, `DISCORD_INVITE`, `INSTAGRAM_URL`, `YOUTUBE_URL`, `TIKTOK_URL` | — | Social link buttons below the status embed |
+| `SUPPORT_STAFF_ROLE_ID` | — | Role ID granted access to the Support Inbox (ephemeral `/panel` and the native inbox channel/threads) |
+| `CHANNEL_SUPPORT_INBOX` | auto-created | Override channel ID for the Discord-native Support Inbox dashboard (otherwise auto-created and remembered per guild) |
 
 ## Slash Commands
 

@@ -13,3 +13,4 @@
 - [Staff Management Pro architecture](staff-management-pro.md) — event-bus decoupling from Tickets/Moderation/Verification/voice tools; dashboard entry-point workaround for zero-tool CC categories; executorId plumbing.
 - [Support Inbox Pro architecture](support-inbox-pro.md) — DM help-desk with si:* namespace; key wiring points, permission model, and write-queue pattern.
 - [Support Inbox live features](support-inbox-live-features.md) — live sync/typing/read-receipt/attachments/quick-replies design; interaction-token and Discord UI-cap constraints.
+- [Discord-Native Support Inbox Channel/Thread layer](support-inbox-native-channel.md) — channel+thread UI layered on Support Inbox Pro; ManageThreads visibility trick, presence-intent avoidance, native-reply design, per-guild provisioning.

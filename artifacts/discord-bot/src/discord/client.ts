@@ -13,11 +13,19 @@ export function createDiscordClient(): Client {
       GatewayIntentBits.GuildEmojisAndStickers,
       GatewayIntentBits.GuildInvites,
       GatewayIntentBits.DirectMessages,
+      // Non-privileged — no Developer Portal toggle required. Used by the
+      // Discord-native Support Inbox thread interface to bridge a "typing…"
+      // indicator from a staff thread reply back into the user's DM, and to
+      // detect the 👀 read-receipt reaction on mirrored user messages.
+      GatewayIntentBits.GuildMessageTyping,
+      GatewayIntentBits.GuildMessageReactions,
     ],
     partials: [
       // Required to receive DMs that haven't been cached yet
       Partials.Channel,
       Partials.Message,
+      // Required so reaction events fire even for messages/reactions the bot hasn't cached
+      Partials.Reaction,
     ],
   });
 }

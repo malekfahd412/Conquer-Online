@@ -43,6 +43,7 @@ import { slaDesigner, isSLAInteraction } from '../discord/control-center/sla-des
 import { reviewAnalyticsDesigner, isRAInteraction, securityCenterDesigner, isSCInteraction, staffProgressDesigner, isSPInteraction } from '../discord/control-center';
 import { SecurityGuard } from '../discord/security/security-guard';
 import { InboxService, isSIInteraction } from '../discord/control-center/inbox';
+import { InboxChannelService, isICInteraction } from '../discord/control-center/inbox-channel';
 import { CompanionService } from '../companion/companion.service';
 import { getGeminiClient, AI_MODEL } from './gemini-client';
 import { FRIENDSHIP_LABELS, FRIENDSHIP_EMOJIS } from '../companion/companion-store';
@@ -57,6 +58,8 @@ export interface AIConfig {
   voice?: VoiceModuleConfig;
   /** Role ID whose members can access the Support Inbox (in addition to admin). */
   supportStaffRoleId?: string;
+  /** Optional override channel ID for the Discord-native Support Inbox dashboard. */
+  supportInboxChannelId?: string;
 }
 
 type ButtonCallback = () => Promise<void>;
@@ -88,6 +91,7 @@ export class AIService {
   private readonly companionService: CompanionService;
   private readonly securityGuard: SecurityGuard;
   private readonly inboxService: InboxService;
+  private readonly inboxChannelService: InboxChannelService;
 
   constructor(private readonly config: AIConfig) {
     this.permissionManager = new PermissionManager(config.adminRole);
@@ -107,6 +111,7 @@ export class AIService {
     this.staffDashboard = new StaffDashboardService(this.permissionManager);
     this.securityGuard = new SecurityGuard();
     this.inboxService = new InboxService(this.permissionManager, config.supportStaffRoleId);
+    this.inboxChannelService = new InboxChannelService(this.permissionManager, config.supportStaffRoleId, config.supportInboxChannelId);
     this.companionService = new CompanionService({
       serverName: config.serverName,
       callAI: async messages => {
@@ -159,6 +164,7 @@ export class AIService {
     ticketSystem.init(client).catch(err => logger.error('[TICKETS] Ticket System Pro failed to initialize', err));
     this.companionService.ensureStore().catch(err => logger.warning('[COMPANION] Failed to initialize store', err));
     this.securityGuard.start(client);
+    this.inboxChannelService.initialize(client).catch(err => logger.error('[InboxChannel] Startup failed', err));
 
     // ── Support Inbox: capture all inbound DMs ─────────────────────────────
     client.on('messageCreate', message => {
@@ -166,7 +172,28 @@ export class AIService {
         this.inboxService.onDirectMessage(message, client).catch(err =>
           logger.error('[Inbox] DM capture error', err),
         );
+        this.inboxChannelService.onDirectMessage(message, client).catch(err =>
+          logger.error('[InboxChannel] DM mirror error', err),
+        );
       }
+      // ── Discord-native Support Inbox: staff replying directly in a conversation thread ──
+      if (message.guild && !message.author.bot && message.channel.isThread()) {
+        this.inboxChannelService.handleThreadMessage(message, client).catch(err =>
+          logger.error('[InboxChannel] Thread message error', err),
+        );
+      }
+    });
+
+    // ── Discord-native Support Inbox: typing bridge + read receipts ────────
+    client.on('typingStart', event => {
+      this.inboxChannelService.handleTypingStart(event).catch(err =>
+        logger.warning('[InboxChannel] Typing bridge error', err),
+      );
+    });
+    client.on('messageReactionAdd', (reaction, user) => {
+      this.inboxChannelService.handleReactionAdd(reaction, user).catch(err =>
+        logger.warning('[InboxChannel] Reaction handler error', err),
+      );
     });
 
     client.on('messageCreate', message => {
@@ -443,6 +470,19 @@ export class AIService {
         if (interaction.guild) {
           this.inboxService.handleInteraction(interaction, interaction.guild).catch(err =>
             logger.error('Support Inbox interaction error', err),
+          );
+        }
+        return;
+      }
+
+      // ── Discord-native Support Inbox: thread control panel (ic:* custom IDs) ──
+      if (
+        (interaction.isButton() && isICInteraction(interaction.customId)) ||
+        (interaction.isModalSubmit() && isICInteraction(interaction.customId))
+      ) {
+        if (interaction.guild) {
+          this.inboxChannelService.handleInteraction(interaction, interaction.guild).catch(err =>
+            logger.error('Support Inbox channel interaction error', err),
           );
         }
         return;

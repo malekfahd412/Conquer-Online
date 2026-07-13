@@ -72,6 +72,10 @@ export interface InboxConversation {
   unreadCount: number;
   /** Timestamp of the last time a staff member opened/read this conversation */
   lastSeenAt?: number;
+  /** Discord-native inbox: ID of the private thread mirroring this conversation, if one has been created */
+  threadId?: string;
+  /** Discord-native inbox: ID of the guild the thread lives in (same as guildId in practice, kept for clarity) */
+  threadGuildId?: string;
 }
 
 export interface InboxData {

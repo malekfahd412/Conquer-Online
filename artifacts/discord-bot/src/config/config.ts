@@ -30,6 +30,8 @@ export interface AIModuleConfig {
   enableObserver: boolean;
   /** Role ID whose members can access Support Inbox (in addition to the admin role). */
   supportStaffRoleId: string | undefined;
+  /** Optional override: channel ID to use as the Discord-native Support Inbox dashboard channel. If unset, the bot auto-creates one and remembers it. */
+  supportInboxChannelId: string | undefined;
 }
 
 export interface VoiceModuleConfig {
@@ -163,6 +165,7 @@ export function loadConfig(): AppConfig {
       enableReflection: parseBoolean('AI_REFLECTION', false),
       enableObserver: parseBoolean('AI_OBSERVER', true),
       supportStaffRoleId: optionalEnv('SUPPORT_STAFF_ROLE_ID'),
+      supportInboxChannelId: optionalEnv('CHANNEL_SUPPORT_INBOX'),
     },
     voice: {
       sttProvider,

@@ -288,6 +288,21 @@ export async function updateUserAvatar(userId: string, avatar: string): Promise<
   });
 }
 
+// ── Discord-native inbox thread linkage ──────────────────────────────────────
+
+/** Records the private Discord thread mirroring this conversation (Discord-native inbox channel feature). */
+export async function setThreadId(userId: string, threadId: string, guildId: string): Promise<void> {
+  await mutate(data => {
+    const conv = data.conversations.find(c => c.id === userId);
+    if (conv) { conv.threadId = threadId; conv.threadGuildId = guildId; }
+  });
+}
+
+export async function getConversationByThreadId(threadId: string): Promise<InboxConversation | undefined> {
+  const data = await load();
+  return data.conversations.find(c => c.threadId === threadId);
+}
+
 // ── Querying Helpers ──────────────────────────────────────────────────────────
 
 export function sortConversations(

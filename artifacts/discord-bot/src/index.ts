@@ -227,6 +227,7 @@ async function main(): Promise<void> {
     enableReflection: config.ai.enableReflection,
     voice: config.voice,
     supportStaffRoleId: config.ai.supportStaffRoleId,
+    supportInboxChannelId: config.ai.supportInboxChannelId,
   });
   await aiService.initialize();
   aiService.start(client);
