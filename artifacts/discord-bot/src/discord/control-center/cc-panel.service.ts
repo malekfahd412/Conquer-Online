@@ -33,10 +33,12 @@ import {
   buildFavoritesPanel,
   buildToolModal,
   buildSearchModal,
+  buildTranslateModal,
 } from './cc-renderer';
 import { assertUniqueCustomIds } from './cc-debug';
 import { getFavorites, toggleFavorite, isFavorite } from './cc-favorites';
 import { getWelcomeConfig, setWelcomeConfig } from '../welcome/welcome-store';
+import { getGeminiClient, AI_MODEL } from '../../ai/gemini-client';
 import { logger } from '../../utils/logger';
 
 type NavInteraction = ButtonInteraction | StringSelectMenuInteraction;
@@ -162,6 +164,10 @@ export class ControlCenterService {
       await interaction.showModal(buildSearchModal());
       return;
     }
+    if (id === CC.TRANSLATE) {
+      await interaction.showModal(buildTranslateModal());
+      return;
+    }
 
     const parts = id.split(':');
     const action = parts[1];
@@ -229,6 +235,56 @@ export class ControlCenterService {
     if (id.startsWith('cc:modal:')) {
       const toolName = id.slice('cc:modal:'.length);
       await this.handleModalExec(interaction, guild, toolName);
+      return;
+    }
+    if (id === CC.TRANSLATE_SUBMIT) {
+      await this.handleTranslate(interaction);
+      return;
+    }
+  }
+
+  // ── Translate (English → Arabic, available on every tab) ───────────────────
+
+  private async handleTranslate(interaction: ModalSubmitInteraction): Promise<void> {
+    const text = interaction.fields.getTextInputValue('text').trim();
+
+    // Reply as a brand-new ephemeral message — never edits/overwrites the panel underneath.
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    if (!text) {
+      await interaction.editReply({ content: '❌ Please enter some text to translate.' });
+      return;
+    }
+
+    const ai = getGeminiClient();
+    if (!ai) {
+      await interaction.editReply({ content: '❌ Translation is unavailable — GEMINI_API_KEY is not set.' });
+      return;
+    }
+
+    try {
+      const res = await ai.models.generateContent({
+        model: AI_MODEL,
+        contents: [{
+          role: 'user',
+          parts: [{ text: `Translate the following English text to Arabic. Respond with ONLY the Arabic translation — no notes, no transliteration, no extra commentary.\n\nText:\n${text}` }],
+        }],
+      });
+      const translation = res.text?.trim() || '_Could not translate._';
+
+      const embed = new EmbedBuilder()
+        .setColor(0x5865f2)
+        .setTitle('🌐 Translation (English → Arabic)')
+        .addFields(
+          { name: '🇬🇧 English', value: truncate(text, 1024), inline: false },
+          { name: '🇸🇦 Arabic',  value: truncate(translation, 1024), inline: false },
+        );
+
+      await interaction.editReply({ embeds: [embed] });
+      logger.info(`[CC] Translated text to Arabic for ${interaction.user.tag}`);
+    } catch (err) {
+      logger.error('[CC] Translate error', err);
+      await interaction.editReply({ content: `❌ Translation failed: ${err instanceof Error ? err.message : err}` });
     }
   }
 

@@ -40,9 +40,12 @@ function btn(label: string, customId: string, style: ButtonStyle, disabled = fal
   );
 }
 
-function homeBtn(): ButtonBuilder   { return btn('🏠 Home',      CC.HOME,  ButtonStyle.Secondary); }
-function favBtn(): ButtonBuilder    { return btn('⭐ Favorites', CC.FAVS,  ButtonStyle.Secondary); }
-function searchBtn(): ButtonBuilder { return btn('🔍 Search',    CC.SRCH,  ButtonStyle.Secondary); }
+function homeBtn(): ButtonBuilder      { return btn('🏠 Home',      CC.HOME,      ButtonStyle.Secondary); }
+function favBtn(): ButtonBuilder       { return btn('⭐ Favorites', CC.FAVS,      ButtonStyle.Secondary); }
+function searchBtn(): ButtonBuilder    { return btn('🔍 Search',    CC.SRCH,      ButtonStyle.Secondary); }
+// Present on every tab: opens a modal to translate English text to Arabic.
+// Posts its result as a brand-new ephemeral reply, so it never disturbs the panel underneath.
+function translateBtn(): ButtonBuilder { return btn('🌐 Translate', CC.TRANSLATE, ButtonStyle.Secondary); }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
 //
@@ -101,7 +104,7 @@ export function buildDashboard(toolCount: number, categoryToolCounts: Partial<Re
     components: [
       makeSelect(CC.CAT_SELECT, part1),
       makeSelect(CC.CAT_SELECT2, part2),
-      new ActionRowBuilder<ButtonBuilder>().addComponents(favBtn(), searchBtn()),
+      new ActionRowBuilder<ButtonBuilder>().addComponents(favBtn(), searchBtn(), translateBtn()),
     ],
   };
   assertUniqueCustomIds('buildDashboard', payload);
@@ -136,6 +139,7 @@ export function buildCategoryPanel(category: CategoryKey, tools: ITool[], page: 
       homeBtn(),
       favBtn(),
       searchBtn(),
+      translateBtn(),
     );
 
     const payload: CCPayload = { content: '', embeds: [embed], components: [navRow] };
@@ -179,6 +183,8 @@ export function buildCategoryPanel(category: CategoryKey, tools: ITool[], page: 
     favBtn(),
     searchBtn(),
   );
+  // navRow is already at Discord's 5-button cap, so Translate gets its own row.
+  const translateRow = new ActionRowBuilder<ButtonBuilder>().addComponents(translateBtn());
 
   const payload: CCPayload = {
     content: '',
@@ -186,6 +192,7 @@ export function buildCategoryPanel(category: CategoryKey, tools: ITool[], page: 
     components: [
       new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select),
       navRow,
+      translateRow,
     ],
   };
   assertUniqueCustomIds(`buildCategoryPanel(${category},p${safePage})`, payload);
@@ -239,6 +246,7 @@ export function buildToolDetail(tool: ITool, category: CategoryKey, isFav: boole
     btn(favLabel,         CC.fav(d.name),     ButtonStyle.Secondary),
     btn(`← ${meta.label}`, CC.cat(category), ButtonStyle.Secondary),
     homeBtn(),
+    translateBtn(),
   );
 
   const payload: CCPayload = { content: '', embeds: [embed], components: [row1] };
@@ -264,6 +272,7 @@ export function buildResult(toolName: string, result: ToolExecuteResult, categor
     btn('← Back to Tool', CC.tool(toolName), ButtonStyle.Secondary),
     btn('← Category',     CC.cat(category),  ButtonStyle.Secondary),
     homeBtn(),
+    translateBtn(),
   );
 
   const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
@@ -293,6 +302,7 @@ export function buildConfirm(tool: ITool, paramSummary: string, category: Catego
     btn('✅ Confirm & Execute', CC.doExec(d.name), ButtonStyle.Danger),
     btn('✖ Cancel',            CC.cat(category),   ButtonStyle.Secondary),
     homeBtn(),
+    translateBtn(),
   );
 
   const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
@@ -311,7 +321,7 @@ export function buildSearchResults(query: string, tools: ITool[]): CCPayload {
       .setColor(color)
       .setTitle('🔍 No Results')
       .setDescription(`No tools matched **"${query}"**.\n\nTry a shorter term like \`role\`, \`ban\`, \`channel\`, \`backup\`.`);
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(homeBtn(), searchBtn());
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(homeBtn(), searchBtn(), translateBtn());
     const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
     assertUniqueCustomIds(`buildSearchResults:empty`, payload);
     return payload;
@@ -343,7 +353,7 @@ export function buildSearchResults(query: string, tools: ITool[]): CCPayload {
       ),
   );
 
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(homeBtn(), searchBtn());
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(homeBtn(), searchBtn(), translateBtn());
 
   const payload: CCPayload = {
     content: '',
@@ -368,7 +378,7 @@ export function buildFavoritesPanel(tools: ITool[]): CCPayload {
       .setColor(color)
       .setTitle('⭐ Favorites')
       .setDescription('You have no favorites yet.\nBrowse a tool and click **☆ Favorite** to pin it here.');
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(homeBtn(), searchBtn());
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(homeBtn(), searchBtn(), translateBtn());
     const payload: CCPayload = { content: '', embeds: [embed], components: [row] };
     assertUniqueCustomIds('buildFavoritesPanel:empty', payload);
     return payload;
@@ -398,7 +408,7 @@ export function buildFavoritesPanel(tools: ITool[]): CCPayload {
       ),
   );
 
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(homeBtn(), searchBtn());
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(homeBtn(), searchBtn(), translateBtn());
 
   const payload: CCPayload = {
     content: '',
@@ -468,6 +478,26 @@ export function buildToolModal(tool: ITool): ModalBuilder {
   }
 
   return modal;
+}
+
+export function buildTranslateModal(): ModalBuilder {
+  const fn = 'buildTranslateModal';
+  const maxLen = checkTextInputLength(FILE, fn, 'translateMaxLength', 4000, 4000);
+
+  const input = verifyBuilder(FILE, fn, 'translate text input', () =>
+    new TextInputBuilder()
+      .setCustomId('text')
+      .setLabel('English text')
+      .setStyle(TextInputStyle.Paragraph)
+      .setPlaceholder('Type or paste the English text to translate to Arabic...')
+      .setRequired(true)
+      .setMaxLength(maxLen),
+  );
+
+  return new ModalBuilder()
+    .setCustomId(CC.TRANSLATE_SUBMIT)
+    .setTitle('🌐 Translate: English → Arabic')
+    .addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(input));
 }
 
 export function buildSearchModal(): ModalBuilder {

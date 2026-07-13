@@ -22,6 +22,8 @@
  *   cc:search_submit  → search modal submit
  *   cc:welcome:autorole         → open the auto-role picker (role select menu)
  *   cc:welcome:autorole:select  → role select menu submit (saves auto-role config)
+ *   cc:translate                → open the English→Arabic translate modal (present on every tab)
+ *   cc:translate_submit         → translate modal submit (posts result as a new ephemeral reply)
  */
 export const CC = {
   HOME:           'cc:home',
@@ -50,4 +52,7 @@ export const CC = {
 
   WELCOME_AUTOROLE:        'cc:welcome:autorole',
   WELCOME_AUTOROLE_SELECT: 'cc:welcome:autorole:select',
+
+  TRANSLATE:        'cc:translate',
+  TRANSLATE_SUBMIT: 'cc:translate_submit',
 } as const;
