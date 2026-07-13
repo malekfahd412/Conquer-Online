@@ -260,7 +260,13 @@
       "adminRoles": [
         "1216032049794777160"
       ],
-      "logChannelId": "1524534739845775582"
+      "logChannelId": "1524534739845775582",
+      "reviewConfig": {
+        "enabled": true,
+        "dmMessage": "Thank you for contacting our support team! We would love to hear about your experience.",
+        "requireComment": false,
+        "anonymousReviews": false
+      }
     },
     {
       "additionalButtons": [],

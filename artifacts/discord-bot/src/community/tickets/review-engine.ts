@@ -59,7 +59,10 @@ export class ReviewEngine {
    * user already reviewed, or the DM cannot be delivered (DMs closed, etc.).
    */
   async sendReviewDM(client: Client, ticket: TicketRecord, panel: TicketPanel): Promise<void> {
-    const cfg = panel.reviewConfig ?? DEFAULT_REVIEW_CONFIG;
+    // Merge over defaults (not a plain `??` fallback) — a panel loaded straight from disk may carry
+    // a reviewConfig saved before a newer field (e.g. `enabled`) existed, and a raw fallback would
+    // silently read that missing field as `undefined` (falsy) instead of its real default.
+    const cfg = { ...DEFAULT_REVIEW_CONFIG, ...(panel.reviewConfig ?? {}) };
     if (!cfg.enabled) return;
 
     // Idempotency: don't send a second DM if the ticket was somehow closed twice
