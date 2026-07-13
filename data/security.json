@@ -16,7 +16,7 @@
           "trustedUsers": []
         },
         "anti_nuke": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
           "actionLimit": 5,
           "timeWindowMs": 10000,
@@ -26,7 +26,7 @@
           "trustedUsers": []
         },
         "anti_bot_add": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
           "actionLimit": 5,
           "timeWindowMs": 10000,
@@ -36,7 +36,7 @@
           "trustedUsers": []
         },
         "anti_channel": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
           "actionLimit": 5,
           "timeWindowMs": 10000,
@@ -46,7 +46,7 @@
           "trustedUsers": []
         },
         "anti_role": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
           "actionLimit": 5,
           "timeWindowMs": 10000,
@@ -56,7 +56,7 @@
           "trustedUsers": []
         },
         "anti_webhook": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
           "actionLimit": 5,
           "timeWindowMs": 10000,
@@ -66,7 +66,7 @@
           "trustedUsers": []
         },
         "anti_emoji_sticker": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
           "actionLimit": 5,
           "timeWindowMs": 10000,
@@ -76,7 +76,7 @@
           "trustedUsers": []
         },
         "anti_invite_spam": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
           "actionLimit": 5,
           "timeWindowMs": 10000,
@@ -86,7 +86,7 @@
           "trustedUsers": []
         },
         "anti_link_spam": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
           "actionLimit": 5,
           "timeWindowMs": 10000,
@@ -96,7 +96,7 @@
           "trustedUsers": []
         },
         "anti_mention_spam": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
           "actionLimit": 5,
           "timeWindowMs": 10000,
@@ -106,7 +106,7 @@
           "trustedUsers": []
         },
         "anti_ghost_ping": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
           "actionLimit": 5,
           "timeWindowMs": 10000,
@@ -116,7 +116,7 @@
           "trustedUsers": []
         },
         "anti_mass_dm": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
           "actionLimit": 5,
           "timeWindowMs": 10000,
@@ -126,7 +126,7 @@
           "trustedUsers": []
         },
         "anti_bad_words": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
           "actionLimit": 5,
           "timeWindowMs": 10000,
@@ -146,7 +146,8 @@
           "trustedUsers": []
         }
       },
-      "securityMentionRoleId": "1216032049794777160"
+      "securityMentionRoleId": "1216032049794777160",
+      "securityLogChannelId": "1526292827628245173"
     },
     "1525253442153615443": {
       "guildId": "1525253442153615443",
