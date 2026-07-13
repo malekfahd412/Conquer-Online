@@ -4,5 +4,6 @@
   "defaultEmbedColor": 5793266,
   "defaultNamingScheme": "{displayname}-{counter}",
   "defaultTicketLimit": 1,
-  "migratedAt": 1783809459803
+  "migratedAt": 1783809459803,
+  "migratedNamingSchemeV2": true
 }

@@ -30,7 +30,7 @@ import {
   type TextBasedChannel,
   type TextChannel,
 } from 'discord.js';
-import { runMigration } from './migration';
+import { runMigration, runNamingMigrationV2 } from './migration';
 import { panelManager, PanelManager } from './panel-manager';
 import { ticketEngine, TicketEngine } from './ticket-engine';
 import { permissionEngine } from './permission-engine';
@@ -89,6 +89,7 @@ class TicketSystem {
   async init(client: Client): Promise<void> {
     this.client = client;
     await runMigration();
+    await runNamingMigrationV2();
     await Promise.all([
       panelManager.ensureFile(),
       ticketEngine.ensureFile(),
@@ -275,7 +276,15 @@ class TicketSystem {
     const { ticket, channel } = await ticketEngine.createChannel(
       guild,
       cfg,
-      { id: interaction.user.id, username: interaction.user.username, displayName: interaction.user.displayName ?? interaction.user.username, tag: interaction.user.tag },
+      {
+        id: interaction.user.id,
+        username: interaction.user.username,
+        displayName:
+          (interaction.member instanceof GuildMember ? interaction.member.displayName : null)
+          ?? interaction.user.globalName
+          ?? interaction.user.username,
+        tag: interaction.user.tag,
+      },
       ticketType,
       answers,
       extraAnswerFields,

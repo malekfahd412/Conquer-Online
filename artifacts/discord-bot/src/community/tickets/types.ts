@@ -713,6 +713,8 @@ export interface TicketSettings {
   defaultEmbedColor: number;
   defaultNamingScheme: string;
   defaultTicketLimit: number;
+  /** Set once the one-time naming-scheme migration (ticket-{counter} → {displayname}-{counter}) has run. */
+  migratedNamingSchemeV2?: boolean;
 }
 
 // ── Review System Pro ────────────────────────────────────────────────────────

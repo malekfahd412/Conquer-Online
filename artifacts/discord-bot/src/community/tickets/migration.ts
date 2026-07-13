@@ -174,6 +174,42 @@ function convertTicket(legacy: LegacyTicket): TicketRecord {
   };
 }
 
+/**
+ * One-time, idempotent migration: rewrite any panel whose namingScheme is the
+ * old hard-coded default "ticket-{counter}" to the new default "{displayname}-{counter}".
+ * Panels with any other scheme (including custom ones) are left untouched.
+ * Tracked by `migratedNamingSchemeV2` in settings.json so it never re-runs.
+ */
+export async function runNamingMigrationV2(): Promise<void> {
+  const settings = await settingsStore.read();
+  if (settings.migratedNamingSchemeV2) return;
+
+  const OLD = 'ticket-{counter}';
+  const NEW = '{displayname}-{counter}';
+
+  const panels = await panelManager.list();
+  let count = 0;
+  for (const panel of panels) {
+    if (panel.namingScheme === OLD) {
+      await panelManager.update(panel.id, { namingScheme: NEW });
+      count++;
+    }
+  }
+
+  if (count > 0) {
+    logger.success(`[TICKETS] Naming migration v2: updated ${count} panel(s) from "${OLD}" → "${NEW}".`);
+  } else {
+    logger.info('[TICKETS] Naming migration v2: no panels needed updating.');
+  }
+
+  await settingsStore.mutate(data => {
+    data.migratedNamingSchemeV2 = true;
+    if (data.defaultNamingScheme === OLD) {
+      data.defaultNamingScheme = NEW;
+    }
+  });
+}
+
 export async function runMigration(): Promise<void> {
   const settings = await settingsStore.read();
   if (settings.migratedFromLegacy) return;
