@@ -6,7 +6,7 @@
       "emergencyLockedChannels": [],
       "modules": {
         "anti_raid": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
           "actionLimit": 5,
           "timeWindowMs": 10000,
@@ -146,7 +146,7 @@
           "trustedUsers": []
         }
       },
-      "securityMentionRoleId": "1524487799368056942"
+      "securityMentionRoleId": "1216032049794777160"
     }
   },
   "events": []
