@@ -2388,6 +2388,11 @@
           "type": "voice_session",
           "timestamp": 1783988846448,
           "detail": "s6.a_"
+        },
+        {
+          "type": "voice_session",
+          "timestamp": 1783991847313,
+          "detail": "s6.a_"
         }
       ],
       "userAvatar": "https://cdn.discordapp.com/avatars/723982702625423430/f2fe33c47307fa14d610d1e9df8b4684.webp?size=128",

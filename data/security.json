@@ -300,6 +300,14 @@
   "events": [
     {
       "guildId": "1213437502078062674",
+      "module": "anti_channel",
+      "executorId": "727578927593291796",
+      "targetId": "#voice-forsell5995",
+      "action": "Unauthorized Channel Deleted",
+      "timestamp": 1783991834160
+    },
+    {
+      "guildId": "1213437502078062674",
       "module": "anti_mass_dm",
       "executorId": "727578927593291796",
       "targetId": "#for-sell-0025",
