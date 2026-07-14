@@ -977,6 +977,10 @@ export class InboxChannelService {
       if (this.supportStaffRoleId) {
         overwrites.push({ id: this.supportStaffRoleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak] });
       }
+      overwrites.push({ id: conv.userId,
+      allow: [PermissionFlagsBits.ViewChannel,
+      PermissionFlagsBits.Connect,
+      PermissionFlagsBits.Speak] });
       if (staff) overwrites.push({ id: staff.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak] });
 
       const voiceChannel = await guild.channels.create({
