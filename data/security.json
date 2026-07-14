@@ -304,6 +304,15 @@
   "events": [
     {
       "guildId": "1213437502078062674",
+      "module": "anti_invite_spam",
+      "executorId": "727578927593291796",
+      "targetId": "#📑┇𝑅𝑒𝑞𝑢𝑒𝑠𝑡𝑠",
+      "action": "Invite Link Posted",
+      "detail": "discord.gg/xNDwqRSNKJ",
+      "timestamp": 1784031259666
+    },
+    {
+      "guildId": "1213437502078062674",
       "module": "anti_raid",
       "executorId": "727578927593291796",
       "targetId": "#general (simulation)",
