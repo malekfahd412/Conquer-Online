@@ -313,6 +313,15 @@
       "targetId": "<#1522039366321569833>",
       "action": "Rapid Mass Messaging Pattern",
       "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784067253181
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "631930445218578433",
+      "targetId": "<#1522039366321569833>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
       "timestamp": 1784057805476
     },
     {
