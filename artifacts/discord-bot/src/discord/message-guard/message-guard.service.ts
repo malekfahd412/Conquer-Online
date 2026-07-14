@@ -61,7 +61,7 @@ export class MessageGuardService {
       });
       if (entry) executorId = entry.executor?.id ?? null;
     } catch (err) {
-      logger.warn('[MessageGuard] Could not fetch audit log', err);
+      logger.warning('[MessageGuard] Could not fetch audit log', err);
       return;
     }
 
@@ -75,7 +75,7 @@ export class MessageGuardService {
     if (await this.isSeniorAdmin(executor, ticket?.panelId)) return;
 
     // ── Unauthorised: log + repost ────────────────────────────────────────────
-    logger.warn(
+    logger.warning(
       `[MessageGuard] Unauthorised deletion by ${executor.user.tag} in #${channelId} ` +
       `(${ticket ? `ticket ${ticket.id}` : 'inbox thread'})`,
     );

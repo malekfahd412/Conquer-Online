@@ -161,20 +161,7 @@ export class VoiceSession {
 
   /** Speak a message to the voice channel (e.g. on join/leave). */
   async announce(text: string): Promise<void> {
-    const fakeConv = new VoiceConversation(
-      'system',
-      this.guildId,
-      this.opts.guild,
-      this.opts.client,
-      this.player,
-      this.opts.recognizer,
-      this.opts.synthesizer,
-      this.opts.ai,
-      this.opts.personality,
-      this.opts.confirmChannel,
-      this.opts.pendingButtons,
-    );
-    // Access the say method indirectly via synthesize + play
+    // Synthesize + play directly — no VoiceConversation object needed here.
     try {
       const audioBuffer = await this.opts.synthesizer.synthesize(text);
       if (audioBuffer.length > 0) {
@@ -183,7 +170,6 @@ export class VoiceSession {
     } catch (err) {
       logger.error('[VoiceSession] Announce failed', err);
     }
-    void fakeConv; // suppress unused warning
   }
 
   setPersonality(personality: VoicePersonality): void {

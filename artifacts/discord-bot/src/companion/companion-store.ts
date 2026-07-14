@@ -104,10 +104,9 @@ class CompanionStore {
 
   async getProfile(userId: string, guildId: string): Promise<CompanionProfile> {
     const data = await this.read();
-    return (
-      data.profiles.find(p => p.userId === userId && p.guildId === guildId) ??
-      this.defaultProfile(userId, guildId)
-    );
+    const found = data.profiles.find(p => p.userId === userId && p.guildId === guildId);
+    // Deep-clone so callers cannot mutate the shared in-memory cache.
+    return found ? JSON.parse(JSON.stringify(found)) as CompanionProfile : this.defaultProfile(userId, guildId);
   }
 
   private defaultProfile(userId: string, guildId: string): CompanionProfile {

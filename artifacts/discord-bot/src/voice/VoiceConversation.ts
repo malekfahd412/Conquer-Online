@@ -166,7 +166,15 @@ export class VoiceConversation {
     this.ai.memoryManager.processToolResults(this.userId, this.guildId, plan.toolCalls, results);
 
     // Final AI summary
-    const finalPlan = await this.ai.planner.plan(this.buildMessages());
+    let finalPlan;
+    try {
+      finalPlan = await this.ai.planner.plan(this.buildMessages());
+    } catch (err) {
+      logger.error('[VoiceConversation] Final planner call failed', err);
+      await this.say(results.map(r => (r.success ? 'Done.' : `Failed: ${r.message}`)).join(' '), latency);
+      latency.log(`[Voice:${this.userId}]`);
+      return;
+    }
     let responseText: string;
     if (finalPlan.kind === 'text') {
       responseText = finalPlan.content;

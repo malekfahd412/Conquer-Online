@@ -15,6 +15,7 @@ import {
   type GuildEmoji,
   type Sticker,
   type Invite,
+  type User,
 } from 'discord.js';
 import {
   getGuildConfig,
@@ -62,9 +63,9 @@ function pruneCache() {
 }
 
 /** True if the executor holds at least one bypass role (GuildMember only — User has no role cache). */
-function isBypassed(executor: { roles?: { cache: { has: (id: string) => boolean } } } | null | undefined, bypassRoles: string[]): boolean {
-  if (!bypassRoles.length || !executor?.roles?.cache) return false;
-  return bypassRoles.some(rid => executor.roles!.cache.has(rid));
+function isBypassed(executor: GuildMember | User | null | undefined, bypassRoles: string[]): boolean {
+  if (!bypassRoles.length || !executor || !('roles' in executor) || !executor.roles?.cache) return false;
+  return bypassRoles.some(rid => executor.roles.cache.has(rid));
 }
 
 // ── Security Guard ────────────────────────────────────────────────────────────

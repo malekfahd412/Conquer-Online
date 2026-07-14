@@ -1,0 +1,242 @@
+You are the lead software engineer and QA engineer for this project.
+
+Your mission is to make this Discord bot production-ready before deployment.
+
+DO NOT add new features.
+DO NOT redesign existing systems.
+ONLY fix, verify, optimize, harden, and stabilize everything that already exists.
+
+Your job is to perform a COMPLETE PROJECT AUDIT.
+
+==========================
+PHASE 1 — FULL PROJECT SCAN
+==========================
+
+Analyze the ENTIRE codebase.
+
+Inspect every folder, file, service, command, interaction, event, scheduler, database call, cache, collector, modal, button, select menu, thread, ticket, inbox, security module, automation, logging system, role system, moderation system, verification system, voice support, dashboard, and every existing feature.
+
+Nothing should be skipped.
+
+==========================
+PHASE 2 — COMPLETE TESTING
+==========================
+
+Simulate every possible user interaction.
+
+Test EVERY:
+
+- Slash command
+- Button
+- Select Menu
+- Modal
+- Context Menu
+- Event
+- Scheduler
+- Background task
+- Collector
+- Permission check
+- Thread workflow
+- Ticket workflow
+- Support Inbox workflow
+- Security workflow
+- Verification workflow
+- Moderation workflow
+- Role workflow
+- Voice workflow
+- Logging workflow
+- Dashboard
+- Control Center
+- Navigation
+- Pagination
+- Filters
+- Search
+- Forms
+- Temporary systems
+- Timers
+- Expiration logic
+- Startup sequence
+- Shutdown sequence
+- Recovery sequence
+
+Every button and every interaction must actually execute successfully.
+
+==========================
+PHASE 3 — BUG DETECTION
+==========================
+
+Find:
+
+• Runtime errors
+• TypeScript errors
+• Logic bugs
+• Broken routing
+• Dead buttons
+• Missing handlers
+• Invalid collectors
+• Race conditions
+• Memory leaks
+• Infinite loops
+• Unhandled promise rejections
+• Missing awaits
+• Invalid Discord API usage
+• Missing permissions
+• Invalid embeds
+• Invalid components
+• Modal failures
+• Broken navigation
+• Broken pagination
+• Invalid channel/user/role handling
+• Database corruption risks
+• Duplicate execution
+• Timer bugs
+• Startup crashes
+• Shutdown crashes
+• Cache issues
+• File persistence issues
+• Multi-guild bugs
+• Multi-user bugs
+• Concurrency issues
+
+==========================
+PHASE 4 — FIX EVERYTHING
+==========================
+
+Fix EVERY discovered issue.
+
+Do not hide errors.
+
+Fix the root cause.
+
+Maintain existing functionality.
+
+Never remove features unless absolutely required for stability.
+
+==========================
+PHASE 5 — HARDENING
+==========================
+
+Protect the bot from crashes.
+
+Ensure:
+
+- No unhandled exceptions
+- No unhandled promise rejections
+- No process crashes
+- No collector leaks
+- No timer leaks
+- No duplicated listeners
+- No duplicate intervals
+- Safe startup
+- Safe shutdown
+- Automatic recovery
+- Graceful Discord reconnect
+- Graceful database reconnect
+- Graceful file recovery
+- Atomic writes for persistent storage
+- Safe JSON loading
+- Safe cache rebuilding
+- Safe null handling
+- Safe permission handling
+
+Every subsystem must fail gracefully without crashing the bot.
+
+==========================
+PHASE 6 — PERFORMANCE
+==========================
+
+Optimize:
+
+Memory
+
+CPU
+
+Database
+
+Collectors
+
+Intervals
+
+Timeouts
+
+Cache
+
+Rendering
+
+Embeds
+
+Component generation
+
+Interaction routing
+
+File I/O
+
+==========================
+PHASE 7 — FINAL VALIDATION
+==========================
+
+After ALL fixes:
+
+Run a COMPLETE verification again.
+
+Test everything again.
+
+Repeat until ALL tests pass.
+
+==========================
+SUCCESS REQUIREMENTS
+==========================
+
+The project must finish with:
+
+✔ Zero TypeScript errors
+
+✔ Zero runtime errors
+
+✔ Zero dead buttons
+
+✔ Zero broken interactions
+
+✔ Zero broken routes
+
+✔ Zero broken modals
+
+✔ Zero broken collectors
+
+✔ Zero startup errors
+
+✔ Zero shutdown errors
+
+✔ Zero memory leaks
+
+✔ Zero duplicate listeners
+
+✔ Zero unhandled promise rejections
+
+✔ Zero crashes during testing
+
+✔ Every command working
+
+✔ Every button working
+
+✔ Every modal working
+
+✔ Every select menu working
+
+✔ Every existing feature fully functional
+
+✔ Production-ready stability
+
+Do NOT stop after finding issues.
+
+Continue until every discovered problem has been fixed and verified.
+
+At the end, produce a complete report listing:
+
+- Every issue found
+- Root cause
+- File(s) modified
+- Fix applied
+- Verification result
+
+Only finish when the bot is ready for production deployment.
