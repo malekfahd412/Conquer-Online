@@ -304,6 +304,105 @@
   "events": [
     {
       "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "727578927593291796",
+      "targetId": "<#1213437502388703260>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784042818470
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "727578927593291796",
+      "targetId": "<#1213437502388703260>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784042814028
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "727578927593291796",
+      "targetId": "<#1526292827628245173>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784042661616
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_link_spam",
+      "executorId": "727578927593291796",
+      "targetId": "<#1526292827628245173>",
+      "action": "Link Spam",
+      "detail": "1 URL(s) detected",
+      "timestamp": 1784042661412
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "522507355233976321",
+      "targetId": "<#1213437502388703260>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784041898178
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "727578927593291796",
+      "targetId": "<#1213437502388703260>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784041872622
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "727578927593291796",
+      "targetId": "<#1213437502388703260>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784041834637
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "1501157831922024553",
+      "targetId": "<#1522039366321569833>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784035087690
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_invite_spam",
+      "executorId": "727578927593291796",
+      "targetId": "<#1525473213339926559>",
+      "action": "Invite Link Posted",
+      "detail": "discord.gg/xNDwqRSNKJ",
+      "timestamp": 1784031540186
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "727578927593291796",
+      "targetId": "<#1526292827628245173>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784031504130
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_invite_spam",
+      "executorId": "727578927593291796",
+      "targetId": "<#1525499665703895061>",
+      "action": "Invite Link Posted",
+      "detail": "discord.gg/xNDwqRSNKJ",
+      "timestamp": 1784031495228
+    },
+    {
+      "guildId": "1213437502078062674",
       "module": "anti_invite_spam",
       "executorId": "727578927593291796",
       "targetId": "#📑┇𝑅𝑒𝑞𝑢𝑒𝑠𝑡𝑠",

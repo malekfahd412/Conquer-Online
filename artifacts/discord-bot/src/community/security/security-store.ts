@@ -32,7 +32,7 @@ export const DEFAULT_MODULE_CONFIG: SecurityModuleConfig = {
 function defaultGuild(guildId: string): SecurityGuildConfig {
   const modules = {} as Record<SecurityModuleKey, SecurityModuleConfig>;
   for (const key of ALL_MODULE_KEYS) modules[key] = { ...DEFAULT_MODULE_CONFIG };
-  return { guildId, emergencyMode: false, emergencyLockedChannels: [], modules };
+  return { guildId, emergencyMode: false, emergencyLockedChannels: [], bypassRoles: [], modules };
 }
 
 function defaultStore(): SecurityStoreData {
@@ -78,6 +78,7 @@ async function mutate<R>(fn: (data: SecurityStoreData) => R | Promise<R>): Promi
 // ── Ensure module keys are populated ─────────────────────────────────────────
 
 function normalizeGuild(cfg: SecurityGuildConfig): SecurityGuildConfig {
+  if (!cfg.bypassRoles) cfg.bypassRoles = [];
   for (const key of ALL_MODULE_KEYS) {
     if (!cfg.modules[key]) cfg.modules[key] = { ...DEFAULT_MODULE_CONFIG };
   }

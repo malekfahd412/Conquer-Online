@@ -61,6 +61,12 @@ function pruneCache() {
   }
 }
 
+/** True if the executor holds at least one bypass role (GuildMember only — User has no role cache). */
+function isBypassed(executor: { roles?: { cache: { has: (id: string) => boolean } } } | null | undefined, bypassRoles: string[]): boolean {
+  if (!bypassRoles.length || !executor?.roles?.cache) return false;
+  return bypassRoles.some(rid => executor.roles!.cache.has(rid));
+}
+
 // ── Security Guard ────────────────────────────────────────────────────────────
 
 export class SecurityGuard {
@@ -176,7 +182,7 @@ export class SecurityGuard {
         AuditLogEvent.BotAdd,
         member.id,
       );
-      if (executor) {
+      if (executor && !isBypassed(executor, cfg.bypassRoles)) {
         await handleViolation({
           guild:              member.guild,
           module:             'anti_bot_add',
@@ -199,6 +205,7 @@ export class SecurityGuard {
     const modCfg = cfg.modules.anti_channel;
     if (!modCfg.enabled) return;
     const executor = await fetchAuditExecutor(channel.guild, AuditLogEvent.ChannelCreate, channel.id);
+    if (isBypassed(executor, cfg.bypassRoles)) return;
     await handleViolation({
       guild:              channel.guild,
       module:             'anti_channel',
@@ -220,6 +227,7 @@ export class SecurityGuard {
     const nukeCfg = cfg.modules.anti_nuke;
 
     const executor = await fetchAuditExecutor(channel.guild, AuditLogEvent.ChannelDelete, channel.id);
+    if (isBypassed(executor, cfg.bypassRoles)) return;
 
     // Anti Channel
     if (modCfg.enabled) {
@@ -270,6 +278,7 @@ export class SecurityGuard {
     const modCfg = cfg.modules.anti_channel;
     if (!modCfg.enabled) return;
     const executor = await fetchAuditExecutor(channel.guild, AuditLogEvent.ChannelUpdate, channel.id);
+    if (isBypassed(executor, cfg.bypassRoles)) return;
     await handleViolation({
       guild:              channel.guild,
       module:             'anti_channel',
@@ -289,6 +298,7 @@ export class SecurityGuard {
     const modCfg = cfg.modules.anti_role;
     if (!modCfg.enabled) return;
     const executor = await fetchAuditExecutor(role.guild, AuditLogEvent.RoleCreate, role.id);
+    if (isBypassed(executor, cfg.bypassRoles)) return;
     await handleViolation({
       guild:              role.guild,
       module:             'anti_role',
@@ -308,6 +318,7 @@ export class SecurityGuard {
     const modCfg  = cfg.modules.anti_role;
     const nukeCfg = cfg.modules.anti_nuke;
     const executor = await fetchAuditExecutor(role.guild, AuditLogEvent.RoleDelete, role.id);
+    if (isBypassed(executor, cfg.bypassRoles)) return;
 
     if (modCfg.enabled) {
       await handleViolation({
@@ -355,6 +366,7 @@ export class SecurityGuard {
     const modCfg = cfg.modules.anti_role;
     if (!modCfg.enabled) return;
     const executor = await fetchAuditExecutor(role.guild, AuditLogEvent.RoleUpdate, role.id);
+    if (isBypassed(executor, cfg.bypassRoles)) return;
     await handleViolation({
       guild:              role.guild,
       module:             'anti_role',
@@ -387,6 +399,7 @@ export class SecurityGuard {
       action = 'Unauthorized Webhook Updated';
     }
     if (!executor) return;
+    if (isBypassed(executor, cfg.bypassRoles)) return;
 
     await handleViolation({
       guild:              channel.guild,
@@ -407,6 +420,7 @@ export class SecurityGuard {
     const modCfg = cfg.modules.anti_emoji_sticker;
     if (!modCfg.enabled) return;
     const executor = await fetchAuditExecutor(emoji.guild, AuditLogEvent.EmojiCreate, emoji.id);
+    if (isBypassed(executor, cfg.bypassRoles)) return;
     await handleViolation({
       guild:              emoji.guild,
       module:             'anti_emoji_sticker',
@@ -426,6 +440,7 @@ export class SecurityGuard {
     const modCfg = cfg.modules.anti_emoji_sticker;
     if (!modCfg.enabled) return;
     const executor = await fetchAuditExecutor(emoji.guild, AuditLogEvent.EmojiDelete, emoji.id);
+    if (isBypassed(executor, cfg.bypassRoles)) return;
     await handleViolation({
       guild:              emoji.guild,
       module:             'anti_emoji_sticker',
@@ -446,6 +461,7 @@ export class SecurityGuard {
     const modCfg = cfg.modules.anti_emoji_sticker;
     if (!modCfg.enabled) return;
     const executor = await fetchAuditExecutor(sticker.guild, AuditLogEvent.StickerCreate, sticker.id);
+    if (isBypassed(executor, cfg.bypassRoles)) return;
     await handleViolation({
       guild:              sticker.guild,
       module:             'anti_emoji_sticker',
@@ -466,6 +482,7 @@ export class SecurityGuard {
     const modCfg = cfg.modules.anti_emoji_sticker;
     if (!modCfg.enabled) return;
     const executor = await fetchAuditExecutor(sticker.guild, AuditLogEvent.StickerDelete, sticker.id);
+    if (isBypassed(executor, cfg.bypassRoles)) return;
     await handleViolation({
       guild:              sticker.guild,
       module:             'anti_emoji_sticker',
@@ -486,6 +503,7 @@ export class SecurityGuard {
     const modCfg = cfg.modules.anti_invite_spam;
     if (!modCfg.enabled) return;
     const member = await (invite.guild as Guild).members.fetch(invite.inviter.id).catch(() => null);
+    if (isBypassed(member, cfg.bypassRoles)) return;
     await handleViolation({
       guild:              invite.guild as Guild,
       module:             'anti_invite_spam',
@@ -503,6 +521,8 @@ export class SecurityGuard {
   private async onMessageCreate(message: Message): Promise<void> {
     if (!message.guild || !message.member) return;
     const cfg = await getGuildConfig(message.guild.id);
+    // Global bypass — members with a bypass role are exempt from all security checks
+    if (isBypassed(message.member, cfg.bypassRoles)) return;
     const content = message.content ?? '';
 
     // Cache for ghost-ping detection

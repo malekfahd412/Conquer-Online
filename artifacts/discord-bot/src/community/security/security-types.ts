@@ -57,6 +57,8 @@ export interface SecurityGuildConfig {
    * Applies to all module detections and emergency mode activations/deactivations.
    */
   securityMentionRoleId?: string;
+  /** Role IDs whose members bypass ALL security modules — no detection, no action, no log. */
+  bypassRoles: string[];
   modules: Record<SecurityModuleKey, SecurityModuleConfig>;
 }
 

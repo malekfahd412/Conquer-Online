@@ -56,7 +56,7 @@
         "action": "mute",
         "reason": "[Security] Link Spam",
         "timestamp": 1784028241113,
-        "active": true,
+        "active": false,
         "expiresAt": 1784031841103
       },
       {
@@ -69,7 +69,7 @@
         "action": "mute",
         "reason": "[Security] Mention Spam",
         "timestamp": 1784028420168,
-        "active": true,
+        "active": false,
         "expiresAt": 1784032020166
       },
       {
@@ -82,7 +82,7 @@
         "action": "mute",
         "reason": "[Security] Mention Spam",
         "timestamp": 1784028703111,
-        "active": true,
+        "active": false,
         "expiresAt": 1784032303109
       }
     ]

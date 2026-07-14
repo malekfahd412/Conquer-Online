@@ -61,6 +61,10 @@ import { logger } from '../../../utils/logger';
 // sc:mod:setmenrole:<k>  → show RoleSelectMenu picker for per-module mention role (overrides global)
 // sc:mod:setmenrole:s:<k>→ RoleSelectMenu submit: save per-module mentionRoleId
 // sc:mod:clrmenrole:<k>  → clear the per-module mention role (falls back to global)
+// sc:bypass               → bypass roles management page
+// sc:bypass:add           → show native RoleSelectMenu picker to add bypass roles
+// sc:bypass:add:s         → RoleSelectMenu submit: add selected roles to bypassRoles
+// sc:bypass:rm:<roleId>   → remove a specific role from bypassRoles
 // sc:modal:edit:<key>    → modal submit: edit settings
 // sc:modal:log:<key>     → modal submit: log channel
 // sc:modal:words:<key>   → modal submit: bad words
@@ -288,6 +292,17 @@ export class SecurityCenterDesigner {
       return;
     }
 
+    // sc:bypass:add:s — bypass role picker submit: add selected roles
+    if (interaction.isRoleSelectMenu() && id === 'sc:bypass:add:s') {
+      const selectedIds = (interaction as RoleSelectMenuInteraction).values;
+      await interaction.deferUpdate();
+      const guildCfg = await getGuildConfig(guild.id);
+      const merged = [...new Set([...(guildCfg.bypassRoles ?? []), ...selectedIds])];
+      await patchGuildConfig(guild.id, { bypassRoles: merged });
+      await this.renderBypassRoles(interaction as NavInteraction, guild);
+      return;
+    }
+
     // ── StringSelectMenu ─────────────────────────────────────────────────────
     // sc:select:<page> — module picker (page encoded in custom_id, value = module key)
     if (interaction.isStringSelectMenu() && id.startsWith('sc:select:')) {
@@ -339,6 +354,9 @@ export class SecurityCenterDesigner {
     if (id.startsWith('sc:mod:'))                    { await this.renderModule(btn, guild, id.slice('sc:mod:'.length) as SecurityModuleKey); return; }
     if (id.startsWith('sc:toggle:')) { await this.doToggle(btn, guild, id.slice('sc:toggle:'.length) as SecurityModuleKey); return; }
     if (id.startsWith('sc:test:'))   { await this.renderTest(btn, guild, id.slice('sc:test:'.length) as SecurityModuleKey); return; }
+    if (id.startsWith('sc:bypass:rm:')) { await this.removeBypassRole(btn, guild, id.slice('sc:bypass:rm:'.length)); return; }
+    if (id === 'sc:bypass:add')          { await this.showBypassRolePicker(btn, guild); return; }
+    if (id === 'sc:bypass')              { await this.renderBypassRoles(btn, guild); return; }
 
     logger.warning(`[SC] Unrouted custom ID: ${id}`);
   }
@@ -419,12 +437,20 @@ export class SecurityCenterDesigner {
       ] : []),
     );
 
+    const bypassRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId('sc:bypass')
+        .setLabel((cfg.bypassRoles?.length ?? 0) > 0 ? `🔓 Bypass Roles (${cfg.bypassRoles.length})` : '🔓 Bypass Roles')
+        .setStyle((cfg.bypassRoles?.length ?? 0) > 0 ? ButtonStyle.Primary : ButtonStyle.Secondary),
+    );
+
     const payload: InteractionUpdateOptions = {
       embeds:     [dashboardEmbed(cfg)],
       components: [
         selectRow,
         new ActionRowBuilder<ButtonBuilder>().addComponents(...bottomButtons),
         mentionRoleRow,
+        bypassRow,
       ],
     };
 
@@ -881,6 +907,95 @@ export class SecurityCenterDesigner {
     await patchModuleConfig(guild.id, key, { extra: { ...existing, words } });
 
     await this.renderModule(interaction, guild, key);
+  }
+  // ── Bypass Roles ─────────────────────────────────────────────────────────
+
+  private async renderBypassRoles(interaction: NavInteraction, guild: Guild): Promise<void> {
+    const cfg   = await getGuildConfig(guild.id);
+    const roles = cfg.bypassRoles ?? [];
+
+    const topRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setCustomId('sc:bypass:add').setLabel('➕ Add Bypass Role').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId('sc:home').setLabel('🛡️ Security Center').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('cc:home').setLabel('🏠 CC Home').setStyle(ButtonStyle.Secondary),
+    );
+
+    const components: ActionRowBuilder<ButtonBuilder>[] = [topRow];
+
+    // Remove buttons — one per role, up to 5 per row, max 4 rows (20 roles shown)
+    const visible = roles.slice(0, 20);
+    for (let i = 0; i < visible.length; i += 5) {
+      const chunk = visible.slice(i, i + 5);
+      components.push(
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          ...chunk.map(rid => {
+            const roleName = guild.roles.cache.get(rid)?.name ?? rid;
+            return new ButtonBuilder()
+              .setCustomId(`sc:bypass:rm:${rid}`)
+              .setLabel(`🗑 ${roleName}`.slice(0, 80))
+              .setStyle(ButtonStyle.Danger);
+          }),
+        ),
+      );
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0xf5a623)
+      .setTitle('🔓 Security Bypass Roles')
+      .setDescription(
+        'Members with **any** of the roles below skip **all** security modules — ' +
+        'no message deletion, no punishment, no log entry.\n\n' +
+        '> ⚠️ Only assign bypass roles to highly trusted staff.',
+      )
+      .addFields({
+        name:  `✅ Bypass Roles (${roles.length})`,
+        value: roles.length
+          ? roles.map(rid => `• <@&${rid}>`).join('\n').slice(0, 1024)
+          : '_None configured — every member is subject to security enforcement._',
+      })
+      .setFooter({ text: 'Security Center Pro · Bypass Roles' });
+
+    await interaction.editReply({ embeds: [embed], components });
+  }
+
+  private async showBypassRolePicker(interaction: ButtonInteraction, guild: Guild): Promise<void> {
+    const cfg = await getGuildConfig(guild.id);
+
+    const roleSelect = new RoleSelectMenuBuilder()
+      .setCustomId('sc:bypass:add:s')
+      .setPlaceholder('🔓 Select roles to exempt from all security checks...')
+      .setMinValues(1)
+      .setMaxValues(10);
+
+    await interaction.editReply({
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0xf5a623)
+          .setTitle('🔓 Add Bypass Roles')
+          .setDescription(
+            'Select one or more roles. Any member holding a bypass role is **completely exempt** ' +
+            'from every security module — links, invites, bad words, spam, and audit-log checks ' +
+            'will not trigger any action.\n\n' +
+            `**Current bypass roles (${cfg.bypassRoles.length}):** ` +
+            (cfg.bypassRoles.length ? cfg.bypassRoles.map(r => `<@&${r}>`).join(', ') : '_None_'),
+          )
+          .setFooter({ text: 'Security Center Pro · Add Bypass Roles' }),
+      ],
+      components: [
+        new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(roleSelect),
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder().setCustomId('sc:bypass').setLabel('← Bypass Roles').setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder().setCustomId('sc:home').setLabel('🛡️ Security Center').setStyle(ButtonStyle.Secondary),
+        ),
+      ],
+    });
+  }
+
+  private async removeBypassRole(interaction: ButtonInteraction, guild: Guild, roleId: string): Promise<void> {
+    const cfg     = await getGuildConfig(guild.id);
+    const updated = (cfg.bypassRoles ?? []).filter(r => r !== roleId);
+    await patchGuildConfig(guild.id, { bypassRoles: updated });
+    await this.renderBypassRoles(interaction, guild);
   }
 }
 
