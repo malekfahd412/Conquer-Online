@@ -303,6 +303,59 @@
   },
   "events": [
     {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "522507355233976321",
+      "targetId": "#📑┇𝑅𝑒𝑞𝑢𝑒𝑠𝑡𝑠",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784030375640
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_link_spam",
+      "executorId": "522507355233976321",
+      "targetId": "#📑┇𝑅𝑒𝑞𝑢𝑒𝑠𝑡𝑠",
+      "action": "Link Spam",
+      "detail": "1 URL(s) detected",
+      "timestamp": 1784030375377
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "522507355233976321",
+      "targetId": "#🚨┇𝑠𝑒𝑐𝑢𝑟𝑖𝑡𝑦",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784030309706
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "522507355233976321",
+      "targetId": "#📑┇𝑅𝑒𝑞𝑢𝑒𝑠𝑡𝑠",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784030229442
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "522507355233976321",
+      "targetId": "#📑┇𝑅𝑒𝑞𝑢𝑒𝑠𝑡𝑠",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784030208418
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_channel",
+      "executorId": "727578927593291796",
+      "targetId": "#voice-forsell5995",
+      "action": "Unauthorized Channel Deleted",
+      "timestamp": 1784030144131
+    },
+    {
       "guildId": "1525253442153615443",
       "module": "anti_mention_spam",
       "executorId": "723982702625423430",

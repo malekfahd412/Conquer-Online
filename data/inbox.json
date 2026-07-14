@@ -172,13 +172,13 @@
           "dmMessageId": "1526257509281698004"
         }
       ],
-      "status": "open",
+      "status": "closed",
       "isRead": true,
       "isPinned": false,
       "isArchived": false,
       "tags": [],
       "createdAt": 1783906899215,
-      "updatedAt": 1783958546759,
+      "updatedAt": 1784030207784,
       "lastMessageAt": 1783946224514,
       "unreadCount": 0,
       "userAvatar": "https://cdn.discordapp.com/avatars/727578927593291796/2b59b65bf0f18e1f1ce3435d3b8209de.webp?size=128",
@@ -191,6 +191,15 @@
           "type": "assigned",
           "timestamp": 1783946239636,
           "detail": "s6.a_"
+        },
+        {
+          "type": "voice_session",
+          "timestamp": 1784030191861,
+          "detail": "s6.a_"
+        },
+        {
+          "type": "closed",
+          "timestamp": 1784030207784
         }
       ],
       "threadId": "1526205826694385766",
@@ -2362,7 +2371,7 @@
       "isArchived": false,
       "tags": [],
       "createdAt": 1783951814560,
-      "updatedAt": 1783988812039,
+      "updatedAt": 1784030222174,
       "lastMessageAt": 1783988812039,
       "unreadCount": 1,
       "timeline": [
@@ -2392,6 +2401,15 @@
         {
           "type": "voice_session",
           "timestamp": 1783991847313,
+          "detail": "s6.a_"
+        },
+        {
+          "type": "reopened",
+          "timestamp": 1784030222174
+        },
+        {
+          "type": "voice_session",
+          "timestamp": 1784030225654,
           "detail": "s6.a_"
         }
       ],

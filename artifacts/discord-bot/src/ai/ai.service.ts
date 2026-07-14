@@ -45,6 +45,7 @@ import { slaDesigner, isSLAInteraction } from '../discord/control-center/sla-des
 import { SecurityGuard } from '../discord/security/security-guard';
 import { InboxService, isSIInteraction } from '../discord/control-center/inbox';
 import { InboxChannelService, isICInteraction } from '../discord/control-center/inbox-channel';
+import { MessageGuardService } from '../discord/message-guard/message-guard.service';
 import { CompanionService } from '../companion/companion.service';
 import { getGeminiClient, AI_MODEL } from './gemini-client';
 import { FRIENDSHIP_LABELS, FRIENDSHIP_EMOJIS } from '../companion/companion-store';
@@ -197,6 +198,12 @@ export class AIService {
     client.on('guildDelete', guild => {
       tempRoleManager.onGuildDelete(guild.id)
         .catch(err => logger.error('[TempRoles] guildDelete error', err));
+    });
+
+    // ── Message Guard: restore unauthorised deletions in tickets / inbox ───
+    const messageGuard = new MessageGuardService(this.permissionManager, this.inboxChannelService);
+    client.on('messageDelete', message => {
+      messageGuard.onMessageDelete(message).catch(err => logger.error('[MessageGuard] Error', err));
     });
 
     // ── Support Inbox: capture all inbound DMs ─────────────────────────────
