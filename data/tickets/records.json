@@ -505,9 +505,27 @@
       "closedAt": 1783979172115,
       "closedBy": "727578927593291796",
       "lastLifecycleMessageId": "1526344018944852029"
+    },
+    {
+      "id": "ticket_1783988041877_8lm9w",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketType": "support",
+      "channelId": "1526381221872009368",
+      "openerId": "723982702625423430",
+      "status": "open",
+      "number": 25,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1783988042180,
+      "lastActivityAt": 1783988042180,
+      "participantIds": [
+        "723982702625423430"
+      ],
+      "headerMessageId": "1526381222715195439"
     }
   ],
   "counters": {
-    "1213437502078062674": 24
+    "1213437502078062674": 25
   }
 }

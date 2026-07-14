@@ -20,6 +20,7 @@ import { LogsDesignerService, isLGInteraction } from '../discord/control-center/
 import { ModDashboardService, isMDInteraction } from '../discord/control-center/mod-dashboard/md-service';
 import { StaffDashboardService, isSMInteraction } from '../discord/control-center/staff-dashboard/sm-service';
 import { moderationHandler, MOD_COMMAND_NAMES } from '../community/moderation';
+import { tempRoleManager } from '../community/moderation/temp-role-manager';
 import { staffCommandHandler, SHIFT_COMMAND_NAMES } from '../community/staff';
 import { runStartupAudit, runCCRenderAudit } from '../discord/control-center/cc-test';
 import { ticketSystem } from '../community/tickets';
@@ -165,6 +166,38 @@ export class AIService {
     this.companionService.ensureStore().catch(err => logger.warning('[COMPANION] Failed to initialize store', err));
     this.securityGuard.start(client);
     this.inboxChannelService.initialize(client).catch(err => logger.error('[InboxChannel] Startup failed', err));
+
+    // ── Temporary Role Manager ─────────────────────────────────────────────
+    tempRoleManager.setClient(client);
+    tempRoleManager.start().catch(err => logger.error('[TempRoles] Startup failed', err));
+
+    // Detect manual temp-role removal (role stripped outside the bot)
+    client.on('guildMemberUpdate', (oldMember, newMember) => {
+      const removedIds = [...oldMember.roles.cache.keys()]
+        .filter(id => !newMember.roles.cache.has(id));
+      if (removedIds.length > 0) {
+        tempRoleManager.onRoleRemoved(newMember.guild.id, newMember.id, removedIds)
+          .catch(err => logger.error('[TempRoles] guildMemberUpdate error', err));
+      }
+    });
+
+    // Member left — cancel their pending temp-role timers
+    client.on('guildMemberRemove', member => {
+      tempRoleManager.onMemberLeave(member.guild.id, member.id)
+        .catch(err => logger.error('[TempRoles] guildMemberRemove error', err));
+    });
+
+    // Role deleted — cancel all temp timers that reference it
+    client.on('roleDelete', role => {
+      tempRoleManager.onRoleDelete(role.guild.id, role.id)
+        .catch(err => logger.error('[TempRoles] roleDelete error', err));
+    });
+
+    // Guild deleted/unavailable — cancel all timers for it
+    client.on('guildDelete', guild => {
+      tempRoleManager.onGuildDelete(guild.id)
+        .catch(err => logger.error('[TempRoles] guildDelete error', err));
+    });
 
     // ── Support Inbox: capture all inbound DMs ─────────────────────────────
     client.on('messageCreate', message => {

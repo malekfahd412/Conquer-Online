@@ -32,6 +32,7 @@ import {
   execRoleChange,
   getHistory,
 } from './mod.service';
+import { parseDuration } from './types';
 import { getCase, getUserCases, editCaseReason, deleteCase } from './mod-store';
 import { getGuildModConfig } from './mod-config-store';
 import { buildCaseEmbed } from './embeds';
@@ -448,9 +449,10 @@ export class ModerationCommandHandler {
     const perm = await checkModPermission(mod, target, guild);
     if (!perm.ok) { await i.editReply({ embeds: [errEmbed(perm.reason!)] }); return; }
 
-    const action = i.options.getString('action', true) as 'add' | 'remove';
-    const role   = i.options.getRole('role', true) as import('discord.js').Role;
-    const reason = i.options.getString('reason') ?? '';
+    const action       = i.options.getString('action', true) as 'add' | 'remove';
+    const role         = i.options.getRole('role', true) as import('discord.js').Role;
+    const reason       = i.options.getString('reason') ?? '';
+    const durationRaw  = i.options.getString('duration') ?? null;
 
     // Hierarchy check for the role itself
     const modTop  = mod.roles.highest.position;
@@ -460,7 +462,25 @@ export class ModerationCommandHandler {
       return;
     }
 
-    const c = await execRoleChange(guild, mod, target, role, action, reason);
+    // Parse and validate the optional duration
+    let durationMs: number | undefined;
+    if (durationRaw !== null) {
+      if (action !== 'add') {
+        await i.editReply({ embeds: [errEmbed('The `duration` option only applies to `/role add`.')] });
+        return;
+      }
+      const parsed = parseDuration(durationRaw);
+      if (parsed === null) {
+        await i.editReply({ embeds: [errEmbed(
+          `Invalid duration \`${durationRaw}\`. ` +
+          'Supported formats: `30s` · `5m` · `2h` · `3d` · `1w` · `1mo`',
+        )] });
+        return;
+      }
+      durationMs = parsed;
+    }
+
+    const c = await execRoleChange(guild, mod, target, role, action, reason, durationMs);
     await i.editReply({ embeds: [buildCaseEmbed(c)] });
   }
 

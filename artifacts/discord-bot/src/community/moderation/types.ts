@@ -101,19 +101,21 @@ export function makeDefaultConfig(guildId: string): GuildModConfig {
 }
 
 /** Parse a human duration string → ms, or null if invalid.
- *  Supported: 1s, 5m, 2h, 7d, 2w  */
+ *  Supported: 1s, 5m, 2h, 7d, 2w, 1mo  */
 export function parseDuration(s: string): number | null {
-  const match = /^(\d+)\s*(s|m|h|d|w)$/i.exec(s.trim());
+  // 'mo' must come before 'm' in the alternation so "1mo" matches months, not minutes.
+  const match = /^(\d+)\s*(mo|s|m|h|d|w)$/i.exec(s.trim());
   if (!match) return null;
   const n = parseInt(match[1], 10);
   if (n <= 0) return null;
   const unit = match[2].toLowerCase();
   const mult: Record<string, number> = {
-    s: 1_000,
-    m: 60_000,
-    h: 3_600_000,
-    d: 86_400_000,
-    w: 604_800_000,
+    s:  1_000,
+    m:  60_000,
+    h:  3_600_000,
+    d:  86_400_000,
+    w:  604_800_000,
+    mo: 30 * 86_400_000, // 30 days
   };
   return n * (mult[unit] ?? 0);
 }

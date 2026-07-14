@@ -19,3 +19,4 @@
 - [Ticket Review DM interaction routing](ticket-review-dm-routing.md) — DM-only tk:review:* buttons/modals need their own un-gated router branch placed before the guild-gated tk:* block, or they fail silently.
 - [Ticket naming migration startup order](ticket-naming-migration-order.md) — panelManager.list() returns empty during init() migrations because ensureFile() hasn't run yet; update data/tickets/panels.json directly if a migration flag was set prematurely.
 - [Production readiness audit findings](audit-production-readiness.md) — 12 runtime bugs fixed; key anti-patterns: store.read() deep clone, serialized counters, ActionRow 5-button cap, setTimeout reopen check, per-iter try/catch in sweepers.
+- [Temporary Role System](temporary-role-system.md) — /role add duration= feature; temp-role-store.ts + temp-role-manager.ts; parseDuration extended for `mo`; wired in ai.service.ts start().

@@ -297,5 +297,114 @@
       }
     }
   },
-  "events": []
+  "events": [
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "723982702625423430",
+      "targetId": "#for-sell-0025",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1783988056509
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "723982702625423430",
+      "targetId": "#for-sell-0025",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1783988049757
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_channel",
+      "executorId": "727578927593291796",
+      "targetId": "#🤖┇𝐴𝐼᲼𝐿𝑜𝑔",
+      "action": "Unauthorized Channel Updated",
+      "timestamp": 1783987603124
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_channel",
+      "executorId": "727578927593291796",
+      "targetId": "#🚨┇𝑠𝑒𝑐𝑢𝑟𝑖𝑡𝑦",
+      "action": "Unauthorized Channel Updated",
+      "timestamp": 1783987576523
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_channel",
+      "executorId": "727578927593291796",
+      "targetId": "#┇𝐴𝐼᲼𝐿𝑜𝑔",
+      "action": "Unauthorized Channel Updated",
+      "timestamp": 1783987530588
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_channel",
+      "executorId": "727578927593291796",
+      "targetId": "#┇᲼ai-log",
+      "action": "Unauthorized Channel Updated",
+      "timestamp": 1783987502728
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_channel",
+      "executorId": "727578927593291796",
+      "targetId": "#┇𝑠𝑒𝑐𝑢𝑟𝑖𝑡𝑦",
+      "action": "Unauthorized Channel Updated",
+      "timestamp": 1783987490249
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_channel",
+      "executorId": "727578927593291796",
+      "targetId": "#𝑠𝑒𝑐𝑢𝑟𝑖𝑡𝑦",
+      "action": "Unauthorized Channel Updated",
+      "timestamp": 1783987453508
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "723982702625423430",
+      "targetId": "#🚫┇𝑆𝑝𝑎𝑚᲼𝐴𝑙𝑒𝑟𝑡",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1783987303123
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_channel",
+      "executorId": "727578927593291796",
+      "targetId": "#🎫┇𝑇𝑖𝑐𝑘𝑒𝑡᲼𝐿𝑜𝑔",
+      "action": "Unauthorized Channel Updated",
+      "timestamp": 1783987248005
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_channel",
+      "executorId": "727578927593291796",
+      "targetId": "#┇𝑇𝑖𝑐𝑘𝑒𝑡᲼𝐿𝑜𝑔",
+      "action": "Unauthorized Channel Updated",
+      "timestamp": 1783987216272
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_raid",
+      "executorId": "727578927593291796",
+      "targetId": "#general (simulation)",
+      "action": "Mass Join Raid Detected ⚗️ SIMULATION",
+      "detail": "Test simulation triggered via Security Center Pro.",
+      "timestamp": 1783987118369
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_channel",
+      "executorId": "727578927593291796",
+      "targetId": "#𝑇𝑖𝑐𝑘𝑒𝑡-𝐿𝑜𝑔",
+      "action": "Unauthorized Channel Updated",
+      "timestamp": 1783987044526
+    }
+  ]
 }

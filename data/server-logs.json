@@ -17,7 +17,8 @@
         },
         "timeout": {
           "enabled": true,
-          "channelId": "1525473490608717875"
+          "channelId": "1525473490608717875",
+          "mentionCriticalOnly": false
         },
         "kick": {
           "enabled": true,

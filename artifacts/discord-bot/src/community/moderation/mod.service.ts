@@ -7,7 +7,9 @@ import {
   PermissionFlagsBits,
 } from 'discord.js';
 import type { ModCase, ModerationAction } from './types';
-import { parseDuration } from './types';
+import { parseDuration, formatDuration, discordFull } from './types';
+import { tempRoleManager } from './temp-role-manager';
+import { makeEntryId } from './temp-role-store';
 import { storeCase, getCase as _getCase, getUserCases, getActiveWarnCount, setCaseActive, clearUserWarnings } from './mod-store';
 import { getGuildModConfig, allocateCaseId } from './mod-config-store';
 import { buildCaseEmbed, buildDMEmbed, buildHistoryEmbed, buildAutoPunishEmbed } from './embeds';
@@ -618,30 +620,99 @@ export async function execRoleChange(
   role: import('discord.js').Role,
   action: 'add' | 'remove',
   reason: string,
+  /** Parsed duration in ms. When set and action==='add', the role is temporary. */
+  durationMs?: number,
 ): Promise<ModCase> {
+  const now = Date.now();
+  const expiresAt = (action === 'add' && durationMs && durationMs > 0)
+    ? now + durationMs
+    : undefined;
+
+  const auditReason = expiresAt
+    ? `${reason || 'Role added by moderator'} [temporary — expires ${new Date(expiresAt).toUTCString()}]`
+    : (reason || (action === 'add' ? 'Role added by moderator' : 'Role removed by moderator'));
+
   if (action === 'add') {
-    await target.roles.add(role, reason || 'Role added by moderator');
+    await target.roles.add(role, auditReason);
   } else {
-    await target.roles.remove(role, reason || 'Role removed by moderator');
+    await target.roles.remove(role, auditReason);
   }
 
   const modAction: ModerationAction = action === 'add' ? 'role_add' : 'role_remove';
   const id = await allocateCaseId(guild.id);
   const c: ModCase = {
     id,
-    guildId: guild.id,
-    targetId: target.id,
-    targetTag: target.user.tag,
-    moderatorId: mod.id,
+    guildId:      guild.id,
+    targetId:     target.id,
+    targetTag:    target.user.tag,
+    moderatorId:  mod.id,
     moderatorTag: mod.user.tag,
-    action: modAction,
-    reason: reason || 'No reason provided',
-    timestamp: Date.now(),
-    active: false,
-    extra: { roleId: role.id, roleName: role.name },
+    action:       modAction,
+    reason:       reason || 'No reason provided',
+    timestamp:    now,
+    active:       expiresAt !== undefined, // active while the temp role is pending
+    extra:        {
+      roleId:   role.id,
+      roleName: role.name,
+      ...(expiresAt !== undefined && { temporary: true, durationMs, expiresAt }),
+    },
   };
   await storeCase(c);
+
+  // Schedule automatic removal when a duration was provided
+  if (expiresAt !== undefined && durationMs !== undefined) {
+    await tempRoleManager.add({
+      id:          makeEntryId(guild.id, target.id, role.id),
+      guildId:     guild.id,
+      userId:      target.id,
+      roleId:      role.id,
+      durationMs,
+      expiresAt,
+      createdAt:   now,
+      moderatorId: mod.id,
+    });
+
+    // Emit a temp-role-specific log to the role_given channel so admins see
+    // the duration and expiry alongside the standard assignment embed.
+    await sendTempRoleAddedLog(guild, mod, target, role, durationMs, expiresAt).catch(err =>
+      logger.error('[TempRoles] Log emit failed for temp role add', err),
+    );
+  }
+
   return c;
+}
+
+/** Emits an embed to the role_given log channel with duration + expiry info. */
+async function sendTempRoleAddedLog(
+  guild: Guild,
+  mod: GuildMember,
+  target: GuildMember,
+  role: import('discord.js').Role,
+  durationMs: number,
+  expiresAt: number,
+): Promise<void> {
+  const lcfg = await resolveLogConfig(guild.id, 'role_given');
+  if (!lcfg) return;
+
+  const embed = new EmbedBuilder()
+    .setColor(lcfg.color ?? 0x57f287)
+    .setTitle('⏱️ Temporary Role Assigned')
+    .setDescription(`<@${target.id}> has been given a temporary role that will be automatically removed.`)
+    .addFields(
+      { name: '🎭 Role',       value: `<@&${role.id}> \`${role.name}\``, inline: true  },
+      { name: '👤 Member',     value: `<@${target.id}>`,                  inline: true  },
+      { name: '🔨 Granted by', value: `<@${mod.id}>`,                     inline: false },
+      { name: '⏱️ Duration',    value: `\`${formatDuration(durationMs)}\``, inline: true },
+      { name: '📅 Expires',    value: discordFull(expiresAt),              inline: true  },
+    )
+    .setFooter({ text: `User ID: ${target.id} · Role ID: ${role.id}` })
+    .setTimestamp();
+
+  const ch = await guild.channels.fetch(lcfg.channelId).catch(() => null);
+  if (!ch?.isTextBased()) return;
+
+  const mentions = lcfg.mentionRoles?.map(id => `<@&${id}>`).join(' ') || undefined;
+  await (ch as TextChannel).send({ content: mentions, embeds: [embed] });
 }
 
 // ── Case lookup helpers ────────────────────────────────────────────────────

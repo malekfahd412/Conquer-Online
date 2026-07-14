@@ -397,10 +397,11 @@ const UNLOCK_COMMAND = {
 const ROLE_COMMAND = {
   name: 'role', description: 'Add or remove a role from a member',
   options: [
-    { name: 'action', type: ApplicationCommandOptionType.String, description: 'Add or remove', required: true, choices: [{ name: 'Add', value: 'add' }, { name: 'Remove', value: 'remove' }] },
-    { name: 'user', type: ApplicationCommandOptionType.User, description: 'Target member', required: true },
-    { name: 'role', type: ApplicationCommandOptionType.Role, description: 'Role to add or remove', required: true },
-    { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason', required: false, max_length: 500 },
+    { name: 'action',   type: ApplicationCommandOptionType.String,  description: 'Add or remove',                                                         required: true,  choices: [{ name: 'Add', value: 'add' }, { name: 'Remove', value: 'remove' }] },
+    { name: 'user',     type: ApplicationCommandOptionType.User,    description: 'Target member',                                                          required: true  },
+    { name: 'role',     type: ApplicationCommandOptionType.Role,    description: 'Role to add or remove',                                                  required: true  },
+    { name: 'reason',   type: ApplicationCommandOptionType.String,  description: 'Reason',                                                                 required: false, max_length: 500 },
+    { name: 'duration', type: ApplicationCommandOptionType.String,  description: 'Auto-remove after this time — add only (e.g. 30s, 5m, 2h, 3d, 1w, 1mo)', required: false, max_length: 10  },
   ],
 };
 
