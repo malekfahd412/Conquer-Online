@@ -304,6 +304,15 @@
   "events": [
     {
       "guildId": "1213437502078062674",
+      "module": "anti_raid",
+      "executorId": "727578927593291796",
+      "targetId": "#general (simulation)",
+      "action": "Mass Join Raid Detected ⚗️ SIMULATION",
+      "detail": "Test simulation triggered via Security Center Pro.",
+      "timestamp": 1784030925669
+    },
+    {
+      "guildId": "1213437502078062674",
       "module": "anti_mass_dm",
       "executorId": "522507355233976321",
       "targetId": "#📑┇𝑅𝑒𝑞𝑢𝑒𝑠𝑡𝑠",
