@@ -167,6 +167,54 @@
           "timestamp": 1783990200313
         }
       ]
+    },
+    "1525253442153615443": {
+      "guildId": "1525253442153615443",
+      "pointValues": {
+        "ticket_claimed": 5,
+        "ticket_closed": 10,
+        "ticket_reopened": 0,
+        "warn_issued": 3,
+        "unwarn_issued": 1,
+        "mute_issued": 4,
+        "unmute_issued": 2,
+        "kick_issued": 6,
+        "ban_issued": 8,
+        "tempban_issued": 7,
+        "unban_issued": 2,
+        "softban_issued": 6,
+        "purge_issued": 2,
+        "verification_approved": 2,
+        "verification_rejected": 1,
+        "security_action": 3,
+        "voice_mod_action": 2
+      },
+      "transactions": [
+        {
+          "id": "mrkkcp9dw4bibi",
+          "guildId": "1525253442153615443",
+          "userId": "1523984758990831707",
+          "action": "mute_issued",
+          "points": 4,
+          "timestamp": 1784028241633
+        },
+        {
+          "id": "mrkkgj5zc7sifv",
+          "guildId": "1525253442153615443",
+          "userId": "1523984758990831707",
+          "action": "mute_issued",
+          "points": 4,
+          "timestamp": 1784028420359
+        },
+        {
+          "id": "mrkkmlh22cz47u",
+          "guildId": "1525253442153615443",
+          "userId": "1523984758990831707",
+          "action": "mute_issued",
+          "points": 4,
+          "timestamp": 1784028703286
+        }
+      ]
     }
   }
 }

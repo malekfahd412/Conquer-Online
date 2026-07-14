@@ -197,12 +197,14 @@
         "anti_role": {
           "enabled": true,
           "punishment": "timeout",
-          "actionLimit": 5,
+          "actionLimit": 1,
           "timeWindowMs": 10000,
           "ignoreBots": true,
           "whitelist": [],
           "trustedRoles": [],
-          "trustedUsers": []
+          "trustedUsers": [
+            "727578927593291796"
+          ]
         },
         "anti_webhook": {
           "enabled": false,
@@ -235,9 +237,9 @@
           "trustedUsers": []
         },
         "anti_link_spam": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
-          "actionLimit": 5,
+          "actionLimit": 1,
           "timeWindowMs": 10000,
           "ignoreBots": true,
           "whitelist": [],
@@ -245,14 +247,16 @@
           "trustedUsers": []
         },
         "anti_mention_spam": {
-          "enabled": false,
+          "enabled": true,
           "punishment": "timeout",
-          "actionLimit": 5,
-          "timeWindowMs": 10000,
+          "actionLimit": 1,
+          "timeWindowMs": 86400000,
           "ignoreBots": true,
           "whitelist": [],
           "trustedRoles": [],
-          "trustedUsers": []
+          "trustedUsers": [
+            "727578927593291796"
+          ]
         },
         "anti_ghost_ping": {
           "enabled": false,
@@ -298,6 +302,64 @@
     }
   },
   "events": [
+    {
+      "guildId": "1525253442153615443",
+      "module": "anti_mention_spam",
+      "executorId": "723982702625423430",
+      "targetId": "#🗯️┇𝐶ℎ𝑎𝑡",
+      "action": "Mention Spam",
+      "detail": "1 mentions in a single message (limit: 1)",
+      "timestamp": 1784028773266,
+      "punishmentApplied": "timeout"
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "522507355233976321",
+      "targetId": "#✔️┇𝑉𝑒𝑟𝑖𝑓𝑖𝑐𝑎𝑡𝑖𝑜𝑛",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784028714047
+    },
+    {
+      "guildId": "1525253442153615443",
+      "module": "anti_mention_spam",
+      "executorId": "723982702625423430",
+      "targetId": "#🗯️┇𝐶ℎ𝑎𝑡",
+      "action": "Mention Spam",
+      "detail": "1 mentions in a single message (limit: 1)",
+      "timestamp": 1784028703282,
+      "punishmentApplied": "timeout"
+    },
+    {
+      "guildId": "1525253442153615443",
+      "module": "anti_mention_spam",
+      "executorId": "723982702625423430",
+      "targetId": "#🗯️┇𝐶ℎ𝑎𝑡",
+      "action": "Mention Spam",
+      "detail": "1 mentions in a single message (limit: 1)",
+      "timestamp": 1784028420358,
+      "punishmentApplied": "timeout"
+    },
+    {
+      "guildId": "1525253442153615443",
+      "module": "anti_link_spam",
+      "executorId": "723982702625423430",
+      "targetId": "#🗯️┇𝐶ℎ𝑎𝑡",
+      "action": "Link Spam",
+      "detail": "1 URL(s) detected",
+      "timestamp": 1784028241625,
+      "punishmentApplied": "timeout"
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "611333374044536833",
+      "targetId": "#ticket-0026",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784003391863
+    },
     {
       "guildId": "1213437502078062674",
       "module": "anti_channel",

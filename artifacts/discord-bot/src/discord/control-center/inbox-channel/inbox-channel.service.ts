@@ -977,11 +977,17 @@ export class InboxChannelService {
       if (this.supportStaffRoleId) {
         overwrites.push({ id: this.supportStaffRoleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak] });
       }
-      overwrites.push({ id: conv.userId,
-      allow: [PermissionFlagsBits.ViewChannel,
-      PermissionFlagsBits.Connect,
-      PermissionFlagsBits.Speak] });
-      if (staff) overwrites.push({ id: staff.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak] });
+      overwrites.push({
+        id: conv.userId,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.Connect,
+          PermissionFlagsBits.Speak,
+          PermissionFlagsBits.Stream,
+          PermissionFlagsBits.UseVAD,
+        ],
+      });
+      if (staff) overwrites.push({ id: staff.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak, PermissionFlagsBits.Stream, PermissionFlagsBits.UseVAD] });
 
       const voiceChannel = await guild.channels.create({
         name: `voice-${conv.userTag}`.slice(0, 90),

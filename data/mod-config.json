@@ -28,6 +28,32 @@
       "defaultReasons": {},
       "casePrefix": "MOD",
       "nextCaseNumber": 2
+    },
+    "1525253442153615443": {
+      "guildId": "1525253442153615443",
+      "modRoles": [],
+      "dmOnPunish": true,
+      "autoPunish": {
+        "enabled": true,
+        "thresholds": [
+          {
+            "warns": 3,
+            "action": "timeout",
+            "duration": 3600000
+          },
+          {
+            "warns": 5,
+            "action": "kick"
+          },
+          {
+            "warns": 7,
+            "action": "ban"
+          }
+        ]
+      },
+      "defaultReasons": {},
+      "casePrefix": "MOD",
+      "nextCaseNumber": 4
     }
   }
 }
