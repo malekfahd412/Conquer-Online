@@ -24,6 +24,25 @@
         "reason": "refresh",
         "timestamp": 1783889325594,
         "active": false
+      },
+      {
+        "id": "MOD-0001",
+        "guildId": "1213437502078062674",
+        "targetId": "723982702625423430",
+        "targetTag": "forsell5995",
+        "moderatorId": "727578927593291796",
+        "moderatorTag": "s6.a_",
+        "action": "role_add",
+        "reason": "No reason provided",
+        "timestamp": 1783988331751,
+        "active": true,
+        "extra": {
+          "roleId": "1213437502078062676",
+          "roleName": "💎 𓇑 VIP",
+          "temporary": true,
+          "durationMs": 30000,
+          "expiresAt": 1783988361751
+        }
       }
     ]
   }
