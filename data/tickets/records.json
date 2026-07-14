@@ -545,7 +545,9 @@
       "participantIds": [
         "813694950067142656"
       ],
-      "headerMessageId": "1526625567594774549"
+      "headerMessageId": "1526625567594774549",
+      "claimedBy": "727578927593291796",
+      "firstStaffReplyAt": 1784067319428
     }
   ],
   "counters": {
