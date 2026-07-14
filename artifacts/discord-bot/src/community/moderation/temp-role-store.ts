@@ -97,3 +97,15 @@ export async function removeTempRolesForGuild(guildId: string): Promise<string[]
 export async function getAllTempRoles(): Promise<TempRoleEntry[]> {
   return load();
 }
+
+/** Return a single entry by its composite ID, or undefined if not found. */
+export async function getTempRole(id: string): Promise<TempRoleEntry | undefined> {
+  const entries = await load();
+  return entries.find(e => e.id === id);
+}
+
+/** Return all temp-role entries for a specific guild. */
+export async function getTempRolesForGuild(guildId: string): Promise<TempRoleEntry[]> {
+  const entries = await load();
+  return entries.filter(e => e.guildId === guildId);
+}

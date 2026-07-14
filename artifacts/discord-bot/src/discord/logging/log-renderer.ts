@@ -681,6 +681,31 @@ export function buildSampleEmbed(type: LogType): EmbedBuilder {
       return new EmbedBuilder().setColor(0xed4245).setTitle('🔴 Role Removed').setDescription('<@123> **TestUser**')
         .addFields({ name: '🆔 User ID', value: fakeId, inline: true }, { name: '🎭 Role', value: '@Member **Member**', inline: true }, { name: '🔨 By', value: '<@456> **AdminUser**', inline: false })
         .setTimestamp(now);
+    case 'temp_role_added':
+      return new EmbedBuilder().setColor(0x5865f2).setTitle('⏳ Temporary Role Added')
+        .setDescription('<@123> **TestUser** has been given a temporary role.')
+        .addFields(
+          { name: '🎭 Role',        value: '<@&789> **Booster**',   inline: true  },
+          { name: '👤 User',        value: '<@123> **TestUser**',   inline: true  },
+          { name: '🔨 Moderator',   value: '<@456> **AdminUser**',  inline: false },
+          { name: '⏱️ Duration',     value: '`24 hours`',            inline: true  },
+          { name: '📅 Expires At',  value: `<t:${Math.floor((now.getTime() + 86400000) / 1000)}:F>`, inline: true },
+          { name: '🕐 Case Time',   value: `<t:${Math.floor(now.getTime() / 1000)}:F>`, inline: false },
+        )
+        .setFooter({ text: `User ID: ${fakeId} · Role ID: ${fakeId}` })
+        .setTimestamp(now);
+    case 'temp_role_expired':
+      return new EmbedBuilder().setColor(0xf5a623).setTitle('⌛ Temporary Role Expired')
+        .setDescription('<@123> **TestUser** had a temporary role that has now expired.')
+        .addFields(
+          { name: '🎭 Role',              value: '<@&789> **Booster**', inline: true  },
+          { name: '👤 User',              value: '<@123> **TestUser**', inline: true  },
+          { name: '⏱️ Original Duration', value: '`24 hours`',          inline: true  },
+          { name: '📅 Expired At',        value: `<t:${Math.floor(now.getTime() / 1000)}:F>`, inline: true },
+          { name: '📋 Reason',            value: 'Temporary role expired automatically.', inline: false },
+        )
+        .setFooter({ text: `User ID: ${fakeId} · Role ID: ${fakeId}` })
+        .setTimestamp(now);
     case 'role_created':
       return new EmbedBuilder().setColor(0x57f287).setTitle('➕ Role Created')
         .addFields({ name: '🎭 Role', value: '@TestRole **TestRole**', inline: true }, { name: '🆔 Role ID', value: fakeId, inline: true }, { name: '🎨 Color', value: '#57f287', inline: true }, { name: '🔨 Created By', value: '<@456> **AdminUser**', inline: false })

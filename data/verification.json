@@ -48,6 +48,17 @@
       "createdAt": 1783886720067,
       "lastAttemptAt": 1783886720067,
       "failCount": 0
+    },
+    {
+      "guildId": "1213437502078062674",
+      "panelId": "vpanel_1783812313769_59enc",
+      "userId": "736714840965513256",
+      "status": "verified",
+      "method": "button",
+      "id": "vattempt_1783990999356_c0f6h",
+      "createdAt": 1783990999356,
+      "lastAttemptAt": 1783990999356,
+      "failCount": 0
     }
   ]
 }

@@ -301,6 +301,87 @@
     {
       "guildId": "1213437502078062674",
       "module": "anti_mass_dm",
+      "executorId": "727578927593291796",
+      "targetId": "#for-sell-0025",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1783989951711
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "727578927593291796",
+      "targetId": "#for-sell-0025",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1783989945897
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "1516482434533691473",
+      "targetId": "#for-sell-0025",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1783989945681
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "727578927593291796",
+      "targetId": "#for-sell-0025",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1783989936904
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "727578927593291796",
+      "targetId": "#for-sell-0025",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1783989933812
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "727578927593291796",
+      "targetId": "#for-sell-0025",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1783989927347
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "1516482434533691473",
+      "targetId": "#for-sell-0025",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1783989673566
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "1516482434533691473",
+      "targetId": "#for-sell-0025",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1783989670582
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "723982702625423430",
+      "targetId": "#for-sell-0025",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1783988707267
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
       "executorId": "723982702625423430",
       "targetId": "#for-sell-0025",
       "action": "Rapid Mass Messaging Pattern",

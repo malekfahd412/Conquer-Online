@@ -35,6 +35,9 @@ export type LogType =
   // Roles — member assignment
   | 'role_given'
   | 'role_removed'
+  // Temporary Role System
+  | 'temp_role_added'
+  | 'temp_role_expired'
   // Roles — server level
   | 'role_created'
   | 'role_deleted'
@@ -125,7 +128,7 @@ export const LOG_CATEGORIES: LogCategory[] = [
     key: 'roles',
     label: 'Roles',
     emoji: '🎭',
-    types: ['role_given', 'role_removed', 'role_created', 'role_deleted', 'role_updated', 'role_permissions_updated'],
+    types: ['role_given', 'role_removed', 'temp_role_added', 'temp_role_expired', 'role_created', 'role_deleted', 'role_updated', 'role_permissions_updated'],
   },
   {
     key: 'channels',
@@ -209,6 +212,8 @@ export const LOG_TYPE_META: Record<LogType, LogTypeMeta> = {
   // Roles — member
   role_given:                 { label: 'Role Given',             emoji: '🟢', description: 'Role assigned to a member',                     color: 0x57f287 },
   role_removed:               { label: 'Role Removed',           emoji: '🔴', description: 'Role removed from a member',                    color: 0xed4245 },
+  temp_role_added:            { label: 'Temp Role Added',        emoji: '⏳', description: 'Temporary role assigned with auto-expiry',       color: 0x5865f2 },
+  temp_role_expired:          { label: 'Temp Role Expired',      emoji: '⌛', description: 'Temporary role automatically expired',           color: 0xf5a623 },
   // Roles — server
   role_created:               { label: 'Role Created',           emoji: '➕', description: 'A new role was created',                        color: 0x57f287 },
   role_deleted:               { label: 'Role Deleted',           emoji: '➖', description: 'A role was deleted',                            color: 0xed4245 },

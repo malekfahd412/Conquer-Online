@@ -48,14 +48,15 @@
       "userId": "522507355233976321",
       "ticketType": "store",
       "lastClosedAt": 1783966155535
-    }
-  ],
-  "activity": [
+    },
     {
-      "ticketId": "ticket_1783988041877_8lm9w",
-      "channelId": "1526381221872009368",
-      "lastActivityAt": 1783988042182
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "userId": "723982702625423430",
+      "ticketType": "support",
+      "lastClosedAt": 1783990200298
     }
   ],
+  "activity": [],
   "log": []
 }

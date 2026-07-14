@@ -513,7 +513,7 @@
       "ticketType": "support",
       "channelId": "1526381221872009368",
       "openerId": "723982702625423430",
-      "status": "open",
+      "status": "closed",
       "number": 25,
       "priority": "normal",
       "answers": {},
@@ -522,7 +522,12 @@
       "participantIds": [
         "723982702625423430"
       ],
-      "headerMessageId": "1526381222715195439"
+      "headerMessageId": "1526381222715195439",
+      "claimedBy": "727578927593291796",
+      "firstStaffReplyAt": 1783990118893,
+      "closedAt": 1783990200296,
+      "closedBy": "727578927593291796",
+      "lastLifecycleMessageId": "1526390274547519560"
     }
   ],
   "counters": {

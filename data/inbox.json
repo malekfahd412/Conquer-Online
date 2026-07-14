@@ -2342,17 +2342,29 @@
           "hasStickers": false,
           "dmMessageId": "1526229334673850439",
           "isDeleted": true
+        },
+        {
+          "id": "1526384450877788281",
+          "type": "user",
+          "content": "تست",
+          "authorId": "723982702625423430",
+          "authorTag": "forsell5995",
+          "timestamp": 1783988812039,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
         }
       ],
-      "status": "closed",
-      "isRead": true,
+      "status": "open",
+      "isRead": false,
       "isPinned": false,
       "isArchived": false,
       "tags": [],
       "createdAt": 1783951814560,
-      "updatedAt": 1783955795842,
-      "lastMessageAt": 1783951814560,
-      "unreadCount": 0,
+      "updatedAt": 1783988812039,
+      "lastMessageAt": 1783988812039,
+      "unreadCount": 1,
       "timeline": [
         {
           "type": "created",
@@ -2371,6 +2383,11 @@
         {
           "type": "closed",
           "timestamp": 1783955795842
+        },
+        {
+          "type": "voice_session",
+          "timestamp": 1783988846448,
+          "detail": "s6.a_"
         }
       ],
       "userAvatar": "https://cdn.discordapp.com/avatars/723982702625423430/f2fe33c47307fa14d610d1e9df8b4684.webp?size=128",

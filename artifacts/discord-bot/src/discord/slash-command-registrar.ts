@@ -395,13 +395,65 @@ const UNLOCK_COMMAND = {
 };
 
 const ROLE_COMMAND = {
-  name: 'role', description: 'Add or remove a role from a member',
+  name: 'role',
+  description: 'Manage roles and temporary role assignments',
   options: [
-    { name: 'action',   type: ApplicationCommandOptionType.String,  description: 'Add or remove',                                                         required: true,  choices: [{ name: 'Add', value: 'add' }, { name: 'Remove', value: 'remove' }] },
-    { name: 'user',     type: ApplicationCommandOptionType.User,    description: 'Target member',                                                          required: true  },
-    { name: 'role',     type: ApplicationCommandOptionType.Role,    description: 'Role to add or remove',                                                  required: true  },
-    { name: 'reason',   type: ApplicationCommandOptionType.String,  description: 'Reason',                                                                 required: false, max_length: 500 },
-    { name: 'duration', type: ApplicationCommandOptionType.String,  description: 'Auto-remove after this time — add only (e.g. 30s, 5m, 2h, 3d, 1w, 1mo)', required: false, max_length: 10  },
+    {
+      name: 'add',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Add a role to a member (optionally with a duration for auto-removal)',
+      options: [
+        { name: 'user',     type: ApplicationCommandOptionType.User,   description: 'Target member',                                                            required: true  },
+        { name: 'role',     type: ApplicationCommandOptionType.Role,   description: 'Role to add',                                                              required: true  },
+        { name: 'reason',   type: ApplicationCommandOptionType.String, description: 'Reason',                                                                   required: false, max_length: 500 },
+        { name: 'duration', type: ApplicationCommandOptionType.String, description: 'Auto-remove after this time (e.g. 30s, 5m, 2h, 3d, 1w, 1mo)',             required: false, max_length: 10  },
+      ],
+    },
+    {
+      name: 'remove',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Remove a role from a member',
+      options: [
+        { name: 'user',   type: ApplicationCommandOptionType.User,   description: 'Target member',  required: true  },
+        { name: 'role',   type: ApplicationCommandOptionType.Role,   description: 'Role to remove', required: true  },
+        { name: 'reason', type: ApplicationCommandOptionType.String, description: 'Reason',         required: false, max_length: 500 },
+      ],
+    },
+    {
+      name: 'list-temp',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'List all active temporary roles in this server',
+      options: [],
+    },
+    {
+      name: 'extend',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Add more time to an existing temporary role',
+      options: [
+        { name: 'user',     type: ApplicationCommandOptionType.User,   description: 'Member with the temporary role',  required: true  },
+        { name: 'role',     type: ApplicationCommandOptionType.Role,   description: 'The temporary role to extend',    required: true  },
+        { name: 'duration', type: ApplicationCommandOptionType.String, description: 'Time to add (e.g. 1h, 2d)',       required: true, max_length: 10 },
+      ],
+    },
+    {
+      name: 'reduce',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Subtract time from an existing temporary role',
+      options: [
+        { name: 'user',     type: ApplicationCommandOptionType.User,   description: 'Member with the temporary role',  required: true  },
+        { name: 'role',     type: ApplicationCommandOptionType.Role,   description: 'The temporary role to reduce',    required: true  },
+        { name: 'duration', type: ApplicationCommandOptionType.String, description: 'Time to subtract (e.g. 1h, 2d)', required: true, max_length: 10 },
+      ],
+    },
+    {
+      name: 'remove-temp',
+      type: ApplicationCommandOptionType.Subcommand,
+      description: 'Immediately remove a temporary role and cancel its timer',
+      options: [
+        { name: 'user', type: ApplicationCommandOptionType.User, description: 'Member to remove the role from', required: true },
+        { name: 'role', type: ApplicationCommandOptionType.Role, description: 'The temporary role to remove',   required: true },
+      ],
+    },
   ],
 };
 

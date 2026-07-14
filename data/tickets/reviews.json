@@ -204,6 +204,25 @@
       "reviewedAt": 1783979303008,
       "ticketCreatedAt": 1783979168561,
       "ticketClosedAt": 1783979172115
+    },
+    {
+      "id": "rev_1783990236747_gm46g",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1783988041877_8lm9w",
+      "ticketNumber": 25,
+      "ticketType": "support",
+      "openerId": "723982702625423430",
+      "claimedBy": "727578927593291796",
+      "closedBy": "727578927593291796",
+      "rating": 5,
+      "comment": "المساعدة كانت روعة جدا",
+      "anonymous": false,
+      "responseTimeMs": 2076713,
+      "resolutionTimeMs": 2158116,
+      "reviewedAt": 1783990236747,
+      "ticketCreatedAt": 1783988042180,
+      "ticketClosedAt": 1783990200296
     }
   ]
 }

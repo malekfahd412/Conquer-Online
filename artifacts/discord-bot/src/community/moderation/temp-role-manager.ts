@@ -188,12 +188,84 @@ class TempRoleManager {
     await this.emitExpiryLog(guild, entry);
   }
 
+  // ── New public API (extend / reduce / removeNow) ─────────────────────────
+
+  /**
+   * Add time to an existing temporary role.
+   * Replaces the in-memory timer automatically.
+   * Returns the updated entry, or null if no entry was found.
+   */
+  async extend(guildId: string, userId: string, roleId: string, addMs: number): Promise<TempRoleEntry | null> {
+    const id = makeEntryId(guildId, userId, roleId);
+    const all = await getAllTempRoles();
+    const idx = all.findIndex(e => e.id === id);
+    if (idx === -1) return null;
+
+    const updated: TempRoleEntry = { ...all[idx], expiresAt: all[idx].expiresAt + addMs };
+    await upsertTempRole(updated);
+    this.scheduleTimer(updated); // cancelTimer is called inside scheduleTimer — no duplicate risk
+    logger.info(
+      `[TempRoles] Extended: user=${userId} role=${roleId} guild=${guildId} ` +
+      `+${addMs}ms → expires=${new Date(updated.expiresAt).toISOString()}`,
+    );
+    return updated;
+  }
+
+  /**
+   * Subtract time from an existing temporary role.
+   * If the new expiresAt is in the past, the role is expired immediately.
+   * Returns { expired, entry } where entry is the updated (or pre-expiry) version.
+   */
+  async reduce(
+    guildId: string, userId: string, roleId: string, subtractMs: number,
+  ): Promise<{ expired: boolean; entry: TempRoleEntry | null }> {
+    const id = makeEntryId(guildId, userId, roleId);
+    const all = await getAllTempRoles();
+    const idx = all.findIndex(e => e.id === id);
+    if (idx === -1) return { expired: false, entry: null };
+
+    const updated: TempRoleEntry = { ...all[idx], expiresAt: all[idx].expiresAt - subtractMs };
+
+    if (updated.expiresAt <= Date.now()) {
+      // Expire immediately — expire() handles store removal and Discord role removal
+      await this.expire(updated);
+      return { expired: true, entry: updated };
+    }
+
+    await upsertTempRole(updated);
+    this.scheduleTimer(updated);
+    logger.info(
+      `[TempRoles] Reduced: user=${userId} role=${roleId} guild=${guildId} ` +
+      `-${subtractMs}ms → expires=${new Date(updated.expiresAt).toISOString()}`,
+    );
+    return { expired: false, entry: updated };
+  }
+
+  /**
+   * Cancel and remove a temporary role entry immediately (manual removal by mod).
+   * Does NOT remove the Discord role — the caller is responsible for that.
+   * Returns the entry that was removed, or null if not found.
+   */
+  async removeNow(guildId: string, userId: string, roleId: string): Promise<TempRoleEntry | null> {
+    const id = makeEntryId(guildId, userId, roleId);
+    const all = await getAllTempRoles();
+    const entry = all.find(e => e.id === id);
+    if (!entry) return null;
+
+    this.cancelTimer(id);
+    await removeTempRole(id);
+    logger.info(`[TempRoles] Manually removed: user=${userId} role=${roleId} guild=${guildId}`);
+    return entry;
+  }
+
+  // ── Private ───────────────────────────────────────────────────────────────
+
   private async emitExpiryLog(
     guild: import('discord.js').Guild,
     entry: TempRoleEntry,
   ): Promise<void> {
     try {
-      const lcfg = await resolveLogConfig(entry.guildId, 'role_removed');
+      const lcfg = await resolveLogConfig(entry.guildId, 'temp_role_expired');
       if (!lcfg) return;
 
       let roleName = entry.roleId;
@@ -203,15 +275,15 @@ class TempRoleManager {
       } catch { /* role may be deleted */ }
 
       const embed = new EmbedBuilder()
-        .setColor(lcfg.color ?? 0xed4245)
-        .setTitle('⏰ Temporary Role Expired')
+        .setColor(lcfg.color ?? 0xf5a623)
+        .setTitle('⌛ Temporary Role Expired')
         .setDescription(`<@${entry.userId}> had a temporary role that has now expired and been automatically removed.`)
         .addFields(
-          { name: '🎭 Role',        value: `<@&${entry.roleId}> \`${roleName}\``, inline: true  },
-          { name: '👤 Member',      value: `<@${entry.userId}>`,                  inline: true  },
-          { name: '🔨 Granted by',  value: `<@${entry.moderatorId}>`,             inline: false },
-          { name: '⏱️ Duration',     value: `\`${formatDuration(entry.durationMs)}\``,          inline: true  },
-          { name: '📅 Expired at',  value: discordFull(entry.expiresAt),           inline: true  },
+          { name: '👤 User',              value: `<@${entry.userId}>`,                          inline: true  },
+          { name: '🎭 Role',              value: `<@&${entry.roleId}> \`${roleName}\``,          inline: true  },
+          { name: '⏱️ Original Duration', value: `\`${formatDuration(entry.durationMs)}\``,      inline: true  },
+          { name: '📅 Expired At',        value: discordFull(entry.expiresAt),                   inline: true  },
+          { name: '📋 Reason',            value: 'Temporary role expired automatically.',         inline: false },
         )
         .setFooter({ text: `User ID: ${entry.userId} · Role ID: ${entry.roleId}` })
         .setTimestamp();

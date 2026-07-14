@@ -682,7 +682,7 @@ export async function execRoleChange(
   return c;
 }
 
-/** Emits an embed to the role_given log channel with duration + expiry info. */
+/** Emits a ⏳ Temporary Role Added embed to the temp_role_added log channel. */
 async function sendTempRoleAddedLog(
   guild: Guild,
   mod: GuildMember,
@@ -691,19 +691,21 @@ async function sendTempRoleAddedLog(
   durationMs: number,
   expiresAt: number,
 ): Promise<void> {
-  const lcfg = await resolveLogConfig(guild.id, 'role_given');
+  const lcfg = await resolveLogConfig(guild.id, 'temp_role_added');
   if (!lcfg) return;
 
+  const now = Date.now();
   const embed = new EmbedBuilder()
-    .setColor(lcfg.color ?? 0x57f287)
-    .setTitle('⏱️ Temporary Role Assigned')
+    .setColor(lcfg.color ?? 0x5865f2)
+    .setTitle('⏳ Temporary Role Added')
     .setDescription(`<@${target.id}> has been given a temporary role that will be automatically removed.`)
     .addFields(
-      { name: '🎭 Role',       value: `<@&${role.id}> \`${role.name}\``, inline: true  },
-      { name: '👤 Member',     value: `<@${target.id}>`,                  inline: true  },
-      { name: '🔨 Granted by', value: `<@${mod.id}>`,                     inline: false },
-      { name: '⏱️ Duration',    value: `\`${formatDuration(durationMs)}\``, inline: true },
-      { name: '📅 Expires',    value: discordFull(expiresAt),              inline: true  },
+      { name: '👤 User',       value: `<@${target.id}>`,                    inline: true  },
+      { name: '🎭 Role',       value: `<@&${role.id}> \`${role.name}\``,    inline: true  },
+      { name: '🔨 Moderator',  value: `<@${mod.id}>`,                       inline: false },
+      { name: '⏱️ Duration',    value: `\`${formatDuration(durationMs)}\``,  inline: true  },
+      { name: '📅 Expires At', value: discordFull(expiresAt),               inline: true  },
+      { name: '🕐 Case Time',  value: discordFull(now),                      inline: false },
     )
     .setFooter({ text: `User ID: ${target.id} · Role ID: ${role.id}` })
     .setTimestamp();
@@ -713,6 +715,200 @@ async function sendTempRoleAddedLog(
 
   const mentions = lcfg.mentionRoles?.map(id => `<@&${id}>`).join(' ') || undefined;
   await (ch as TextChannel).send({ content: mentions, embeds: [embed] });
+}
+
+/** Emits a Temporary Role Extended embed to the temp_role_added log channel. */
+async function sendTempRoleExtendedLog(
+  guild: Guild,
+  mod: GuildMember,
+  target: GuildMember,
+  role: import('discord.js').Role,
+  entry: import('./temp-role-store').TempRoleEntry,
+  addedMs: number,
+): Promise<void> {
+  const lcfg = await resolveLogConfig(guild.id, 'temp_role_added');
+  if (!lcfg) return;
+
+  const embed = new EmbedBuilder()
+    .setColor(lcfg.color ?? 0x5865f2)
+    .setTitle('⏳ Temporary Role Extended')
+    .setDescription(`<@${target.id}>'s temporary role has been extended.`)
+    .addFields(
+      { name: '👤 User',        value: `<@${target.id}>`,                   inline: true  },
+      { name: '🎭 Role',        value: `<@&${role.id}> \`${role.name}\``,   inline: true  },
+      { name: '🔨 Extended By', value: `<@${mod.id}>`,                      inline: false },
+      { name: '➕ Added',        value: `\`${formatDuration(addedMs)}\``,    inline: true  },
+      { name: '📅 New Expiry',  value: discordFull(entry.expiresAt),         inline: true  },
+    )
+    .setFooter({ text: `User ID: ${target.id} · Role ID: ${role.id}` })
+    .setTimestamp();
+
+  const ch = await guild.channels.fetch(lcfg.channelId).catch(() => null);
+  if (!ch?.isTextBased()) return;
+
+  const mentions = lcfg.mentionRoles?.map(id => `<@&${id}>`).join(' ') || undefined;
+  await (ch as TextChannel).send({ content: mentions, embeds: [embed] });
+}
+
+/** Emits a Temporary Role Reduced embed to the temp_role_added log channel. */
+async function sendTempRoleReducedLog(
+  guild: Guild,
+  mod: GuildMember,
+  target: GuildMember,
+  role: import('discord.js').Role,
+  entry: import('./temp-role-store').TempRoleEntry,
+  subtractedMs: number,
+): Promise<void> {
+  const lcfg = await resolveLogConfig(guild.id, 'temp_role_added');
+  if (!lcfg) return;
+
+  const embed = new EmbedBuilder()
+    .setColor(lcfg.color ?? 0x5865f2)
+    .setTitle('⏳ Temporary Role Reduced')
+    .setDescription(`<@${target.id}>'s temporary role duration has been reduced.`)
+    .addFields(
+      { name: '👤 User',        value: `<@${target.id}>`,                      inline: true  },
+      { name: '🎭 Role',        value: `<@&${role.id}> \`${role.name}\``,      inline: true  },
+      { name: '🔨 Reduced By',  value: `<@${mod.id}>`,                         inline: false },
+      { name: '➖ Removed',      value: `\`${formatDuration(subtractedMs)}\``,  inline: true  },
+      { name: '📅 New Expiry',  value: discordFull(entry.expiresAt),            inline: true  },
+    )
+    .setFooter({ text: `User ID: ${target.id} · Role ID: ${role.id}` })
+    .setTimestamp();
+
+  const ch = await guild.channels.fetch(lcfg.channelId).catch(() => null);
+  if (!ch?.isTextBased()) return;
+
+  const mentions = lcfg.mentionRoles?.map(id => `<@&${id}>`).join(' ') || undefined;
+  await (ch as TextChannel).send({ content: mentions, embeds: [embed] });
+}
+
+/** Emits an ⌛ Temporary Role Expired embed for a mod-triggered expiry (reduce → zero). */
+async function sendTempRoleExpiredByModLog(
+  guild: Guild,
+  mod: GuildMember,
+  target: GuildMember,
+  role: import('discord.js').Role,
+  entry: import('./temp-role-store').TempRoleEntry,
+): Promise<void> {
+  const lcfg = await resolveLogConfig(guild.id, 'temp_role_expired');
+  if (!lcfg) return;
+
+  const embed = new EmbedBuilder()
+    .setColor(lcfg.color ?? 0xf5a623)
+    .setTitle('⌛ Temporary Role Expired')
+    .setDescription(`<@${target.id}>'s temporary role was reduced to zero remaining time and removed.`)
+    .addFields(
+      { name: '👤 User',              value: `<@${target.id}>`,                     inline: true  },
+      { name: '🎭 Role',              value: `<@&${role.id}> \`${role.name}\``,     inline: true  },
+      { name: '⏱️ Original Duration', value: `\`${formatDuration(entry.durationMs)}\``, inline: true },
+      { name: '📅 Expired At',        value: discordFull(Date.now()),               inline: true  },
+      { name: '📋 Reason',            value: `Reduced to zero remaining time by <@${mod.id}>.`, inline: false },
+    )
+    .setFooter({ text: `User ID: ${target.id} · Role ID: ${role.id}` })
+    .setTimestamp();
+
+  const ch = await guild.channels.fetch(lcfg.channelId).catch(() => null);
+  if (!ch?.isTextBased()) return;
+
+  const mentions = lcfg.mentionRoles?.map(id => `<@&${id}>`).join(' ') || undefined;
+  await (ch as TextChannel).send({ content: mentions, embeds: [embed] });
+}
+
+/** Emits an ⌛ Temporary Role Expired embed for a manual mod removal. */
+async function sendTempRoleRemovedByModLog(
+  guild: Guild,
+  mod: GuildMember,
+  target: GuildMember,
+  role: import('discord.js').Role,
+  entry: import('./temp-role-store').TempRoleEntry,
+): Promise<void> {
+  const lcfg = await resolveLogConfig(guild.id, 'temp_role_expired');
+  if (!lcfg) return;
+
+  const embed = new EmbedBuilder()
+    .setColor(lcfg.color ?? 0xf5a623)
+    .setTitle('⌛ Temporary Role Expired')
+    .setDescription(`<@${target.id}>'s temporary role was manually removed by a moderator.`)
+    .addFields(
+      { name: '👤 User',              value: `<@${target.id}>`,                     inline: true  },
+      { name: '🎭 Role',              value: `<@&${role.id}> \`${role.name}\``,     inline: true  },
+      { name: '⏱️ Original Duration', value: `\`${formatDuration(entry.durationMs)}\``, inline: true },
+      { name: '📅 Removed At',        value: discordFull(Date.now()),               inline: true  },
+      { name: '📋 Reason',            value: `Manually removed by <@${mod.id}>.`,   inline: false },
+    )
+    .setFooter({ text: `User ID: ${target.id} · Role ID: ${role.id}` })
+    .setTimestamp();
+
+  const ch = await guild.channels.fetch(lcfg.channelId).catch(() => null);
+  if (!ch?.isTextBased()) return;
+
+  const mentions = lcfg.mentionRoles?.map(id => `<@&${id}>`).join(' ') || undefined;
+  await (ch as TextChannel).send({ content: mentions, embeds: [embed] });
+}
+
+// ── Temp-Role lifecycle exec functions ────────────────────────────────────
+
+/** Extend an active temporary role by addMs milliseconds. */
+export async function execTempRoleExtend(
+  guild: Guild,
+  mod: GuildMember,
+  target: GuildMember,
+  role: import('discord.js').Role,
+  addMs: number,
+): Promise<import('./temp-role-store').TempRoleEntry | null> {
+  const updated = await tempRoleManager.extend(guild.id, target.id, role.id, addMs);
+  if (!updated) return null;
+  await sendTempRoleExtendedLog(guild, mod, target, role, updated, addMs).catch(err =>
+    logger.error('[TempRoles] Extend log failed', err),
+  );
+  return updated;
+}
+
+/** Reduce an active temporary role by subtractMs milliseconds. May expire immediately. */
+export async function execTempRoleReduce(
+  guild: Guild,
+  mod: GuildMember,
+  target: GuildMember,
+  role: import('discord.js').Role,
+  subtractMs: number,
+): Promise<{ expired: boolean; entry: import('./temp-role-store').TempRoleEntry | null }> {
+  const result = await tempRoleManager.reduce(guild.id, target.id, role.id, subtractMs);
+  if (result.entry !== null) {
+    if (result.expired) {
+      await sendTempRoleExpiredByModLog(guild, mod, target, role, result.entry).catch(err =>
+        logger.error('[TempRoles] Reduce-expire log failed', err),
+      );
+    } else {
+      await sendTempRoleReducedLog(guild, mod, target, role, result.entry, subtractMs).catch(err =>
+        logger.error('[TempRoles] Reduce log failed', err),
+      );
+    }
+  }
+  return result;
+}
+
+/** Cancel a temporary role immediately and remove it from the member. */
+export async function execTempRoleRemoveTemp(
+  guild: Guild,
+  mod: GuildMember,
+  target: GuildMember,
+  role: import('discord.js').Role,
+): Promise<import('./temp-role-store').TempRoleEntry | null> {
+  const entry = await tempRoleManager.removeNow(guild.id, target.id, role.id);
+  if (!entry) return null;
+
+  // Remove the Discord role
+  try {
+    await target.roles.remove(role, 'Temporary role manually removed by moderator');
+  } catch (err) {
+    logger.info(`[TempRoles] Could not remove role ${role.id} from ${target.id}: ${(err as Error).message}`);
+  }
+
+  await sendTempRoleRemovedByModLog(guild, mod, target, role, entry).catch(err =>
+    logger.error('[TempRoles] Remove-temp log failed', err),
+  );
+  return entry;
 }
 
 // ── Case lookup helpers ────────────────────────────────────────────────────
