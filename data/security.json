@@ -147,7 +147,11 @@
         }
       },
       "securityMentionRoleId": "1216032049794777160",
-      "securityLogChannelId": "1526292827628245173"
+      "securityLogChannelId": "1526292827628245173",
+      "bypassRoles": [
+        "1524487799368056942",
+        "1216032049794777160"
+      ]
     },
     "1525253442153615443": {
       "guildId": "1525253442153615443",
@@ -302,6 +306,78 @@
     }
   },
   "events": [
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "697186507722850306",
+      "targetId": "<#1522039366321569833>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784046843515
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "697186507722850306",
+      "targetId": "<#1522039366321569833>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784046669714
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "813694950067142656",
+      "targetId": "<#1526625565967384637>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784046344451
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "813694950067142656",
+      "targetId": "<#1526625565967384637>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784046320496
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "723982702625423430",
+      "targetId": "<#1524516473668632777>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784043533810
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "723982702625423430",
+      "targetId": "<#1522039366321569833>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784043496198
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "727578927593291796",
+      "targetId": "<#1213437502388703260>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1784043457279
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_link_spam",
+      "executorId": "727578927593291796",
+      "targetId": "<#1213437502388703260>",
+      "action": "Link Spam",
+      "detail": "1 URL(s) detected",
+      "timestamp": 1784043456883
+    },
     {
       "guildId": "1213437502078062674",
       "module": "anti_mass_dm",
