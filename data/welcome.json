@@ -2,7 +2,7 @@
   "welcome": [
     {
       "guildId": "1213437502078062674",
-      "enabled": false,
+      "enabled": true,
       "messages": [
         "Welcome {user} to {server}! We now have {membercount} members."
       ],
@@ -14,24 +14,25 @@
       "dmEnabled": false,
       "delaySeconds": 0,
       "card": {
-        "avatarX": 40,
-        "avatarY": 86,
-        "avatarSize": 128,
-        "avatarBorderEnabled": true,
+        "backgroundImage": "data/welcome-backgrounds/1213437502078062674.png",
+        "avatarX": 200,
+        "avatarY": 177,
+        "avatarSize": 100,
+        "avatarBorderEnabled": false,
         "avatarBorderColor": "#FFFFFF",
         "avatarBorderWidth": 6,
-        "usernameX": 195,
-        "usernameY": 118,
-        "serverNameX": 195,
-        "serverNameY": 160,
-        "memberCountX": 195,
-        "memberCountY": 196,
+        "usernameX": 0,
+        "usernameY": 0,
+        "serverNameX": 0,
+        "serverNameY": 0,
+        "memberCountX": 0,
+        "memberCountY": 0,
         "textColor": "#FFFFFF",
         "fontSize": 30,
         "fontFamily": "Poppins"
       },
       "welcomeMessage": {
-        "content": "",
+        "content": "𝑊𝐸𝐿𝐶𝑂𝑀𝐸 𝑇𝑂 {server}\n{memberCount} {user}\n𝐷𝑜𝑛'𝑡 𝐹𝑜𝑟𝑔𝑒𝑡 𝑇𝑜 𝐶ℎ𝑒𝑐𝑘 𝑇ℎ𝑒 𝑅𝑢𝑙𝑒𝑠 <#1216064140393578716>\n\n𝐴𝑙𝑠𝑜 𝐶ℎ𝑒𝑐𝑘 <#1521595067348029571>\n\n𝐆𝐎𝐎𝐃 𝐋𝐔𝐂𝐊 & 𝐇𝐀𝐕𝐄 𝐅𝐔𝐍 🥰",
         "embedEnabled": false,
         "embedTitle": "",
         "embedDescription": "",
@@ -40,7 +41,8 @@
         "embedThumbnail": "",
         "embedImage": "",
         "embedTimestamp": false
-      }
+      },
+      "channelId": "1216063900450295848"
     }
   ],
   "goodbye": []

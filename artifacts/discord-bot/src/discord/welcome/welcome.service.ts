@@ -9,7 +9,7 @@ import {
   type TextChannel,
 } from 'discord.js';
 import { getWelcomeConfig, getGoodbyeConfig } from './welcome-store';
-import { renderWelcomeCard } from './welcome-card-renderer';
+import { renderWelcomeCard } from './renderWelcomeCard';
 import { logger } from '../../utils/logger';
 
 /**

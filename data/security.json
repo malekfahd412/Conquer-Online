@@ -308,6 +308,48 @@
   "events": [
     {
       "guildId": "1213437502078062674",
+      "module": "anti_invite_spam",
+      "executorId": "976672064264089603",
+      "targetId": "NmPdFEvjY",
+      "action": "Rapid Invite Creation",
+      "timestamp": 1785611108173
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "1236240052716179517",
+      "targetId": "<#1522049223439286293>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1785609297601
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_invite_spam",
+      "executorId": "681249462802317331",
+      "targetId": "vvyUNvpEX",
+      "action": "Rapid Invite Creation",
+      "timestamp": 1785608885891
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_invite_spam",
+      "executorId": "1236240052716179517",
+      "targetId": "KQdq8Gpek",
+      "action": "Rapid Invite Creation",
+      "timestamp": 1785607810360
+    },
+    {
+      "guildId": "1213437502078062674",
+      "module": "anti_mass_dm",
+      "executorId": "1321237105787011084",
+      "targetId": "<#1521595220817481749>",
+      "action": "Rapid Mass Messaging Pattern",
+      "detail": "Exceeded 5 messages in 10s",
+      "timestamp": 1785606981914
+    },
+    {
+      "guildId": "1213437502078062674",
       "module": "anti_mass_dm",
       "executorId": "631930445218578433",
       "targetId": "<#1522039366321569833>",

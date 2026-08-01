@@ -173,6 +173,14 @@
           "action": "ticket_claimed",
           "points": 5,
           "timestamp": 1784067319445
+        },
+        {
+          "id": "msarpaxqg72egb",
+          "guildId": "1213437502078062674",
+          "userId": "727578927593291796",
+          "action": "ticket_closed",
+          "points": 10,
+          "timestamp": 1785612707486
         }
       ]
     },

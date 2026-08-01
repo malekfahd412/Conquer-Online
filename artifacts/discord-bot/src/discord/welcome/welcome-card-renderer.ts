@@ -84,7 +84,7 @@ export interface RenderWelcomeCardParams {
  */
 export async function renderWelcomeCard(params: RenderWelcomeCardParams): Promise<Buffer> {
   registerFonts();
-  const { card, avatarUrl, displayName, serverName, memberCount } = params;
+  const { card, avatarUrl } = params;
 
   const bg = await loadBackground(card.backgroundImage);
   const width = bg?.width ?? FALLBACK_WIDTH;
@@ -126,18 +126,6 @@ export async function renderWelcomeCard(params: RenderWelcomeCardParams): Promis
   ctx.clip();
   ctx.drawImage(avatar, card.avatarX, card.avatarY, card.avatarSize, card.avatarSize);
   ctx.restore();
-
-  // ── Text ─────────────────────────────────────────────────────────────────
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'left';
-  ctx.fillStyle = card.textColor;
-
-  ctx.font = `bold ${card.fontSize}px "${card.fontFamily}"`;
-  ctx.fillText(displayName, card.usernameX, card.usernameY);
-
-  ctx.font = `${Math.round(card.fontSize * 0.6)}px "${card.fontFamily}"`;
-  ctx.fillText(serverName, card.serverNameX, card.serverNameY);
-  ctx.fillText(`Member #${memberCount}`, card.memberCountX, card.memberCountY);
 
   return await canvas.encode('png');
 }

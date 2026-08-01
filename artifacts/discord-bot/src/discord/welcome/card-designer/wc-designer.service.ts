@@ -19,7 +19,8 @@ import {
   type WelcomeCardConfig,
   type WelcomeMessageConfig,
 } from '../welcome-store';
-import { renderWelcomeCard, saveBackgroundImage, FONT_FAMILIES } from '../welcome-card-renderer';
+import { saveBackgroundImage, FONT_FAMILIES } from '../welcome-card-renderer';
+import { renderWelcomeCard } from '../renderWelcomeCard';
 import {
   buildWCHome,
   buildWCBorder,

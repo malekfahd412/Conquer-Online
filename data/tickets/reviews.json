@@ -223,6 +223,23 @@
       "reviewedAt": 1783990236747,
       "ticketCreatedAt": 1783988042180,
       "ticketClosedAt": 1783990200296
+    },
+    {
+      "id": "rev_1785612726816_6ttme",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1785612696814_yjuv0",
+      "ticketNumber": 27,
+      "ticketType": "store",
+      "openerId": "727578927593291796",
+      "closedBy": "727578927593291796",
+      "rating": 5,
+      "comment": "test",
+      "anonymous": false,
+      "resolutionTimeMs": 10281,
+      "reviewedAt": 1785612726816,
+      "ticketCreatedAt": 1785612697192,
+      "ticketClosedAt": 1785612707473
     }
   ]
 }

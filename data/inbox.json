@@ -2477,6 +2477,42 @@
       "assignedTo": "727578927593291796",
       "assignedToTag": "s6.a_",
       "lastSeenAt": 1783951829419
+    },
+    {
+      "id": "976672064264089603",
+      "userId": "976672064264089603",
+      "userTag": "paulo144",
+      "guildId": "1213437502078062674",
+      "messages": [
+        {
+          "id": "1533196896745820354",
+          "type": "user",
+          "content": ".",
+          "authorId": "976672064264089603",
+          "authorTag": "paulo144",
+          "timestamp": 1785613025874,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
+        }
+      ],
+      "status": "open",
+      "isRead": false,
+      "isPinned": false,
+      "isArchived": false,
+      "tags": [],
+      "createdAt": 1785613025874,
+      "updatedAt": 1785613025874,
+      "lastMessageAt": 1785613025874,
+      "unreadCount": 1,
+      "timeline": [
+        {
+          "type": "created",
+          "timestamp": 1785613025874
+        }
+      ],
+      "userAvatar": "https://cdn.discordapp.com/avatars/976672064264089603/a_f7f00c652ed0011936a6f5064b137649.gif?size=128"
     }
   ]
 }
