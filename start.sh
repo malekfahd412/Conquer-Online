@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+if [ -f /home/container/package.json ]; then
+  cd /home/container
+elif [ -f /home/container/Conquer-Online-main/package.json ]; then
+  cd /home/container/Conquer-Online-main
+else
+  echo "Project root not found."
+  exit 1
+fi
+
+REPO_ROOT="$(pwd)"
 # =============================================================================
 #  Conquer Online — Discord AI Operating System
 #  Production startup script for Pterodactyl / Legacy Bot Hosting
@@ -21,9 +31,7 @@ success() { echo -e "${GREEN}[start.sh]${NC} $*"; }
 warn()    { echo -e "${YELLOW}[start.sh]${NC} $*"; }
 die()     { echo -e "${RED}[start.sh] FATAL:${NC} $*" >&2; exit 1; }
 
-# ── Resolve the repo root (script may be called from any working directory) ──
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "${REPO_ROOT}"
+# ── Project root was resolved immediately after the shebang ───────────────────
 info "Working directory: ${REPO_ROOT}"
 
 # ── Node.js version check ─────────────────────────────────────────────────────
