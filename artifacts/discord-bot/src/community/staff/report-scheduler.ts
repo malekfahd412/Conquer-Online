@@ -31,6 +31,7 @@ function monthlyKey(d: Date): string {
 class ReportScheduler {
   private client: Client | null = null;
   private timer: NodeJS.Timeout | null = null;
+  private initialCheckTimer: NodeJS.Timeout | null = null;
 
   setClient(client: Client): void {
     this.client = client;
@@ -42,7 +43,8 @@ class ReportScheduler {
       this.checkAll().catch(err => logger.error('[Staff] Report scheduler tick failed', err));
     }, CHECK_INTERVAL_MS);
     // Run one check shortly after startup too, in case a period rolled over while the bot was offline.
-    setTimeout(() => {
+    this.initialCheckTimer = setTimeout(() => {
+      this.initialCheckTimer = null;
       this.checkAll().catch(err => logger.error('[Staff] Initial report scheduler check failed', err));
     }, 30_000);
     logger.info('[Staff] Report scheduler started');
@@ -50,7 +52,10 @@ class ReportScheduler {
 
   stop(): void {
     if (this.timer) clearInterval(this.timer);
+    if (this.initialCheckTimer) clearTimeout(this.initialCheckTimer);
     this.timer = null;
+    this.initialCheckTimer = null;
+    this.client = null;
   }
 
   private async checkAll(): Promise<void> {

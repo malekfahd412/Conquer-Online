@@ -71,6 +71,8 @@ function isBypassed(executor: GuildMember | User | null | undefined, bypassRoles
 // ── Security Guard ────────────────────────────────────────────────────────────
 
 export class SecurityGuard {
+  private cachePruneTimer: ReturnType<typeof setInterval> | null = null;
+
   start(client: Client): void {
     // ── Anti Raid + Anti Bot Add ─────────────────────────────────────────────
     client.on('guildMemberAdd', (member: GuildMember) => {
@@ -141,10 +143,20 @@ export class SecurityGuard {
       this.onMessageDelete(message).catch(err => logger.error('[Security] messageDelete error', err));
     });
 
-    // Periodically prune stale ghost-ping cache entries to prevent memory growth
-    setInterval(pruneCache, MENTION_CACHE_TTL);
+    // Periodically prune stale ghost-ping cache entries to prevent memory growth.
+    if (!this.cachePruneTimer) {
+      this.cachePruneTimer = setInterval(pruneCache, MENTION_CACHE_TTL);
+    }
 
     logger.success('[Security] Security Guard activated — 14 modules ready');
+  }
+
+  stop(): void {
+    if (this.cachePruneTimer) {
+      clearInterval(this.cachePruneTimer);
+      this.cachePruneTimer = null;
+    }
+    mentionCache.clear();
   }
 
   // ── Handlers ─────────────────────────────────────────────────────────────────

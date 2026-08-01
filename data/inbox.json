@@ -170,18 +170,56 @@
           "hasEmbeds": false,
           "hasStickers": false,
           "dmMessageId": "1526257509281698004"
+        },
+        {
+          "id": "1532492100594040955",
+          "type": "staff_reply",
+          "content": "فثسف",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1785444989784,
+          "isEdited": true,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false,
+          "dmMessageId": "1532492102976536596"
+        },
+        {
+          "id": "ic_reply_1785445037879",
+          "type": "staff_reply",
+          "content": "بببب",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1785445037881,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false,
+          "dmMessageId": "1532492304214921493"
+        },
+        {
+          "id": "1532492319859933406",
+          "type": "user",
+          "content": "بب",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1785445041485,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
         }
       ],
-      "status": "closed",
-      "isRead": true,
+      "status": "open",
+      "isRead": false,
       "isPinned": false,
       "isArchived": false,
       "tags": [],
       "createdAt": 1783906899215,
-      "updatedAt": 1784030207784,
-      "lastMessageAt": 1783946224514,
-      "unreadCount": 0,
-      "userAvatar": "https://cdn.discordapp.com/avatars/727578927593291796/2b59b65bf0f18e1f1ce3435d3b8209de.webp?size=128",
+      "updatedAt": 1785445041485,
+      "lastMessageAt": 1785445041485,
+      "unreadCount": 1,
+      "userAvatar": "https://cdn.discordapp.com/embed/avatars/5.png",
       "timeline": [
         {
           "type": "created",
@@ -200,6 +238,11 @@
         {
           "type": "closed",
           "timestamp": 1784030207784
+        },
+        {
+          "type": "voice_session",
+          "timestamp": 1785445118033,
+          "detail": "s6.a_"
         }
       ],
       "threadId": "1526205826694385766",
@@ -885,18 +928,31 @@
           "attachments": [],
           "hasEmbeds": false,
           "hasStickers": false
+        },
+        {
+          "id": "1532490834132336711",
+          "type": "staff_reply",
+          "content": "Fuck off",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1785444687827,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false,
+          "dmMessageId": "1532490835965251717"
         }
       ],
       "status": "open",
-      "isRead": false,
+      "isRead": true,
       "isPinned": false,
       "isArchived": false,
       "tags": [],
       "createdAt": 1783907184304,
-      "updatedAt": 1783959637117,
+      "updatedAt": 1785444687827,
       "lastMessageAt": 1783959637117,
-      "unreadCount": 2,
-      "lastSeenAt": 1783958955549,
+      "unreadCount": 0,
+      "lastSeenAt": 1785444687833,
       "userAvatar": "https://cdn.discordapp.com/avatars/522507355233976321/81675a562d24fe6e3d7da91efdd1821f.webp?size=128",
       "threadId": "1526197639966883961",
       "threadGuildId": "1213437502078062674",

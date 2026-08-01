@@ -42,6 +42,7 @@ interface UpcomingEventRow {
 export class MssqlProvider implements IDataProvider {
   private pool: sql.ConnectionPool | null = null;
   private connected = false;
+  private connectionAttempt: Promise<void> | null = null;
   private readonly serverName: string;
 
   constructor(private readonly config: MssqlConfig, serverName: string) {
@@ -49,8 +50,22 @@ export class MssqlProvider implements IDataProvider {
   }
 
   async connect(): Promise<void> {
+    if (this.isConnected()) return;
+    if (this.connectionAttempt) return this.connectionAttempt;
+
+    this.connectionAttempt = this.openConnection();
     try {
-      this.pool = new sql.ConnectionPool({
+      await this.connectionAttempt;
+    } finally {
+      this.connectionAttempt = null;
+    }
+  }
+
+  private async openConnection(): Promise<void> {
+    try {
+      await this.closePool();
+
+      const pool = new sql.ConnectionPool({
         server: this.config.server,
         port: this.config.port,
         database: this.config.database,
@@ -65,21 +80,20 @@ export class MssqlProvider implements IDataProvider {
         requestTimeout: 10_000,
       });
 
-      await this.pool.connect();
+      this.pool = pool;
+      await pool.connect();
       this.connected = true;
       logger.success(`MSSQL connected to ${this.config.server}/${this.config.database}`);
     } catch (error) {
-      this.connected = false;
-      this.pool = null;
+      await this.closePool();
       throw error;
     }
   }
 
   async disconnect(): Promise<void> {
-    if (this.pool) {
-      await this.pool.close();
-      this.pool = null;
-      this.connected = false;
+    const hadPool = this.pool !== null;
+    await this.closePool();
+    if (hadPool) {
       logger.info('MSSQL connection closed');
     }
   }
@@ -160,8 +174,22 @@ export class MssqlProvider implements IDataProvider {
         lastUpdate: new Date(),
       };
     } catch (error) {
-      this.connected = false;
+      await this.closePool();
       throw error;
+    }
+  }
+
+  private async closePool(): Promise<void> {
+    const pool = this.pool;
+    this.pool = null;
+    this.connected = false;
+
+    if (!pool) return;
+
+    try {
+      await pool.close();
+    } catch (error) {
+      logger.warning(`MSSQL pool close failed: ${(error as Error).message}`);
     }
   }
 }

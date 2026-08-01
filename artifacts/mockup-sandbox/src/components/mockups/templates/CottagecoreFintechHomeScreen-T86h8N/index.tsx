@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
   Eye,
@@ -23,7 +23,15 @@ import {
 } from "lucide-react";
 
 /* ---------- decorative sprig svg ---------- */
-const Sprig = ({ className, color = "#9DBE85", flip = false }) => (
+const Sprig = ({
+  className,
+  color = "#9DBE85",
+  flip = false,
+}: {
+  className?: string;
+  color?: string;
+  flip?: boolean;
+}) => (
   <svg
     viewBox="0 0 70 150"
     fill="none"
@@ -49,7 +57,13 @@ const Sprig = ({ className, color = "#9DBE85", flip = false }) => (
   </svg>
 );
 
-const Blossom = ({ className, color = "#E8B85F" }) => (
+const Blossom = ({
+  className,
+  color = "#E8B85F",
+}: {
+  className?: string;
+  color?: string;
+}) => (
   <svg viewBox="0 0 60 60" fill="none" className={className}>
     {[0, 60, 120, 180, 240, 300].map((r) => (
       <ellipse
@@ -133,11 +147,11 @@ const stories = [
   },
 ];
 
-const fmt = (n) =>
+const fmt = (n: number): string =>
   (n < 0 ? "−£" : "+£") + Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
 export default function App() {
-  const scrollRef = useRef(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const { scrollY } = useScroll({ container: scrollRef });
 
   const moonY = useTransform(scrollY, [0, 700], [0, -110]);
@@ -518,7 +532,15 @@ export default function App() {
 }
 
 /* ---------- section wrapper ---------- */
-function Section({ title, action, children }) {
+function Section({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action: string;
+  children: ReactNode;
+}) {
   return (
     <div className="mt-9">
       <div className="flex items-center justify-between px-6 mb-4">

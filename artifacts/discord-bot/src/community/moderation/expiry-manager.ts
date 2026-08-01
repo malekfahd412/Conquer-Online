@@ -68,6 +68,15 @@ class ExpiryManager {
     if (t) { clearTimeout(t); this.timers.delete(caseId); }
   }
 
+  /** Clear scheduled timers without changing persisted moderation cases. */
+  stop(): void {
+    for (const timer of this.timers.values()) {
+      clearTimeout(timer);
+    }
+    this.timers.clear();
+    this.client = null;
+  }
+
   // ── Private ──────────────────────────────────────────────────────────────
 
   private async expire(c: ModCase): Promise<void> {

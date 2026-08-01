@@ -67,6 +67,15 @@ class TempRoleManager {
     }
   }
 
+  /** Clear in-memory timers without changing persisted temporary-role entries. */
+  stop(): void {
+    for (const timer of this.timers.values()) {
+      clearTimeout(timer);
+    }
+    this.timers.clear();
+    this.client = null;
+  }
+
   // ── Public API ────────────────────────────────────────────────────────────
 
   /**

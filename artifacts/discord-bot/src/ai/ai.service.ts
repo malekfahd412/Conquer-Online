@@ -1406,10 +1406,12 @@ export class AIService {
     }
   }
 
-  /** Flush workspace state on graceful shutdown before stopping memory cleanup. */
-  stop(): void {
-    this.workspaceMemory.flush().catch(err => logger.error('Workspace flush error on shutdown', err));
+  /** Stop background resources and persist workspace state before shutdown. */
+  async stop(): Promise<void> {
+    this.voiceManager?.destroyAll();
+    this.securityGuard.stop();
     this.memoryManager.stop();
+    await this.workspaceMemory.stop();
   }
 
   // ── Workspace Sync Helper ─────────────────────────────────────────────────

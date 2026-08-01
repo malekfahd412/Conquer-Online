@@ -10,6 +10,7 @@ export class WorkspaceMemory {
   private workspaces = new Map<string, Workspace>();
   private readonly storage: MemoryStorage;
   private dirty = false;
+  private persistTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.storage = new MemoryStorage();
@@ -23,8 +24,12 @@ export class WorkspaceMemory {
       }
       logger.info(`Loaded ${this.workspaces.size} workspace(s) from storage`);
     }
-    // Persist every 5 minutes
-    setInterval(() => this.flush().catch(() => {}), 5 * 60_000);
+    // Persist every 5 minutes.
+    if (!this.persistTimer) {
+      this.persistTimer = setInterval(() => {
+        this.flush().catch(error => logger.error('Workspace periodic flush failed', error));
+      }, 5 * 60_000);
+    }
   }
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
@@ -154,5 +159,13 @@ export class WorkspaceMemory {
     }
     await this.storage.save(STORAGE_KEY, data);
     this.dirty = false;
+  }
+
+  async stop(): Promise<void> {
+    if (this.persistTimer) {
+      clearInterval(this.persistTimer);
+      this.persistTimer = null;
+    }
+    await this.flush();
   }
 }

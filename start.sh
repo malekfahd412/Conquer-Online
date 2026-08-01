@@ -78,11 +78,12 @@ if [ -f "${REPO_ROOT}/.env" ]; then
     # Skip blank lines and comments
     [[ "${line}" =~ ^[[:space:]]*$ ]] && continue
     [[ "${line}" =~ ^[[:space:]]*# ]] && continue
-    # Strip inline comments  (e.g.  KEY=value  # comment)
-    line="${line%%#*}"
-    line="${line%"${line##*[^[:space:]]}"}"  # rtrim
-    [ -z "${line}" ] && continue
-    # export "KEY=value" handles unquoted spaces in the value correctly
+    # Preserve every value character (including #), so credentials and URLs are
+    # never silently altered. Comments must occupy their own line.
+    if ! [[ "${line}" =~ ^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)= ]]; then
+      die "Invalid .env entry. Use KEY=value, or put comments on their own line."
+    fi
+    # export "KEY=value" handles unquoted spaces in the value correctly.
     export "${line?}"
   done < "${REPO_ROOT}/.env"
   success ".env loaded ✓"
