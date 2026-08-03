@@ -696,62 +696,54 @@ export class InboxChannelService {
 
     const conv = await getConversation(uid);
     if (!conv) { await i.reply({ content: '❌ Conversation not found.', flags: MessageFlags.Ephemeral }); return; }
+    const thread = i.channel?.isThread() ? (i.channel as ThreadChannel) : await this.ensureThread(guild, conv);
+    if (!thread) { await i.reply({ content: '❌ Could not resolve this conversation\'s thread.', flags: MessageFlags.Ephemeral }); return; }
 
-    // Modal-only branches never need the thread to build their modal — show it immediately
-    // instead of blocking on ensureThread() first. A slow thread fetch/create here used to be
-    // the main source of "noticeable lag" pressing Reply: it could eat into Discord's 3s ack
-    // window before showModal ever ran, occasionally failing the interaction outright.
     if (id.startsWith('ic:reply:'))   { await i.showModal(buildReplyModal(uid)); return; }
     if (id.startsWith('ic:note:'))    { await i.showModal(buildNoteModal(uid)); return; }
-    if (id.startsWith('ic:ai:rw:'))   { await i.showModal(buildAIRewriteModal(uid)); return; }
-    if (id.startsWith('ic:ai:tr:'))   { await i.showModal(buildAITranslateModal(uid)); return; }
-
-    // Every remaining branch needs the thread and does further async work. Acknowledge the
-    // interaction immediately, then resolve/create the thread afterward — this is the
-    // "background creation" pattern: the interaction is never left waiting on Discord API calls.
-    const usesEphemeralReply = id.startsWith('ic:ai:') || id.startsWith('ic:voice:');
-    if (usesEphemeralReply) await i.deferReply({ flags: MessageFlags.Ephemeral });
-    else await i.deferUpdate();
-
-    const thread = i.channel?.isThread() ? (i.channel as ThreadChannel) : await this.ensureThread(guild, conv);
-    if (!thread) {
-      if (usesEphemeralReply) await i.editReply({ content: '❌ Could not resolve this conversation\'s thread.' });
-      return;
-    }
 
     if (id.startsWith('ic:ai:sug:')) {
+      await i.deferReply({ flags: MessageFlags.Ephemeral });
       await this.postAIAssist(thread, conv);
       await i.editReply({ content: '✅ Posted a suggested reply in the thread.' });
       return;
     }
+    if (id.startsWith('ic:ai:rw:'))   { await i.showModal(buildAIRewriteModal(uid)); return; }
+    if (id.startsWith('ic:ai:tr:'))  { await i.showModal(buildAITranslateModal(uid)); return; }
     if (id.startsWith('ic:ai:sum:')) {
+      await i.deferReply({ flags: MessageFlags.Ephemeral });
       await this.postSummary(thread, conv);
       await i.editReply({ content: '✅ Posted a summary in the thread.' });
       return;
     }
     if (id.startsWith('ic:ai:sent:')) {
+      await i.deferReply({ flags: MessageFlags.Ephemeral });
       await this.postSentiment(thread, conv);
       await i.editReply({ content: '✅ Posted a sentiment read in the thread.' });
       return;
     }
     if (id.startsWith('ic:ai:fu:')) {
+      await i.deferReply({ flags: MessageFlags.Ephemeral });
       await this.postFollowup(thread, conv);
       await i.editReply({ content: '✅ Posted a follow-up suggestion in the thread.' });
       return;
     }
 
     if (id.startsWith('ic:voice:')) {
+      await i.deferReply({ flags: MessageFlags.Ephemeral });
       await this.createVoiceSupport(guild, thread, conv, i.member as GuildMember);
       await i.editReply({ content: '✅ Voice channel ready — details posted in the thread.' });
       return;
     }
 
     if (id.startsWith('ic:close:')) {
+      await i.deferUpdate();
       await this.closeConversation(guild, thread, conv, i.user.tag);
       return;
     }
 
     if (id.startsWith('ic:reopen:')) {
+      await i.deferUpdate();
       await this.reopenConversation(guild, thread, conv, i.user.tag);
       return;
     }
