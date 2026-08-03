@@ -211,14 +211,14 @@
         }
       ],
       "status": "open",
-      "isRead": false,
+      "isRead": true,
       "isPinned": false,
       "isArchived": false,
       "tags": [],
       "createdAt": 1783906899215,
       "updatedAt": 1785445041485,
       "lastMessageAt": 1785445041485,
-      "unreadCount": 1,
+      "unreadCount": 0,
       "userAvatar": "https://cdn.discordapp.com/embed/avatars/5.png",
       "timeline": [
         {
@@ -251,7 +251,7 @@
       "aiSidebarMessageId": "1526205832419868793",
       "assignedTo": "727578927593291796",
       "assignedToTag": "s6.a_",
-      "lastSeenAt": 1783946239637
+      "lastSeenAt": 1785788014533
     },
     {
       "id": "522507355233976321",
@@ -2237,14 +2237,14 @@
         }
       ],
       "status": "open",
-      "isRead": false,
+      "isRead": true,
       "isPinned": false,
       "isArchived": false,
       "tags": [],
       "createdAt": 1783946505514,
       "updatedAt": 1783949168868,
       "lastMessageAt": 1783949168868,
-      "unreadCount": 1,
+      "unreadCount": 0,
       "timeline": [
         {
           "type": "created",
@@ -2268,7 +2268,7 @@
       "aiSidebarMessageId": "1526207112751874223",
       "assignedTo": "727578927593291796",
       "assignedToTag": "s6.a_",
-      "lastSeenAt": 1783949043687
+      "lastSeenAt": 1785788026972
     },
     {
       "id": "1236240052716179517",
@@ -2360,21 +2360,22 @@
         }
       ],
       "status": "open",
-      "isRead": false,
+      "isRead": true,
       "isPinned": false,
       "isArchived": false,
       "tags": [],
       "createdAt": 1783947443070,
       "updatedAt": 1783947443070,
       "lastMessageAt": 1783947443070,
-      "unreadCount": 1,
+      "unreadCount": 0,
       "timeline": [
         {
           "type": "created",
           "timestamp": 1783947443070
         }
       ],
-      "userAvatar": "https://cdn.discordapp.com/avatars/611333374044536833/ce48bc96a35e09015aa2fe913d13dfc7.webp?size=128"
+      "userAvatar": "https://cdn.discordapp.com/avatars/611333374044536833/ce48bc96a35e09015aa2fe913d13dfc7.webp?size=128",
+      "lastSeenAt": 1785788032766
     },
     {
       "id": "723982702625423430",
@@ -2422,14 +2423,14 @@
         }
       ],
       "status": "open",
-      "isRead": false,
+      "isRead": true,
       "isPinned": false,
       "isArchived": false,
       "tags": [],
       "createdAt": 1783951814560,
       "updatedAt": 1784030222174,
       "lastMessageAt": 1783988812039,
-      "unreadCount": 1,
+      "unreadCount": 0,
       "timeline": [
         {
           "type": "created",
@@ -2476,7 +2477,7 @@
       "aiSidebarMessageId": "1526229278923165787",
       "assignedTo": "727578927593291796",
       "assignedToTag": "s6.a_",
-      "lastSeenAt": 1783951829419
+      "lastSeenAt": 1785788018869
     },
     {
       "id": "976672064264089603",
@@ -2498,21 +2499,75 @@
         }
       ],
       "status": "open",
-      "isRead": false,
+      "isRead": true,
       "isPinned": false,
       "isArchived": false,
       "tags": [],
       "createdAt": 1785613025874,
       "updatedAt": 1785613025874,
       "lastMessageAt": 1785613025874,
-      "unreadCount": 1,
+      "unreadCount": 0,
       "timeline": [
         {
           "type": "created",
           "timestamp": 1785613025874
         }
       ],
-      "userAvatar": "https://cdn.discordapp.com/avatars/976672064264089603/a_f7f00c652ed0011936a6f5064b137649.gif?size=128"
+      "userAvatar": "https://cdn.discordapp.com/avatars/976672064264089603/a_f7f00c652ed0011936a6f5064b137649.gif?size=128",
+      "lastSeenAt": 1785788001520
+    },
+    {
+      "id": "1446863442207051866",
+      "userId": "1446863442207051866",
+      "userTag": "amrart_1",
+      "guildId": "1213437502078062674",
+      "messages": [
+        {
+          "id": "init_1785788051726",
+          "type": "user",
+          "content": "",
+          "authorId": "1446863442207051866",
+          "authorTag": "amrart_1",
+          "timestamp": 1785788051728,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
+        },
+        {
+          "id": "dm_1785788051724",
+          "type": "staff_reply",
+          "content": "test",
+          "authorId": "727578927593291796",
+          "authorTag": "s6.a_",
+          "timestamp": 1785788051737,
+          "isEdited": false,
+          "attachments": [],
+          "hasEmbeds": false,
+          "hasStickers": false
+        }
+      ],
+      "status": "open",
+      "isRead": true,
+      "isPinned": false,
+      "isArchived": false,
+      "tags": [],
+      "createdAt": 1785788051728,
+      "updatedAt": 1785788051737,
+      "lastMessageAt": 1785788051728,
+      "unreadCount": 0,
+      "timeline": [
+        {
+          "type": "created",
+          "timestamp": 1785788051728
+        },
+        {
+          "type": "first_reply",
+          "timestamp": 1785788051737,
+          "detail": "s6.a_"
+        }
+      ],
+      "lastSeenAt": 1785788062992
     }
   ]
 }
