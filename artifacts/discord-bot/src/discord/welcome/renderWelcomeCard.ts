@@ -9,7 +9,7 @@ import { RenderWelcomeCardParams, registerFonts, loadBackground, FALLBACK_WIDTH,
 
 export async function renderWelcomeCard(params: RenderWelcomeCardParams): Promise<Buffer> {
     registerFonts();
-    const { card, avatarUrl, serverName, memberCount } = params;
+    const { card, avatarUrl, displayName, serverName, memberCount } = params;
 
     const bg = await loadBackground(card.backgroundImage);
     const width = bg?.width ?? FALLBACK_WIDTH;

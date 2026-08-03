@@ -20,7 +20,7 @@ export type FontFamily = typeof FONT_FAMILIES[number];
 
 let fontsRegistered = false;
 
-function registerFonts(): void {
+export function registerFonts(): void {
   if (fontsRegistered) return;
   fontsRegistered = true;
   const files: Array<[string, string]> = [
@@ -41,10 +41,10 @@ function registerFonts(): void {
 
 // ── Fallback background (used until an admin uploads one) ─────────────────
 
-const FALLBACK_WIDTH = 900;
-const FALLBACK_HEIGHT = 300;
+export const FALLBACK_WIDTH = 900;
+export const FALLBACK_HEIGHT = 300;
 
-async function loadBackground(source: string | undefined): Promise<Image | null> {
+export async function loadBackground(source: string | undefined): Promise<Image | null> {
   if (!source) return null;
   try {
     if (/^https?:\/\//i.test(source)) {
@@ -62,7 +62,7 @@ async function loadBackground(source: string | undefined): Promise<Image | null>
   }
 }
 
-async function loadAvatar(avatarUrl: string): Promise<Image> {
+export async function loadAvatar(avatarUrl: string): Promise<Image> {
   const res = await fetch(avatarUrl);
   if (!res.ok) throw new Error(`Failed to fetch avatar: HTTP ${res.status}`);
   const buf = Buffer.from(await res.arrayBuffer());

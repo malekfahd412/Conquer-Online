@@ -17,6 +17,11 @@
   "dependencies": {
     "@replit/connectors-sdk": "^0.4.1"
   },
+  "pnpm": {
+    "overrides": {
+      "tar": "^7.0.0"
+    }
+  },
   "devDependencies": {
     "prettier": "^3.8.4",
     "typescript": "~5.9.3"
