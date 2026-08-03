@@ -19,7 +19,7 @@ import {
   type WelcomeCardConfig,
   type WelcomeMessageConfig,
 } from '../welcome-store';
-import { saveBackgroundImage, FONT_FAMILIES } from '../welcome-card-renderer';
+import { saveBackgroundImage } from '../welcome-card-renderer';
 import { renderWelcomeCard } from '../renderWelcomeCard';
 import {
   buildWCHome,
@@ -28,10 +28,6 @@ import {
   buildWCFeedback,
   buildAvatarModal,
   buildBorderModal,
-  buildUsernamePosModal,
-  buildServerNamePosModal,
-  buildMemberCountPosModal,
-  buildStyleModal,
   buildMsgContentModal,
   buildMsgEmbedModal,
   buildMsgMediaModal,
@@ -149,18 +145,6 @@ export class WelcomeCardDesigner {
       case WC.BORDER_EDIT:
         await interaction.showModal(buildBorderModal(cfg.card));
         return;
-      case WC.TEXT_USERNAME:
-        await interaction.showModal(buildUsernamePosModal(cfg.card));
-        return;
-      case WC.TEXT_SERVER:
-        await interaction.showModal(buildServerNamePosModal(cfg.card));
-        return;
-      case WC.TEXT_MEMBERS:
-        await interaction.showModal(buildMemberCountPosModal(cfg.card));
-        return;
-      case WC.STYLE:
-        await interaction.showModal(buildStyleModal(cfg.card));
-        return;
       case WC.BG_UPLOAD:
         await this.handleBgUpload(interaction, guild);
         return;
@@ -204,15 +188,9 @@ export class WelcomeCardDesigner {
 
   // ── Select menus ─────────────────────────────────────────────────────────────
 
-  private async routeSelectMenu(interaction: StringSelectMenuInteraction, guild: Guild): Promise<void> {
-    if (interaction.customId !== WC.FONT_SELECT) return;
-    const family = interaction.values[0];
-    if (!FONT_FAMILIES.includes(family as (typeof FONT_FAMILIES)[number])) {
-      await this.nav(interaction, buildWCFeedback(false, `Unknown font family: \`${family}\``));
-      return;
-    }
-    const updated = await setWelcomeCardConfig(guild.id, { fontFamily: family });
-    await this.nav(interaction, buildWCHome(updated));
+  private async routeSelectMenu(_interaction: StringSelectMenuInteraction, _guild: Guild): Promise<void> {
+    // No select menus remain in the Welcome Card Designer (font family
+    // selection was removed along with the text overlays it styled).
   }
 
   // ── Modals ───────────────────────────────────────────────────────────────────
@@ -244,43 +222,6 @@ export class WelcomeCardDesigner {
         await interaction.reply({ ...buildWCHome(updated), flags: MessageFlags.Ephemeral });
         return;
       }
-      case WC.TEXT_USERNAME_M: {
-        cardPatch = {
-          usernameX: parseIntSafe(getField(interaction, 'x'), 0, 4000, cfg.card.usernameX),
-          usernameY: parseIntSafe(getField(interaction, 'y'), 0, 4000, cfg.card.usernameY),
-        };
-        const updated = await setWelcomeCardConfig(guild.id, cardPatch);
-        await interaction.reply({ ...buildWCHome(updated), flags: MessageFlags.Ephemeral });
-        return;
-      }
-      case WC.TEXT_SERVER_M: {
-        cardPatch = {
-          serverNameX: parseIntSafe(getField(interaction, 'x'), 0, 4000, cfg.card.serverNameX),
-          serverNameY: parseIntSafe(getField(interaction, 'y'), 0, 4000, cfg.card.serverNameY),
-        };
-        const updated = await setWelcomeCardConfig(guild.id, cardPatch);
-        await interaction.reply({ ...buildWCHome(updated), flags: MessageFlags.Ephemeral });
-        return;
-      }
-      case WC.TEXT_MEMBERS_M: {
-        cardPatch = {
-          memberCountX: parseIntSafe(getField(interaction, 'x'), 0, 4000, cfg.card.memberCountX),
-          memberCountY: parseIntSafe(getField(interaction, 'y'), 0, 4000, cfg.card.memberCountY),
-        };
-        const updated = await setWelcomeCardConfig(guild.id, cardPatch);
-        await interaction.reply({ ...buildWCHome(updated), flags: MessageFlags.Ephemeral });
-        return;
-      }
-      case WC.STYLE_M: {
-        cardPatch = {
-          fontSize: parseIntSafe(getField(interaction, 'fontSize'), 8, 200, cfg.card.fontSize),
-          textColor: parseHexColor(getField(interaction, 'textColor'), cfg.card.textColor),
-        };
-        const updated = await setWelcomeCardConfig(guild.id, cardPatch);
-        await interaction.reply({ ...buildWCHome(updated), flags: MessageFlags.Ephemeral });
-        return;
-      }
-
       // ── Welcome Message modals ──────────────────────────────────────────
       case WC.MSG_CONTENT_M: {
         const content = getField(interaction, 'content');
@@ -372,9 +313,6 @@ export class WelcomeCardDesigner {
       const png = await renderWelcomeCard({
         card: updated.card,
         avatarUrl: interaction.user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true }),
-        displayName: (interaction.member as GuildMember)?.displayName ?? interaction.user.username,
-        serverName: guild.name,
-        memberCount: guild.memberCount,
       });
       const previewFile = new AttachmentBuilder(png, { name: 'welcome-card-preview.png' });
 
@@ -399,9 +337,6 @@ export class WelcomeCardDesigner {
       const png = await renderWelcomeCard({
         card: cfg.card,
         avatarUrl: interaction.user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true }),
-        displayName: (interaction.member as GuildMember)?.displayName ?? interaction.user.username,
-        serverName: guild.name,
-        memberCount: guild.memberCount,
       });
       const file = new AttachmentBuilder(png, { name: 'welcome-card-preview.png' });
       await interaction.editReply({
@@ -498,9 +433,6 @@ export class WelcomeCardDesigner {
       const png = await renderWelcomeCard({
         card: cfg.card,
         avatarUrl: adminMember.user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true }),
-        displayName: adminMember.displayName,
-        serverName: guild.name,
-        memberCount: guild.memberCount,
       });
       const cardFile = new AttachmentBuilder(png, { name: 'welcome-card.png' });
 

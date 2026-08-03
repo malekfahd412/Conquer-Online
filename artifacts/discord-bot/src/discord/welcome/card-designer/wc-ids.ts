@@ -14,16 +14,11 @@
  *   wc:border:toggle          → Toggle border on/off
  *   wc:border:edit            → Show border width/color edit modal
  *   wc:border:m               → Border width/color modal submit
- *   wc:text:username          → Show username position edit modal
- *   wc:text:username:m        → Username position modal submit
- *   wc:text:server            → Show server-name position edit modal
- *   wc:text:server:m          → Server-name position modal submit
- *   wc:text:members           → Show member-count position edit modal
- *   wc:text:members:m         → Member-count position modal submit
- *   wc:style                 → Show font size/color edit modal
- *   wc:style:m                → Font size/color modal submit
- *   wc:font:select            → Font family select menu customId
  *   wc:preview                → Render + reply with a live preview
+ *
+ * Note: text-overlay controls (username/server-name/member-count position,
+ * font style) were removed along with the text they positioned — the
+ * generated welcome image now shows only the background and avatar.
  *
  *   wc:msg                   → Welcome Message editor page
  *   wc:msg:toggle             → Toggle embed on/off
@@ -48,15 +43,6 @@ export const WC = {
   BORDER_TOGGLE: 'wc:border:toggle',
   BORDER_EDIT: 'wc:border:edit',
   BORDER_M:    'wc:border:m',
-  TEXT_USERNAME:   'wc:text:username',
-  TEXT_USERNAME_M: 'wc:text:username:m',
-  TEXT_SERVER:     'wc:text:server',
-  TEXT_SERVER_M:   'wc:text:server:m',
-  TEXT_MEMBERS:    'wc:text:members',
-  TEXT_MEMBERS_M:  'wc:text:members:m',
-  STYLE:       'wc:style',
-  STYLE_M:     'wc:style:m',
-  FONT_SELECT: 'wc:font:select',
   PREVIEW:     'wc:preview',
 
   // Welcome Message editor

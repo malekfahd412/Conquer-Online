@@ -10,14 +10,11 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  StringSelectMenuBuilder,
-  StringSelectMenuOptionBuilder,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
 } from 'discord.js';
 import type { WelcomeConfig, WelcomeCardConfig, WelcomeMessageConfig } from '../welcome-store';
-import { FONT_FAMILIES } from '../welcome-card-renderer';
 import { CC } from '../../control-center/cc-ids';
 import { truncate } from '../../control-center/cc-categories';
 import { checkColor, verifyBuilder, assertUniqueCustomIds } from '../../control-center/cc-debug';
@@ -82,23 +79,13 @@ export function buildWCHome(cfg: WelcomeConfig): CCPayload {
       .setColor(color)
       .setTitle('🖼️ Welcome Card Designer')
       .setDescription(
-        'Design a ProBot-style dynamic welcome image: background + circular avatar + username, server name and member count text, all positioned exactly where you want.\n\n' +
+        'Design a welcome image: background + circular avatar, positioned exactly where you want. No text is drawn on the image — use the Welcome Message editor for text sent alongside it.\n\n' +
         `**Card:** ${cardStatus}\n**Welcome Message:** ${msgStatus}\n**Publish:** ${publishStatus}`,
       )
       .addFields(
         {
           name: '🧑 Avatar',
           value: `Position: (${card.avatarX}, ${card.avatarY}) · Size: ${card.avatarSize}px\nBorder: ${card.avatarBorderEnabled ? `On — ${card.avatarBorderColor}, ${card.avatarBorderWidth}px` : 'Off'}`,
-          inline: true,
-        },
-        {
-          name: '📝 Text',
-          value: `Username: (${card.usernameX}, ${card.usernameY})\nServer name: (${card.serverNameX}, ${card.serverNameY})\nMember count: (${card.memberCountX}, ${card.memberCountY})`,
-          inline: true,
-        },
-        {
-          name: '🎨 Style',
-          value: `Font: ${card.fontFamily} · Size: ${card.fontSize}px · Color: ${card.textColor}`,
           inline: true,
         },
       )
@@ -109,14 +96,7 @@ export function buildWCHome(cfg: WelcomeConfig): CCPayload {
     btn('🖼️ Upload Background', WC.BG_UPLOAD, ButtonStyle.Primary),
     btn('🧑 Avatar Position & Size', WC.AVATAR, ButtonStyle.Secondary),
     btn('🔲 Avatar Border', WC.BORDER, ButtonStyle.Secondary),
-    btn('🎨 Text Style', WC.STYLE, ButtonStyle.Secondary),
   );
-  const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    btn('👤 Username Position', WC.TEXT_USERNAME, ButtonStyle.Secondary),
-    btn('🏷️ Server Name Position', WC.TEXT_SERVER, ButtonStyle.Secondary),
-    btn('🔢 Member Count Position', WC.TEXT_MEMBERS, ButtonStyle.Secondary),
-  );
-  const row2 = buildFontSelectRow(card.fontFamily);
   const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(
     btn('✉️ Welcome Message', WC.MSG, ButtonStyle.Primary),
     btn('📢 Publish Welcome', WC.PUBLISH, ButtonStyle.Success),
@@ -128,23 +108,9 @@ export function buildWCHome(cfg: WelcomeConfig): CCPayload {
     homeBtn(),
   );
 
-  const payload: CCPayload = { content: '', embeds: [embed], components: [row0, row1, row2, row3, row4] };
+  const payload: CCPayload = { content: '', embeds: [embed], components: [row0, row3, row4] };
   assertUniqueCustomIds('buildWCHome', payload);
   return payload;
-}
-
-function buildFontSelectRow(current: string): ActionRowBuilder<StringSelectMenuBuilder> {
-  const select = verifyBuilder(FILE, 'buildFontSelectRow', WC.FONT_SELECT, () =>
-    new StringSelectMenuBuilder()
-      .setCustomId(WC.FONT_SELECT)
-      .setPlaceholder(`Font family: ${current}`)
-      .addOptions(
-        FONT_FAMILIES.map(f =>
-          new StringSelectMenuOptionBuilder().setLabel(f).setValue(f).setDefault(f === current),
-        ),
-      ),
-  );
-  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
 }
 
 // ── Border settings page ─────────────────────────────────────────────────────
@@ -250,42 +216,6 @@ export function buildBorderModal(card: WelcomeCardConfig): ModalBuilder {
     'Avatar Border',
     ti('borderWidth', 'Border Width (px)', String(card.avatarBorderWidth), 'e.g. 6'),
     ti('borderColor', 'Border Color (hex)', card.avatarBorderColor, 'e.g. #FFFFFF', 7),
-  );
-}
-
-export function buildUsernamePosModal(card: WelcomeCardConfig): ModalBuilder {
-  return modal(
-    WC.TEXT_USERNAME_M,
-    'Username Position',
-    ti('x', 'Username X (px)', String(card.usernameX), 'e.g. 195'),
-    ti('y', 'Username Y (px)', String(card.usernameY), 'e.g. 118'),
-  );
-}
-
-export function buildServerNamePosModal(card: WelcomeCardConfig): ModalBuilder {
-  return modal(
-    WC.TEXT_SERVER_M,
-    'Server Name Position',
-    ti('x', 'Server Name X (px)', String(card.serverNameX), 'e.g. 195'),
-    ti('y', 'Server Name Y (px)', String(card.serverNameY), 'e.g. 160'),
-  );
-}
-
-export function buildMemberCountPosModal(card: WelcomeCardConfig): ModalBuilder {
-  return modal(
-    WC.TEXT_MEMBERS_M,
-    'Member Count Position',
-    ti('x', 'Member Count X (px)', String(card.memberCountX), 'e.g. 195'),
-    ti('y', 'Member Count Y (px)', String(card.memberCountY), 'e.g. 196'),
-  );
-}
-
-export function buildStyleModal(card: WelcomeCardConfig): ModalBuilder {
-  return modal(
-    WC.STYLE_M,
-    'Text Style',
-    ti('fontSize', 'Font Size (px)', String(card.fontSize), 'e.g. 30'),
-    ti('textColor', 'Text Color (hex)', card.textColor, 'e.g. #FFFFFF', 7),
   );
 }
 

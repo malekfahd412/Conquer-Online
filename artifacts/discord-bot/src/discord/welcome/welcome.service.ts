@@ -91,9 +91,6 @@ export class WelcomeService {
                 const png = await renderWelcomeCard({
                   card: cfg.card,
                   avatarUrl: member.user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true }),
-                  displayName: member.displayName,
-                  serverName: member.guild.name,
-                  memberCount: member.guild.memberCount,
                 });
                 const cardFile = new AttachmentBuilder(png, { name: 'welcome-card.png' });
                 await (channel as TextChannel)

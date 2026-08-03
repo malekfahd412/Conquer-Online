@@ -23,15 +23,6 @@ export interface WelcomeCardConfig {
   avatarBorderEnabled: boolean;
   avatarBorderColor: string;
   avatarBorderWidth: number;
-  usernameX: number;
-  usernameY: number;
-  serverNameX: number;
-  serverNameY: number;
-  memberCountX: number;
-  memberCountY: number;
-  textColor: string;
-  fontSize: number;
-  fontFamily: string;
 }
 
 /**
@@ -105,14 +96,12 @@ async function save(data: WelcomeData): Promise<void> {
   await fs.writeFile(DATA_PATH, JSON.stringify(data, null, 2), 'utf-8');
 }
 
+// Avatar is centered on the default 900×300 fallback canvas (see FALLBACK_WIDTH/
+// FALLBACK_HEIGHT in welcome-card-renderer.ts) now that no text sits beside it.
 export const DEFAULT_CARD: WelcomeCardConfig = {
   backgroundImage: undefined,
-  avatarX: 40, avatarY: 86, avatarSize: 128,
+  avatarX: 380, avatarY: 80, avatarSize: 140,
   avatarBorderEnabled: true, avatarBorderColor: '#FFFFFF', avatarBorderWidth: 6,
-  usernameX: 195, usernameY: 118,
-  serverNameX: 195, serverNameY: 160,
-  memberCountX: 195, memberCountY: 196,
-  textColor: '#FFFFFF', fontSize: 30, fontFamily: 'Poppins',
 };
 
 export const DEFAULT_WELCOME_MESSAGE: WelcomeMessageConfig = {
@@ -136,7 +125,19 @@ const defaultWelcome = (guildId: string): WelcomeConfig => ({
 
 /** Backfills `card` and `welcomeMessage` (and any sub-fields) for configs persisted before these features existed. */
 function normalizeWelcome(cfg: WelcomeConfig): WelcomeConfig {
-  cfg.card = { ...DEFAULT_CARD, ...(cfg.card ?? {}) };
+  // Merge onto DEFAULT_CARD, then rebuild from only the known keys so stale
+  // fields from a previous schema (e.g. removed text-overlay positions) never
+  // survive a save.
+  const merged = { ...DEFAULT_CARD, ...(cfg.card ?? {}) };
+  cfg.card = {
+    backgroundImage: merged.backgroundImage,
+    avatarX: merged.avatarX,
+    avatarY: merged.avatarY,
+    avatarSize: merged.avatarSize,
+    avatarBorderEnabled: merged.avatarBorderEnabled,
+    avatarBorderColor: merged.avatarBorderColor,
+    avatarBorderWidth: merged.avatarBorderWidth,
+  };
   cfg.welcomeMessage = { ...DEFAULT_WELCOME_MESSAGE, ...(cfg.welcomeMessage ?? {}) };
   return cfg;
 }
