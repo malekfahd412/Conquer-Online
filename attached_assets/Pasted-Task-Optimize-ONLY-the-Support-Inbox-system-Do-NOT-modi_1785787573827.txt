@@ -1,0 +1,133 @@
+Task: Optimize ONLY the Support Inbox system. Do NOT modify Tickets, Verification, Moderation, Welcome, AI, Security, or any unrelated system.
+
+Goal:
+Reduce the delay when a staff member sends a message to a user through Support Inbox. Currently the bot waits while creating a thread, causing noticeable lag.
+
+Requirements:
+
+1. Thread Cache
+- Keep a persistent cache of inbox threads in memory.
+- Map:
+  User ID -> Thread ID
+  Thread ID -> User ID
+- Load existing threads on startup.
+- Never search Discord channels repeatedly if the thread already exists.
+
+2. Fast Thread Lookup
+Before creating any thread:
+
+Check memory cache.
+If found:
+- verify thread still exists
+- use immediately
+
+If not found:
+- check saved data file
+- restore cache
+- use thread
+
+Only create a new thread if absolutely necessary.
+
+3. Remove Duplicate Requests
+If two messages arrive simultaneously for the same user:
+
+Only one thread creation may happen.
+
+Implement:
+Map<string, Promise<ThreadChannel>>
+
+So concurrent requests await the same promise instead of creating multiple threads.
+
+4. Background Creation
+When staff presses Reply:
+
+Immediately acknowledge interaction.
+
+Show:
+"Opening conversation..."
+
+Then continue thread lookup/creation asynchronously.
+
+Never keep Discord interaction waiting.
+
+5. Lazy Discord API Calls
+
+Avoid:
+
+guild.channels.fetch()
+guild.channels.cache.filter(...)
+threads.fetch()
+messages.fetch()
+
+unless required.
+
+Prefer cache first.
+
+6. Cache Thread Metadata
+
+Store:
+
+User ID
+Thread ID
+Created At
+Last Activity
+Last Message ID
+
+inside the Support Inbox storage.
+
+7. Automatic Cleanup
+
+Every 30 minutes:
+
+Remove cache entries whose threads no longer exist.
+
+Do NOT delete data.
+
+Just clean memory.
+
+8. Performance Logging
+
+Measure:
+
+Thread lookup time
+Thread creation time
+Message delivery time
+
+Log only if operation exceeds:
+
+300 ms
+
+Format:
+
+[SupportInbox] Thread Lookup: 21ms
+[SupportInbox] Thread Create: 428ms
+[SupportInbox] Message Send: 16ms
+
+9. Error Recovery
+
+If sending fails because thread was deleted:
+
+Remove cache
+Create new thread
+Retry automatically once
+
+10. Preserve Existing Behavior
+
+Do NOT change:
+
+Permissions
+Buttons
+Embeds
+Inbox UI
+Message format
+Security
+Database format
+
+Only optimize performance.
+
+After implementation:
+
+- Run full TypeScript typecheck.
+- Fix every compile error.
+- Verify no regressions.
+- Produce a summary listing every optimized function and expected latency improvement.

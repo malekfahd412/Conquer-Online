@@ -395,6 +395,20 @@ export async function getConversationByThreadId(threadId: string): Promise<Inbox
   return data.conversations.find(c => c.threadId === threadId);
 }
 
+/** Clears a stale thread linkage (e.g. the thread was deleted out-of-band) so the next
+ *  `ensureThread()` call creates a fresh one instead of repeatedly failing to fetch a dead ID. */
+export async function clearThreadId(userId: string): Promise<void> {
+  await mutate(data => {
+    const conv = data.conversations.find(c => c.id === userId);
+    if (conv) {
+      conv.threadId = undefined;
+      conv.threadGuildId = undefined;
+      conv.headerMessageId = undefined;
+      conv.aiSidebarMessageId = undefined;
+    }
+  });
+}
+
 // ── Querying Helpers ──────────────────────────────────────────────────────────
 
 export function sortConversations(

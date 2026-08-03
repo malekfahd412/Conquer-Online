@@ -76,8 +76,19 @@ import {
   markTyping,
   getOtherTypers,
   getPresenceLine,
+  clearThreadId,
 } from '../../../community/inbox';
 import type { InboxConversation, InboxMessage } from '../../../community/inbox';
+import {
+  hydrateThreadCache,
+  startThreadCacheCleanup,
+  getCachedByUserId,
+  setCached,
+  removeCached,
+  touchActivity,
+  withPendingCreation,
+  logIfSlow,
+} from './thread-cache';
 import { ticketSystem } from '../../../community/tickets';
 import { getWarnings } from '../../../ai/tools/moderation-store';
 import {
@@ -114,6 +125,13 @@ function isStale(e: unknown): boolean {
   return !!(e && typeof e === 'object' && 'code' in e && STALE.has((e as { code: number }).code));
 }
 
+/** Discord "Unknown Channel" / "Unknown Message" — the thread (or a message in it) was deleted
+ *  out-of-band. Distinct from `isStale`, which covers stale/duplicate interaction tokens. */
+const CHANNEL_GONE = new Set([10003, 10008]);
+function isChannelGone(e: unknown): boolean {
+  return !!(e && typeof e === 'object' && 'code' in e && CHANNEL_GONE.has((e as { code: number }).code));
+}
+
 export { isICInteraction };
 
 export class InboxChannelService {
@@ -139,6 +157,8 @@ export class InboxChannelService {
   // ── Startup ────────────────────────────────────────────────────────────────
 
   async initialize(client: Client): Promise<void> {
+    hydrateThreadCache(await getAllConversations());
+    startThreadCacheCleanup(client);
     for (const [, guild] of client.guilds.cache) {
       try {
         await this.ensureChannel(guild);
@@ -255,41 +275,98 @@ export class InboxChannelService {
   // ── Thread resolution / creation ─────────────────────────────────────────────
 
   async ensureThread(guild: Guild, conv: InboxConversation): Promise<ThreadChannel | undefined> {
-    const channel = await this.ensureChannel(guild);
+    const lookupStart = Date.now();
 
-    if (conv.threadId) {
-      const existing = await channel.threads.fetch(conv.threadId).catch(() => null);
-      if (existing) {
-        if (existing.archived) await existing.setArchived(false).catch(() => {});
-        if (existing.locked) await existing.setLocked(false).catch(() => {});
-        return existing;
+    // Fast path: resolve straight from Discord.js's own in-memory channel cache. No API
+    // call at all when the thread has already been seen since the bot started — this is
+    // the case for essentially every message after the first one in a conversation.
+    const cachedId = getCachedByUserId(conv.userId)?.threadId ?? conv.threadId;
+    if (cachedId) {
+      const fromCache = guild.client.channels.cache.get(cachedId);
+      if (fromCache?.isThread()) {
+        if (!getCachedByUserId(conv.userId)) {
+          setCached({ userId: conv.userId, threadId: cachedId, guildId: guild.id, createdAt: conv.createdAt, lastActivity: Date.now() });
+        }
+        if (fromCache.archived) await fromCache.setArchived(false).catch(() => {});
+        if (fromCache.locked) await fromCache.setLocked(false).catch(() => {});
+        logIfSlow('Thread Lookup', lookupStart);
+        return fromCache;
       }
     }
 
-    const thread = await channel.threads.create({
-      name: conv.userTag.slice(0, 90),
-      type: ChannelType.PrivateThread,
-      autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
-      invitable: false,
-      reason: `Support Inbox conversation with ${conv.userTag}`,
+    // Cache miss (bot restart, or genuinely no thread yet). De-duplicate concurrent callers
+    // for the same user so a burst of near-simultaneous DMs never creates two threads.
+    return withPendingCreation(conv.userId, async () => {
+      const channel = await this.ensureChannel(guild);
+
+      if (conv.threadId) {
+        const existing = await channel.threads.fetch(conv.threadId).catch(() => null);
+        if (existing) {
+          setCached({ userId: conv.userId, threadId: existing.id, guildId: guild.id, createdAt: conv.createdAt, lastActivity: Date.now() });
+          if (existing.archived) await existing.setArchived(false).catch(() => {});
+          if (existing.locked) await existing.setLocked(false).catch(() => {});
+          logIfSlow('Thread Lookup', lookupStart);
+          return existing;
+        }
+      }
+
+      const createStart = Date.now();
+      const thread = await channel.threads.create({
+        name: conv.userTag.slice(0, 90),
+        type: ChannelType.PrivateThread,
+        autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
+        invitable: false,
+        reason: `Support Inbox conversation with ${conv.userTag}`,
+      });
+      await setThreadId(conv.userId, thread.id, guild.id);
+      setCached({ userId: conv.userId, threadId: thread.id, guildId: guild.id, createdAt: conv.createdAt, lastActivity: Date.now() });
+
+      const headerMsg = await thread.send(await this.buildHeaderPayload(guild, conv));
+      await headerMsg.pin().catch(() => {});
+      await setHeaderMessageId(conv.userId, headerMsg.id);
+
+      const panel = buildThreadControlPanel(conv, getPresenceLine(conv.userId));
+      const panelMsg = await thread.send({ embeds: panel.embeds, components: panel.components, content: panel.content ?? '' });
+      await panelMsg.pin().catch(() => {});
+
+      const sidebar = buildAISidebar(conv.userId);
+      const sidebarMsg = await thread.send({ embeds: sidebar.embeds, components: sidebar.components });
+      await sidebarMsg.pin().catch(() => {});
+      await setAiSidebarMessageId(conv.userId, sidebarMsg.id);
+
+      logIfSlow('Thread Create', createStart);
+      logger.info(`[InboxChannel] Created thread #${thread.name} for ${conv.userTag}`);
+      return thread;
     });
-    await setThreadId(conv.userId, thread.id, guild.id);
+  }
 
-    const headerMsg = await thread.send(await this.buildHeaderPayload(guild, conv));
-    await headerMsg.pin().catch(() => {});
-    await setHeaderMessageId(conv.userId, headerMsg.id);
-
-    const panel = buildThreadControlPanel(conv, getPresenceLine(conv.userId));
-    const panelMsg = await thread.send({ embeds: panel.embeds, components: panel.components, content: panel.content ?? '' });
-    await panelMsg.pin().catch(() => {});
-
-    const sidebar = buildAISidebar(conv.userId);
-    const sidebarMsg = await thread.send({ embeds: sidebar.embeds, components: sidebar.components });
-    await sidebarMsg.pin().catch(() => {});
-    await setAiSidebarMessageId(conv.userId, sidebarMsg.id);
-
-    logger.info(`[InboxChannel] Created thread #${thread.name} for ${conv.userTag}`);
-    return thread;
+  /** Recreates the thread and retries once if a send fails because the thread was deleted
+   *  out-of-band (Discord "Unknown Channel"/"Unknown Message" errors). Any other error is
+   *  rethrown untouched so callers keep their existing error handling. */
+  private async sendToThreadWithRecovery(
+    guild: Guild,
+    conv: InboxConversation,
+    thread: ThreadChannel,
+    send: (t: ThreadChannel) => Promise<Message>,
+  ): Promise<{ thread: ThreadChannel; message: Message }> {
+    const start = Date.now();
+    try {
+      const message = await send(thread);
+      logIfSlow('Message Send', start);
+      return { thread, message };
+    } catch (err) {
+      if (!isChannelGone(err)) throw err;
+      logger.warning(`[InboxChannel] Thread for ${conv.userTag} is gone — recreating and retrying once.`);
+      removeCached(conv.userId);
+      await clearThreadId(conv.userId);
+      const fresh = (await getConversation(conv.userId)) ?? { ...conv, threadId: undefined };
+      const newThread = await this.ensureThread(guild, fresh);
+      if (!newThread) throw err;
+      const retryStart = Date.now();
+      const message = await send(newThread);
+      logIfSlow('Message Send', retryStart);
+      return { thread: newThread, message };
+    }
   }
 
   private async refreshThreadPanel(thread: ThreadChannel, conv: InboxConversation): Promise<void> {
@@ -383,13 +460,16 @@ export class InboxChannelService {
       if (!thread) return;
 
       const payload = buildUserMessagePayload(message, member);
-      const sent = await thread.send({ content: payload.content, files: payload.files });
+      const { thread: activeThread, message: sent } = await this.sendToThreadWithRecovery(
+        guild, conv, thread, t => t.send({ content: payload.content, files: payload.files }),
+      );
       const row = buildUserMessageActionRow(conv.userId, sent.id);
       await sent.edit({ components: [row] }).catch(() => {});
+      touchActivity(conv.userId, sent.id);
 
-      await this.maybeNotify(thread, conv, isNewThread);
+      await this.maybeNotify(activeThread, conv, isNewThread);
       this.scheduleRefresh(guild);
-      this.scheduleHeaderRefresh(guild, thread, conv);
+      this.scheduleHeaderRefresh(guild, activeThread, conv);
     } catch (err) {
       logger.error(`[InboxChannel] Failed to mirror DM from ${message.author.tag}`, err);
     }
@@ -490,6 +570,7 @@ export class InboxChannelService {
     await addStaffReply(conv.userId, message.author.id, message.author.tag, raw, [], { msgId: message.id, dmMessageId: dmMsg.id });
     if (!conv.assignedTo) await assignTo(conv.userId, message.author.id, message.author.tag);
     if (!conv.isRead) await markAsRead(conv.userId);
+    touchActivity(conv.userId, dmMsg.id);
 
     await message.react('✅').catch(() => {});
     if (wasAssignedToOther) await message.react('⚠️').catch(() => {});
@@ -501,11 +582,15 @@ export class InboxChannelService {
     const afterReply = await getConversation(conv.userId);
     const receipt = afterReply ? this.computeReceipt(afterReply, replyTimestamp) : 'delivered';
     const bar = buildReplyActionBar(conv.userId, dmMsg.id, staffName, raw || '(attachment)', receipt);
-    await thread.send({ content: bar.content, components: bar.components }).catch(() => {});
+    let activeThread = thread;
+    try {
+      const result = await this.sendToThreadWithRecovery(message.guild, conv, thread, t => t.send({ content: bar.content, components: bar.components }));
+      activeThread = result.thread;
+    } catch { /* best-effort, same as before */ }
 
     if (afterReply) {
-      await this.refreshThreadPanel(thread, afterReply);
-      await this.refreshThreadHeader(message.guild, thread, afterReply);
+      await this.refreshThreadPanel(activeThread, afterReply);
+      await this.refreshThreadHeader(message.guild, activeThread, afterReply);
     }
     this.scheduleRefresh(message.guild);
   }
@@ -611,54 +696,62 @@ export class InboxChannelService {
 
     const conv = await getConversation(uid);
     if (!conv) { await i.reply({ content: '❌ Conversation not found.', flags: MessageFlags.Ephemeral }); return; }
-    const thread = i.channel?.isThread() ? (i.channel as ThreadChannel) : await this.ensureThread(guild, conv);
-    if (!thread) { await i.reply({ content: '❌ Could not resolve this conversation\'s thread.', flags: MessageFlags.Ephemeral }); return; }
 
+    // Modal-only branches never need the thread to build their modal — show it immediately
+    // instead of blocking on ensureThread() first. A slow thread fetch/create here used to be
+    // the main source of "noticeable lag" pressing Reply: it could eat into Discord's 3s ack
+    // window before showModal ever ran, occasionally failing the interaction outright.
     if (id.startsWith('ic:reply:'))   { await i.showModal(buildReplyModal(uid)); return; }
     if (id.startsWith('ic:note:'))    { await i.showModal(buildNoteModal(uid)); return; }
+    if (id.startsWith('ic:ai:rw:'))   { await i.showModal(buildAIRewriteModal(uid)); return; }
+    if (id.startsWith('ic:ai:tr:'))   { await i.showModal(buildAITranslateModal(uid)); return; }
+
+    // Every remaining branch needs the thread and does further async work. Acknowledge the
+    // interaction immediately, then resolve/create the thread afterward — this is the
+    // "background creation" pattern: the interaction is never left waiting on Discord API calls.
+    const usesEphemeralReply = id.startsWith('ic:ai:') || id.startsWith('ic:voice:');
+    if (usesEphemeralReply) await i.deferReply({ flags: MessageFlags.Ephemeral });
+    else await i.deferUpdate();
+
+    const thread = i.channel?.isThread() ? (i.channel as ThreadChannel) : await this.ensureThread(guild, conv);
+    if (!thread) {
+      if (usesEphemeralReply) await i.editReply({ content: '❌ Could not resolve this conversation\'s thread.' });
+      return;
+    }
 
     if (id.startsWith('ic:ai:sug:')) {
-      await i.deferReply({ flags: MessageFlags.Ephemeral });
       await this.postAIAssist(thread, conv);
       await i.editReply({ content: '✅ Posted a suggested reply in the thread.' });
       return;
     }
-    if (id.startsWith('ic:ai:rw:'))   { await i.showModal(buildAIRewriteModal(uid)); return; }
-    if (id.startsWith('ic:ai:tr:'))  { await i.showModal(buildAITranslateModal(uid)); return; }
     if (id.startsWith('ic:ai:sum:')) {
-      await i.deferReply({ flags: MessageFlags.Ephemeral });
       await this.postSummary(thread, conv);
       await i.editReply({ content: '✅ Posted a summary in the thread.' });
       return;
     }
     if (id.startsWith('ic:ai:sent:')) {
-      await i.deferReply({ flags: MessageFlags.Ephemeral });
       await this.postSentiment(thread, conv);
       await i.editReply({ content: '✅ Posted a sentiment read in the thread.' });
       return;
     }
     if (id.startsWith('ic:ai:fu:')) {
-      await i.deferReply({ flags: MessageFlags.Ephemeral });
       await this.postFollowup(thread, conv);
       await i.editReply({ content: '✅ Posted a follow-up suggestion in the thread.' });
       return;
     }
 
     if (id.startsWith('ic:voice:')) {
-      await i.deferReply({ flags: MessageFlags.Ephemeral });
       await this.createVoiceSupport(guild, thread, conv, i.member as GuildMember);
       await i.editReply({ content: '✅ Voice channel ready — details posted in the thread.' });
       return;
     }
 
     if (id.startsWith('ic:close:')) {
-      await i.deferUpdate();
       await this.closeConversation(guild, thread, conv, i.user.tag);
       return;
     }
 
     if (id.startsWith('ic:reopen:')) {
-      await i.deferUpdate();
       await this.reopenConversation(guild, thread, conv, i.user.tag);
       return;
     }
@@ -702,16 +795,21 @@ export class InboxChannelService {
     if (!conv.isRead) await markAsRead(uid);
     await i.editReply({ content: `✅ Reply sent to **${conv.userTag}**.` });
 
+    touchActivity(uid, dmMsg.id);
     const thread = i.channel?.isThread() ? (i.channel as ThreadChannel) : await this.ensureThread(guild, conv);
     const updated = await getConversation(uid);
+    let activeThread = thread;
     if (thread) {
       const receipt = updated ? this.computeReceipt(updated, Date.now()) : 'delivered';
       const bar = buildReplyActionBar(uid, dmMsg.id, staffName, content, receipt);
-      await thread.send({ content: bar.content, components: bar.components }).catch(() => {});
+      try {
+        const result = await this.sendToThreadWithRecovery(guild, conv, thread, t => t.send({ content: bar.content, components: bar.components }));
+        activeThread = result.thread;
+      } catch { /* best-effort, same as before */ }
     }
-    if (thread && updated) {
-      await this.refreshThreadPanel(thread, updated);
-      await this.refreshThreadHeader(guild, thread, updated);
+    if (activeThread && updated) {
+      await this.refreshThreadPanel(activeThread, updated);
+      await this.refreshThreadHeader(guild, activeThread, updated);
     }
     this.scheduleRefresh(guild);
   }
