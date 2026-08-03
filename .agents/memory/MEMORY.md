@@ -20,3 +20,4 @@
 - [Ticket naming migration startup order](ticket-naming-migration-order.md) — panelManager.list() returns empty during init() migrations because ensureFile() hasn't run yet; update data/tickets/panels.json directly if a migration flag was set prematurely.
 - [Production readiness audit findings](audit-production-readiness.md) — 12 runtime bugs fixed; key anti-patterns: store.read() deep clone, serialized counters, ActionRow 5-button cap, setTimeout reopen check, per-iter try/catch in sweepers.
 - [Temporary Role System](temporary-role-system.md) — /role add duration= feature; temp-role-store.ts + temp-role-manager.ts; parseDuration extended for `mo`; wired in ai.service.ts start().
+- [Store Management System](store-management-system.md) — Phase 1 purchase system; st:* namespace; data/store/; stock only decrements on Completed; order channels auto-created per-order.

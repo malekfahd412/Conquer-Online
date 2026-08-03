@@ -24,6 +24,7 @@ import { tempRoleManager } from '../community/moderation/temp-role-manager';
 import { staffCommandHandler, SHIFT_COMMAND_NAMES } from '../community/staff';
 import { runStartupAudit, runCCRenderAudit } from '../discord/control-center/cc-test';
 import { ticketSystem } from '../community/tickets';
+import { storeSystem, isStoreInteraction } from '../store/index.js';
 import { verificationService } from '../discord/verification/verification.service';
 import { applicationService } from '../discord/applications/application.service';
 import { PermissionManager } from './permission-manager';
@@ -164,6 +165,7 @@ export class AIService {
 
   start(client: Client): void {
     ticketSystem.init(client).catch(err => logger.error('[TICKETS] Ticket System Pro failed to initialize', err));
+    storeSystem.init(client).catch(err => logger.error('[Store] Store Management System failed to initialize', err));
     this.companionService.ensureStore().catch(err => logger.warning('[COMPANION] Failed to initialize store', err));
     this.securityGuard.start(client);
     this.inboxChannelService.initialize(client).catch(err => logger.error('[InboxChannel] Startup failed', err));
@@ -322,6 +324,17 @@ export class AIService {
           }
           ticketSystem.handleSlashCommand(ticketInteraction, ticketInteraction.guild).catch(err =>
             logger.error('Ticket slash command error', err),
+          );
+          return;
+        }
+        if (name === 'store') {
+          const storeInteraction = interaction as ChatInputCommandInteraction;
+          if (!storeInteraction.guild) {
+            storeInteraction.reply({ content: '❌ This command can only be used inside a server.', ephemeral: true }).catch(() => {});
+            return;
+          }
+          storeSystem.handleSlashCommand(storeInteraction, storeInteraction.guild).catch(err =>
+            logger.error('Store slash command error', err),
           );
           return;
         }
@@ -579,6 +592,30 @@ export class AIService {
           this.inboxChannelService.handleInteraction(interaction, interaction.guild).catch(err =>
             logger.error('Support Inbox channel interaction error', err),
           );
+        }
+        return;
+      }
+
+      // ── Store Management System interactions (st:* custom IDs) ───────────────
+      if (
+        (interaction.isButton() && isStoreInteraction(interaction.customId)) ||
+        (interaction.isStringSelectMenu() && isStoreInteraction(interaction.customId)) ||
+        (interaction.isModalSubmit() && isStoreInteraction(interaction.customId))
+      ) {
+        if (interaction.guild) {
+          if (interaction.isButton()) {
+            storeSystem.handleButton(interaction, interaction.guild).catch(err =>
+              logger.error('Store button interaction error', err),
+            );
+          } else if (interaction.isStringSelectMenu()) {
+            storeSystem.handleSelectMenu(interaction, interaction.guild).catch(err =>
+              logger.error('Store select menu interaction error', err),
+            );
+          } else if (interaction.isModalSubmit()) {
+            storeSystem.handleModal(interaction, interaction.guild).catch(err =>
+              logger.error('Store modal interaction error', err),
+            );
+          }
         }
         return;
       }

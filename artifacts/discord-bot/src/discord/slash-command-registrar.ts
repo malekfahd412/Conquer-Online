@@ -511,6 +511,98 @@ const SHIFT_COMMAND = {
   ],
 };
 
+const STORE_COMMAND = {
+  name: 'store',
+  description: '[Admin] Store Management System — manage categories, products, orders, and statistics',
+  options: [
+    {
+      name: 'panel',
+      description: 'Post the store panel to the current channel',
+      type: 1, // SUB_COMMAND
+    },
+    {
+      name: 'stats',
+      description: 'View store statistics',
+      type: 1,
+    },
+    {
+      name: 'category',
+      description: 'Manage store categories',
+      type: 2, // SUB_COMMAND_GROUP
+      options: [
+        {
+          name: 'add',
+          description: 'Add a new product category',
+          type: 1,
+          options: [
+            { name: 'name', description: 'Category name (e.g. Coins)', type: 3, required: true },
+            { name: 'description', description: 'Short description', type: 3, required: true },
+            { name: 'emoji', description: 'Category emoji (e.g. 🪙)', type: 3, required: true },
+          ],
+        },
+        {
+          name: 'list',
+          description: 'List all store categories',
+          type: 1,
+        },
+      ],
+    },
+    {
+      name: 'product',
+      description: 'Manage store products',
+      type: 2,
+      options: [
+        {
+          name: 'add',
+          description: 'Add a new product to a category',
+          type: 1,
+          options: [
+            { name: 'name', description: 'Product name', type: 3, required: true },
+            { name: 'category', description: 'Category ID (from /store category list)', type: 3, required: true },
+            { name: 'price', description: 'Unit price', type: 10, required: true },
+            { name: 'currency', description: 'Currency label (default: coins)', type: 3, required: false },
+            { name: 'description', description: 'Product description', type: 3, required: false },
+            { name: 'stock', description: 'Stock amount (-1 or omit for unlimited)', type: 4, required: false },
+          ],
+        },
+        {
+          name: 'list',
+          description: 'List products in a category',
+          type: 1,
+          options: [
+            { name: 'category', description: 'Category ID', type: 3, required: true },
+          ],
+        },
+        {
+          name: 'stock',
+          description: 'Update stock for a product',
+          type: 1,
+          options: [
+            { name: 'product', description: 'Product ID', type: 3, required: true },
+            { name: 'amount', description: 'New stock amount (-1 for unlimited)', type: 4, required: true },
+          ],
+        },
+        {
+          name: 'hide',
+          description: 'Toggle product visibility (hide or show)',
+          type: 1,
+          options: [
+            { name: 'product', description: 'Product ID', type: 3, required: true },
+          ],
+        },
+        {
+          name: 'delete',
+          description: 'Delete a product permanently',
+          type: 1,
+          options: [
+            { name: 'product', description: 'Product ID', type: 3, required: true },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
 const PANEL_COMMAND = {
   name: 'panel',
   description: 'Open the Discord Control Center — browse and execute all 323 tools interactively',
@@ -522,6 +614,7 @@ const CC_TEST_COMMAND = {
 };
 
 const ALL_COMMANDS = [
+  STORE_COMMAND,
   PANEL_COMMAND,
   CC_TEST_COMMAND,
   AI_COMMAND,

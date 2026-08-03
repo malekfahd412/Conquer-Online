@@ -1,0 +1,948 @@
+PHASE 1 — Store Management System (Foundation)
+
+
+
+You are working on an existing production Discord bot.
+
+
+
+IMPORTANT
+
+
+
+This bot is already fully working.
+
+
+
+DO NOT rewrite, replace, refactor or break ANY existing system.
+
+
+
+Especially DO NOT touch:
+
+
+
+Ticket System
+
+Support Inbox
+
+Welcome
+
+Verification
+
+AI
+
+Security
+
+Moderation
+
+Voice
+
+Logging
+
+Database Providers
+
+Existing Commands
+
+
+
+Everything currently working must continue working exactly as before.
+
+
+
+The Store System must be added as a completely independent module.
+
+
+
+GOAL
+
+
+
+Create a complete Store Management System that integrates with the existing Ticket System.
+
+
+
+This is NOT an economy system.
+
+
+
+This is NOT an inventory system.
+
+
+
+This is a purchase management system.
+
+
+
+Folder Structure
+
+
+
+Create
+
+
+
+src/store/
+
+
+
+categories/
+
+products/
+
+orders/
+
+ui/
+
+services/
+
+models/
+
+utils/
+
+commands/
+
+buttons/
+
+modals/
+
+selectmenus/
+
+
+
+Create
+
+
+
+data/store/
+
+
+
+categories.json
+
+products.json
+
+orders.json
+
+statistics.json
+
+settings.json
+
+
+
+Never modify existing ticket json files.
+
+
+
+Categories
+
+
+
+Create category manager.
+
+
+
+Each category contains
+
+
+
+id
+
+name
+
+description
+
+emoji
+
+image
+
+order
+
+enabled
+
+
+
+Example
+
+
+
+Coins
+
+
+
+VIP
+
+
+
+Garments
+
+
+
+Weapons
+
+
+
+Armor
+
+
+
+Accessories
+
+
+
+Pets
+
+
+
+Mounts
+
+
+
+Services
+
+Products
+
+
+
+Each product contains
+
+
+
+id
+
+
+
+categoryId
+
+
+
+name
+
+
+
+description
+
+
+
+image
+
+
+
+price
+
+
+
+currency
+
+
+
+stock
+
+
+
+unlimitedStock
+
+
+
+enabled
+
+
+
+featured
+
+
+
+hidden
+
+
+
+createdAt
+
+
+
+updatedAt
+
+Order Model
+
+
+
+Create order model
+
+
+
+orderId
+
+
+
+userId
+
+
+
+guildId
+
+
+
+ticketId
+
+
+
+productId
+
+
+
+quantity
+
+
+
+price
+
+
+
+totalPrice
+
+
+
+status
+
+
+
+createdAt
+
+
+
+updatedAt
+
+
+
+staffId
+
+
+
+notes
+
+Status
+
+
+
+Available statuses
+
+
+
+Pending
+
+
+
+WaitingPayment
+
+
+
+Paid
+
+
+
+Delivering
+
+
+
+Completed
+
+
+
+Cancelled
+
+
+
+Refunded
+
+
+
+Never use free text.
+
+
+
+Always use enum.
+
+
+
+Store Panel
+
+
+
+Create one beautiful Store Panel.
+
+
+
+Embed only.
+
+
+
+Buttons
+
+
+
+Browse Store
+
+
+
+My Orders
+
+
+
+Support
+
+
+
+Refresh
+
+Browse Store
+
+
+
+Flow
+
+
+
+Choose Category
+
+
+
+↓
+
+
+
+Choose Product
+
+
+
+↓
+
+
+
+View Product
+
+
+
+↓
+
+
+
+Choose Quantity
+
+
+
+↓
+
+
+
+Confirm Purchase
+
+
+
+Use Select Menus.
+
+
+
+Never use slash commands for shopping.
+
+
+
+Product Page
+
+
+
+Show
+
+
+
+Product Image
+
+
+
+Name
+
+
+
+Description
+
+
+
+Price
+
+
+
+Stock
+
+
+
+Category
+
+
+
+Status
+
+
+
+Buttons
+
+
+
+Buy
+
+
+
+Back
+
+Purchase
+
+
+
+When Buy is pressed
+
+
+
+Open quantity modal.
+
+
+
+Validation
+
+
+
+Quantity > 0
+
+
+
+Quantity <= Max
+
+
+
+If stock exists
+
+
+
+Quantity <= Stock
+
+
+
+Confirmation
+
+
+
+Show confirmation embed
+
+
+
+Product
+
+
+
+Quantity
+
+
+
+Total
+
+
+
+Category
+
+
+
+
+
+Buttons
+
+
+
+Confirm
+
+
+
+Cancel
+
+Order Creation
+
+
+
+After confirmation
+
+
+
+Generate
+
+
+
+STORE-000001
+
+STORE-000002
+
+STORE-000003
+
+
+
+Sequential IDs.
+
+
+
+Never random.
+
+
+
+Ticket Integration
+
+
+
+Use existing Ticket System.
+
+
+
+DO NOT rewrite it.
+
+
+
+DO NOT replace it.
+
+
+
+Create new ticket category
+
+
+
+Store Orders
+
+
+
+If not existing.
+
+
+
+Ticket name
+
+
+
+store-000001
+
+
+
+First message
+
+
+
+Beautiful embed
+
+
+
+Store Order
+
+
+
+Order ID
+
+
+
+Customer
+
+
+
+Product
+
+
+
+Quantity
+
+
+
+Price
+
+
+
+Total
+
+
+
+Status
+
+
+
+Waiting Payment
+
+
+
+Buttons
+
+
+
+Confirm Payment
+
+
+
+Deliver Item
+
+
+
+Cancel Order
+
+
+
+Order Info
+
+
+
+These buttons are STAFF ONLY.
+
+
+
+Orders
+
+
+
+Save immediately
+
+
+
+data/store/orders.json
+
+
+
+Never lose orders after restart.
+
+
+
+My Orders
+
+
+
+Button
+
+
+
+Shows
+
+
+
+Only user's orders
+
+
+
+Newest first
+
+
+
+Status
+
+
+
+Created
+
+
+
+Product
+
+
+
+Price
+
+
+
+Statistics
+
+
+
+Track
+
+
+
+Orders
+
+
+
+Completed
+
+
+
+Cancelled
+
+
+
+Revenue
+
+
+
+Pending
+
+
+
+Update automatically.
+
+
+
+Admin Permissions
+
+
+
+Only administrators
+
+
+
+can
+
+
+
+Create Categories
+
+
+
+Create Products
+
+
+
+Edit Products
+
+
+
+Delete Products
+
+
+
+Hide Products
+
+
+
+Change Stock
+
+
+
+View Statistics
+
+
+
+Product Stock
+
+
+
+If unlimited
+
+
+
+Ignore stock.
+
+
+
+If limited
+
+
+
+Decrease ONLY after staff marks order as Completed.
+
+
+
+Never decrease before.
+
+
+
+Code Quality
+
+
+
+Use existing project architecture.
+
+
+
+Follow project style.
+
+
+
+TypeScript strict.
+
+
+
+No duplicated code.
+
+
+
+No memory leaks.
+
+
+
+No polling.
+
+
+
+No breaking changes.
+
+
+
+No fake implementations.
+
+
+
+Safety
+
+
+
+Never delete existing files.
+
+
+
+Never modify ticket architecture.
+
+
+
+Never modify support inbox.
+
+
+
+Never rename commands.
+
+
+
+Never change database providers.
+
+
+
+Never touch AI.
+
+
+
+Only extend the project.
+
+
+
+Final Validation
+
+
+
+Before finishing
+
+
+
+Run full typecheck.
+
+
+
+Verify
+
+
+
+Store Panel works
+
+Category menu works
+
+Product menu works
+
+Purchase flow works
+
+Order creation works
+
+Store Ticket opens correctly
+
+JSON persistence works
+
+Existing Ticket System still works
+
+Existing Support Inbox still works
+
+No TypeScript errors
+
+No runtime errors
+
