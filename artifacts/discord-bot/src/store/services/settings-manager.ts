@@ -1,16 +1,27 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Settings Manager — persists store-wide configuration
+// Settings Manager — persists store-wide configuration (Phase 1 + Phase 2).
 // ─────────────────────────────────────────────────────────────────────────────
 import type { StoreSettings } from '../models/index.js';
 import { StoreJson } from './store-data.js';
 
-const store = new StoreJson<StoreSettings>('settings.json', () => ({
-  supportRoles: [],
-  adminRoles: [],
-  panelChannelId: null,
-  panelMessageId: null,
-  orderCategoryId: null,
-}));
+function normalizeSettings(s: Partial<StoreSettings>): StoreSettings {
+  return {
+    supportRoles: [],
+    adminRoles: [],
+    panelChannelId: null,
+    panelMessageId: null,
+    orderCategoryId: null,
+    auditLogChannelId: null,
+    lowStockAlertChannelId: null,
+    settingsPanelChannelId: null,
+    settingsPanelMessageId: null,
+    defaultCurrency: 'coins',
+    maxOrdersPerUser: 0,
+    ...s,
+  };
+}
+
+const store = new StoreJson<StoreSettings>('settings.json', () => normalizeSettings({}));
 
 export const settingsManager = {
   async ensureFile(): Promise<void> {
@@ -18,13 +29,15 @@ export const settingsManager = {
   },
 
   async read(): Promise<StoreSettings> {
-    return store.read();
+    const data = await store.read();
+    return normalizeSettings(data);
   },
 
   async update(patch: Partial<StoreSettings>): Promise<StoreSettings> {
     return store.mutate(data => {
-      Object.assign(data, patch);
-      return JSON.parse(JSON.stringify(data)) as StoreSettings;
+      const merged = normalizeSettings({ ...data, ...patch });
+      Object.assign(data, merged);
+      return JSON.parse(JSON.stringify(merged)) as StoreSettings;
     });
   },
 };

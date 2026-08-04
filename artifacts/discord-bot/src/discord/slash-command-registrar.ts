@@ -513,22 +513,65 @@ const SHIFT_COMMAND = {
 
 const STORE_COMMAND = {
   name: 'store',
-  description: '[Admin] Store Management System — manage categories, products, orders, and statistics',
+  description: '[Admin] Store Management System — manage categories, products, orders, payments, and more',
   options: [
+    // ── Phase 1 ──────────────────────────────────────────────────────────────
     {
       name: 'panel',
       description: 'Post the store panel to the current channel',
-      type: 1, // SUB_COMMAND
+      type: 1,
     },
     {
       name: 'stats',
       description: 'View store statistics',
       type: 1,
     },
+    // ── Phase 2 new top-level ─────────────────────────────────────────────────
+    {
+      name: 'dashboard',
+      description: 'Open the admin store dashboard with revenue charts and top stats',
+      type: 1,
+    },
+    {
+      name: 'settings',
+      description: 'Open the store settings panel (categories, payments, roles, logs)',
+      type: 1,
+    },
+    {
+      name: 'search',
+      description: 'Search for products by name, tag, category, or ID',
+      type: 1,
+      options: [
+        { name: 'query', description: 'Search query', type: 3, required: false },
+      ],
+    },
+    {
+      name: 'audit',
+      description: 'View the store audit log (recent 25 entries)',
+      type: 1,
+    },
+    {
+      name: 'export',
+      description: 'Export orders as CSV or JSON',
+      type: 1,
+      options: [
+        {
+          name: 'format',
+          description: 'Export format (default: json)',
+          type: 3,
+          required: false,
+          choices: [
+            { name: 'JSON', value: 'json' },
+            { name: 'CSV', value: 'csv' },
+          ],
+        },
+      ],
+    },
+    // ── Phase 1 category group ────────────────────────────────────────────────
     {
       name: 'category',
       description: 'Manage store categories',
-      type: 2, // SUB_COMMAND_GROUP
+      type: 2,
       options: [
         {
           name: 'add',
@@ -547,6 +590,7 @@ const STORE_COMMAND = {
         },
       ],
     },
+    // ── Phase 1 + Phase 2 product group ──────────────────────────────────────
     {
       name: 'product',
       description: 'Manage store products',
@@ -596,6 +640,125 @@ const STORE_COMMAND = {
           type: 1,
           options: [
             { name: 'product', description: 'Product ID', type: 3, required: true },
+          ],
+        },
+        // Phase 2: variant management
+        {
+          name: 'variant',
+          description: 'Add a variant (e.g. VIP 30/60/90 Days, Weapon +5/+7/+9) to a product',
+          type: 1,
+          options: [
+            { name: 'product', description: 'Product ID', type: 3, required: true },
+            { name: 'name', description: 'Variant name (e.g. 30 Days)', type: 3, required: true },
+            { name: 'price', description: 'Variant price', type: 10, required: true },
+            { name: 'stock', description: 'Stock (-1 for unlimited)', type: 4, required: false },
+          ],
+        },
+      ],
+    },
+    // ── Phase 2 coupon group ──────────────────────────────────────────────────
+    {
+      name: 'coupon',
+      description: 'Manage discount coupons',
+      type: 2,
+      options: [
+        {
+          name: 'add',
+          description: 'Create a new coupon code',
+          type: 1,
+          options: [
+            { name: 'code', description: 'Coupon code (e.g. SUMMER20)', type: 3, required: true },
+            {
+              name: 'type',
+              description: 'Discount type',
+              type: 3,
+              required: true,
+              choices: [
+                { name: 'Percentage off', value: 'percentage' },
+                { name: 'Fixed amount off', value: 'fixed' },
+                { name: 'Free item', value: 'free_item' },
+              ],
+            },
+            { name: 'value', description: 'Discount value (% or flat amount)', type: 10, required: true },
+            { name: 'max_uses', description: 'Max uses (omit for unlimited)', type: 4, required: false },
+            { name: 'expires_days', description: 'Expires in this many days (omit for no expiry)', type: 4, required: false },
+          ],
+        },
+        {
+          name: 'list',
+          description: 'List all coupons',
+          type: 1,
+        },
+        {
+          name: 'delete',
+          description: 'Delete a coupon',
+          type: 1,
+          options: [
+            { name: 'coupon', description: 'Coupon ID', type: 3, required: true },
+          ],
+        },
+      ],
+    },
+    // ── Phase 2 payment group ─────────────────────────────────────────────────
+    {
+      name: 'payment',
+      description: 'Manage payment methods',
+      type: 2,
+      options: [
+        {
+          name: 'list',
+          description: 'List all payment methods',
+          type: 1,
+        },
+        {
+          name: 'toggle',
+          description: 'Toggle a payment method active/inactive',
+          type: 1,
+          options: [
+            { name: 'method', description: 'Payment method ID', type: 3, required: true },
+          ],
+        },
+      ],
+    },
+    // ── Phase 2 offer group ───────────────────────────────────────────────────
+    {
+      name: 'offer',
+      description: 'Manage special offers (flash sales, bundles, featured)',
+      type: 2,
+      options: [
+        {
+          name: 'add',
+          description: 'Create a special offer',
+          type: 1,
+          options: [
+            {
+              name: 'type',
+              description: 'Offer type',
+              type: 3,
+              required: true,
+              choices: [
+                { name: 'Flash Sale', value: 'flash_sale' },
+                { name: 'Bundle', value: 'bundle' },
+                { name: 'Featured', value: 'featured' },
+              ],
+            },
+            { name: 'name', description: 'Offer name', type: 3, required: true },
+            { name: 'product', description: 'Product ID to include', type: 3, required: true },
+            { name: 'discount', description: 'Discount percentage (for flash sales)', type: 10, required: false },
+            { name: 'hours', description: 'Duration in hours (omit for permanent)', type: 4, required: false },
+          ],
+        },
+        {
+          name: 'list',
+          description: 'List all offers',
+          type: 1,
+        },
+        {
+          name: 'delete',
+          description: 'Delete an offer',
+          type: 1,
+          options: [
+            { name: 'offer', description: 'Offer ID', type: 3, required: true },
           ],
         },
       ],

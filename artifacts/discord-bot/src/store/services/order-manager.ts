@@ -1,16 +1,27 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Order Manager — creates orders and manages their lifecycle.
-// Opens a Discord channel for each order (the "order ticket").
+// Order Manager — creates orders and manages their full lifecycle.
+// Phase 2 additions: timeline entries, payment proof, coupon discounts,
+// variant selection, delivery notes, and pinned-message tracking.
 // ─────────────────────────────────────────────────────────────────────────────
 import {
   ChannelType,
   PermissionsBitField,
+  type Client,
   type Guild,
   type TextChannel,
   type OverwriteResolvable,
 } from 'discord.js';
-import type { StoreOrder, StoreProduct, OrderStatus, OrdersData } from '../models/index.js';
-import { StoreJson } from './store-data.js';
+import type {
+  StoreOrder,
+  StoreProduct,
+  OrderStatus,
+  OrdersData,
+  OrderTimelineEntry,
+  PaymentProof,
+  ProofReviewDecision,
+  DeliveryNote,
+} from '../models/index.js';
+import { StoreJson, genStoreId } from './store-data.js';
 import { settingsManager } from './settings-manager.js';
 import { statisticsManager } from './statistics-manager.js';
 import { logger } from '../../utils/logger.js';
@@ -19,6 +30,24 @@ const store = new StoreJson<OrdersData>('orders.json', () => ({ orders: [], coun
 
 const ORDER_CATEGORY_NAME = 'Store Orders';
 
+function normalizeOrder(o: Partial<StoreOrder> & { orderId: string; userId: string; productId: string }): StoreOrder {
+  return {
+    guildId: '',
+    ticketId: '',
+    quantity: 1,
+    price: 0,
+    totalPrice: 0,
+    status: 'WaitingPayment',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    discountAmount: 0,
+    originalPrice: (o as StoreOrder).totalPrice ?? 0,
+    timeline: [],
+    deliveryNotes: [],
+    ...o,
+  };
+}
+
 async function nextOrderId(): Promise<string> {
   return store.mutate(data => {
     data.counter += 1;
@@ -26,17 +55,14 @@ async function nextOrderId(): Promise<string> {
   });
 }
 
-/** Find or create the "Store Orders" Discord category channel. */
 async function resolveOrderCategory(guild: Guild): Promise<string | undefined> {
   const settings = await settingsManager.read();
 
-  // Try cached category ID first
   if (settings.orderCategoryId) {
     const existing = guild.channels.cache.get(settings.orderCategoryId);
     if (existing?.type === ChannelType.GuildCategory) return settings.orderCategoryId;
   }
 
-  // Search by name
   const found = guild.channels.cache.find(
     c => c.type === ChannelType.GuildCategory && c.name.toLowerCase() === ORDER_CATEGORY_NAME.toLowerCase(),
   );
@@ -45,7 +71,6 @@ async function resolveOrderCategory(guild: Guild): Promise<string | undefined> {
     return found.id;
   }
 
-  // Create the category
   try {
     const created = await guild.channels.create({
       name: ORDER_CATEGORY_NAME,
@@ -60,7 +85,6 @@ async function resolveOrderCategory(guild: Guild): Promise<string | undefined> {
   }
 }
 
-/** Create the per-order Discord channel. */
 async function createOrderChannel(
   guild: Guild,
   orderId: string,
@@ -71,23 +95,14 @@ async function createOrderChannel(
   const botMember = guild.members.me;
 
   const overwrites: OverwriteResolvable[] = [
-    // @everyone — no access
-    {
-      id: guild.roles.everyone.id,
-      deny: [PermissionsBitField.Flags.ViewChannel],
-    },
-    // Buyer — can view and read, cannot send
+    { id: guild.roles.everyone.id, deny: [PermissionsBitField.Flags.ViewChannel] },
     {
       id: userId,
-      allow: [
-        PermissionsBitField.Flags.ViewChannel,
-        PermissionsBitField.Flags.ReadMessageHistory,
-      ],
+      allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.ReadMessageHistory],
       deny: [PermissionsBitField.Flags.SendMessages],
     },
   ];
 
-  // Bot — full access
   if (botMember) {
     overwrites.push({
       id: botMember.id,
@@ -103,7 +118,6 @@ async function createOrderChannel(
     });
   }
 
-  // Staff / admin roles — view and manage
   const staffRoleIds = [...new Set([...settings.supportRoles, ...settings.adminRoles])];
   for (const roleId of staffRoleIds) {
     const role = guild.roles.cache.get(roleId);
@@ -120,9 +134,7 @@ async function createOrderChannel(
     }
   }
 
-  // Channel name matches order ID: store-000001
   const channelName = orderId.toLowerCase();
-
   try {
     const channel = await guild.channels.create({
       name: channelName,
@@ -139,46 +151,79 @@ async function createOrderChannel(
 }
 
 export const orderManager = {
+  /** Optional: inject a Discord Client for user tag resolution. */
+  client: undefined as Client | undefined,
+
   async ensureFile(): Promise<void> {
     await store.ensureFile();
   },
 
   async getAll(): Promise<StoreOrder[]> {
     const data = await store.read();
-    return data.orders.slice();
+    return data.orders.map(normalizeOrder);
   },
 
   async getByUser(userId: string): Promise<StoreOrder[]> {
     const data = await store.read();
     return data.orders
       .filter(o => o.userId === userId)
+      .map(normalizeOrder)
       .sort((a, b) => b.createdAt - a.createdAt);
   },
 
   async getById(orderId: string): Promise<StoreOrder | undefined> {
     const data = await store.read();
-    return data.orders.find(o => o.orderId === orderId);
+    const o = data.orders.find(x => x.orderId === orderId);
+    return o ? normalizeOrder(o) : undefined;
   },
 
   async getByChannel(channelId: string): Promise<StoreOrder | undefined> {
     const data = await store.read();
-    return data.orders.find(o => o.ticketId === channelId);
+    const o = data.orders.find(x => x.ticketId === channelId);
+    return o ? normalizeOrder(o) : undefined;
+  },
+
+  async getByStatus(status: OrderStatus): Promise<StoreOrder[]> {
+    const data = await store.read();
+    return data.orders
+      .filter(o => o.status === status)
+      .map(normalizeOrder)
+      .sort((a, b) => b.createdAt - a.createdAt);
+  },
+
+  async countByUser(userId: string): Promise<number> {
+    const data = await store.read();
+    return data.orders.filter(o => o.userId === userId && o.status !== 'Cancelled' && o.status !== 'Refunded').length;
   },
 
   /**
    * Create a new order, open a Discord channel for it, and persist everything.
-   * Returns the created order and the Discord channel (may be undefined if channel creation failed).
    */
   async create(
     guild: Guild,
     product: StoreProduct,
     userId: string,
     quantity: number,
+    options?: {
+      variantId?: string;
+      paymentMethodId?: string;
+      couponId?: string;
+      discountAmount?: number;
+    },
   ): Promise<{ order: StoreOrder; channel: TextChannel | undefined }> {
     const orderId = await nextOrderId();
-    const totalPrice = product.price * quantity;
+    const originalPrice = product.price * quantity;
+    const discountAmount = options?.discountAmount ?? 0;
+    const totalPrice = Math.max(0, originalPrice - discountAmount);
 
     const channel = await createOrderChannel(guild, orderId, userId);
+
+    const now = Date.now();
+    const firstTimelineEntry: OrderTimelineEntry = {
+      status: 'WaitingPayment',
+      timestamp: now,
+      note: 'Order placed',
+    };
 
     const order: StoreOrder = {
       orderId,
@@ -189,9 +234,16 @@ export const orderManager = {
       quantity,
       price: product.price,
       totalPrice,
+      originalPrice,
+      discountAmount,
       status: 'WaitingPayment',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
+      variantId: options?.variantId,
+      paymentMethodId: options?.paymentMethodId,
+      couponId: options?.couponId,
+      timeline: [firstTimelineEntry],
+      deliveryNotes: [],
     };
 
     await store.mutate(data => {
@@ -200,20 +252,21 @@ export const orderManager = {
 
     await statisticsManager.increment('totalOrders');
     await statisticsManager.increment('pending');
+    await statisticsManager.trackCustomer(userId);
 
     logger.success(`[Store] Order created: ${orderId} by ${userId}`);
     return { order, channel };
   },
 
   /**
-   * Update an order's status and (optionally) record the staff member who acted.
-   * Statistics counters are updated automatically.
+   * Update an order's status and append a timeline entry.
    */
   async updateStatus(
     orderId: string,
     status: OrderStatus,
     staffId?: string,
-    notes?: string,
+    reason?: string,
+    note?: string,
   ): Promise<StoreOrder | undefined> {
     let prevStatus: OrderStatus | undefined;
 
@@ -224,14 +277,135 @@ export const orderManager = {
       found.status = status;
       found.updatedAt = Date.now();
       if (staffId !== undefined) found.staffId = staffId;
-      if (notes !== undefined) found.notes = notes;
-      return JSON.parse(JSON.stringify(found)) as StoreOrder;
+
+      // Append timeline entry
+      if (!found.timeline) found.timeline = [];
+      const entry: OrderTimelineEntry = {
+        status,
+        timestamp: Date.now(),
+        staffId,
+        reason,
+        note,
+      };
+      found.timeline.push(entry);
+
+      return JSON.parse(JSON.stringify(normalizeOrder(found))) as StoreOrder;
     });
 
     if (order && prevStatus !== undefined) {
-      await statisticsManager.onStatusChange(prevStatus, status, order.totalPrice);
+      await statisticsManager.onStatusChange(prevStatus, status, order.totalPrice, order.staffId);
     }
 
     return order;
+  },
+
+  // ── Notes (legacy compat) ──────────────────────────────────────────────────
+
+  async updateNotes(orderId: string, notes: string): Promise<StoreOrder | undefined> {
+    return store.mutate(data => {
+      const found = data.orders.find(o => o.orderId === orderId);
+      if (!found) return undefined;
+      found.notes = notes;
+      found.updatedAt = Date.now();
+      return JSON.parse(JSON.stringify(normalizeOrder(found))) as StoreOrder;
+    });
+  },
+
+  // ── Payment proof ──────────────────────────────────────────────────────────
+
+  async submitProof(orderId: string, proof: Omit<PaymentProof, 'reviewedAt' | 'reviewedBy' | 'reviewDecision' | 'reviewNotes'>): Promise<StoreOrder | undefined> {
+    return store.mutate(data => {
+      const found = data.orders.find(o => o.orderId === orderId);
+      if (!found) return undefined;
+      found.proof = { ...proof };
+      found.updatedAt = Date.now();
+      if (!found.timeline) found.timeline = [];
+      found.timeline.push({ status: 'ProofSubmitted', timestamp: Date.now(), note: 'Payment proof submitted by buyer' });
+      return JSON.parse(JSON.stringify(normalizeOrder(found))) as StoreOrder;
+    });
+  },
+
+  async reviewProof(
+    orderId: string,
+    staffId: string,
+    decision: ProofReviewDecision,
+    reviewNotes?: string,
+  ): Promise<StoreOrder | undefined> {
+    return store.mutate(data => {
+      const found = data.orders.find(o => o.orderId === orderId);
+      if (!found?.proof) return undefined;
+      found.proof.reviewedAt = Date.now();
+      found.proof.reviewedBy = staffId;
+      found.proof.reviewDecision = decision;
+      found.proof.reviewNotes = reviewNotes;
+      found.updatedAt = Date.now();
+      return JSON.parse(JSON.stringify(normalizeOrder(found))) as StoreOrder;
+    });
+  },
+
+  // ── Delivery notes ─────────────────────────────────────────────────────────
+
+  async addDeliveryNote(
+    orderId: string,
+    staffId: string,
+    content: string,
+    options?: { attachmentUrls?: string[]; characterName?: string; serverNotes?: string; isPrivate?: boolean },
+  ): Promise<DeliveryNote | undefined> {
+    return store.mutate(data => {
+      const found = data.orders.find(o => o.orderId === orderId);
+      if (!found) return undefined;
+      if (!found.deliveryNotes) found.deliveryNotes = [];
+      const note: DeliveryNote = {
+        id: genStoreId('dn'),
+        staffId,
+        content,
+        attachmentUrls: options?.attachmentUrls ?? [],
+        characterName: options?.characterName,
+        serverNotes: options?.serverNotes,
+        isPrivate: options?.isPrivate ?? false,
+        timestamp: Date.now(),
+      };
+      found.deliveryNotes.push(note);
+      found.updatedAt = Date.now();
+      return JSON.parse(JSON.stringify(note)) as DeliveryNote;
+    });
+  },
+
+  // ── Pinned message tracking ────────────────────────────────────────────────
+
+  async setPinnedMessageId(orderId: string, messageId: string): Promise<void> {
+    await store.mutate(data => {
+      const found = data.orders.find(o => o.orderId === orderId);
+      if (found) {
+        found.pinnedMessageId = messageId;
+        found.updatedAt = Date.now();
+      }
+    });
+  },
+
+  // ── Coupon support ─────────────────────────────────────────────────────────
+
+  async applyCoupon(orderId: string, couponId: string, discountAmount: number): Promise<StoreOrder | undefined> {
+    return store.mutate(data => {
+      const found = data.orders.find(o => o.orderId === orderId);
+      if (!found) return undefined;
+      found.couponId = couponId;
+      found.discountAmount = discountAmount;
+      found.totalPrice = Math.max(0, found.originalPrice - discountAmount);
+      found.updatedAt = Date.now();
+      return JSON.parse(JSON.stringify(normalizeOrder(found))) as StoreOrder;
+    });
+  },
+
+  // ── Payment method ─────────────────────────────────────────────────────────
+
+  async setPaymentMethod(orderId: string, paymentMethodId: string): Promise<StoreOrder | undefined> {
+    return store.mutate(data => {
+      const found = data.orders.find(o => o.orderId === orderId);
+      if (!found) return undefined;
+      found.paymentMethodId = paymentMethodId;
+      found.updatedAt = Date.now();
+      return JSON.parse(JSON.stringify(normalizeOrder(found))) as StoreOrder;
+    });
   },
 };

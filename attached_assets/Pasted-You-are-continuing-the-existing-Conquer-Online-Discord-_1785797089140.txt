@@ -1,0 +1,601 @@
+You are continuing the existing Conquer Online Discord Bot project.
+
+IMPORTANT:
+This is NOT a new project.
+Do NOT recreate the store.
+Do NOT remove or rewrite any existing functionality.
+Do NOT modify Tickets, Verification, Moderation, Welcome, AI, Security, Support Inbox or any unrelated module.
+
+Your task is to implement PHASE 2 of the Store System only.
+
+========================================================
+GENERAL RULES
+========================================================
+
+• Preserve 100% backward compatibility.
+• Never break Phase 1.
+• Never change JSON schemas unless migration is included.
+• TypeScript strict mode.
+• Zero compile errors.
+• Zero eslint errors.
+• No duplicated logic.
+• Fully documented.
+• Production ready.
+• Discord.js v14.
+• Modular architecture.
+• No hardcoded IDs.
+• Everything configurable.
+
+========================================================
+1) ADVANCED PAYMENT CENTER
+========================================================
+
+Create a complete payment module.
+
+Support unlimited payment methods.
+
+Each payment method has:
+
+name
+icon
+instructions
+status
+order
+custom fields
+QR image
+color
+role restrictions
+
+Built-in examples:
+
+Vodafone Cash
+
+Instapay
+
+PayPal
+
+USDT
+
+Binance Pay
+
+Crypto Wallet
+
+Cash
+
+In Game
+
+Each payment method can require:
+
+Screenshot
+
+Transaction ID
+
+Phone Number
+
+Wallet Address
+
+Character Name
+
+Notes
+
+Create:
+
+Payment Manager
+
+Payment Renderer
+
+Payment Validation
+
+Payment Storage
+
+Payment Settings
+
+========================================================
+2) PAYMENT PROOF SYSTEM
+========================================================
+
+Buyer can submit:
+
+Image
+
+Video
+
+Attachment
+
+Transaction ID
+
+Text
+
+Payment time
+
+Payment amount
+
+The bot automatically stores everything.
+
+Staff can:
+
+Approve
+
+Reject
+
+Request more proof
+
+Ask for another screenshot
+
+Everything logged.
+
+========================================================
+3) ORDER TIMELINE
+========================================================
+
+Every order now contains a complete timeline.
+
+Created
+
+Waiting Payment
+
+Proof Submitted
+
+Payment Approved
+
+Preparing
+
+Delivered
+
+Completed
+
+Cancelled
+
+Refunded
+
+Every action:
+
+timestamp
+
+staff
+
+reason
+
+stored permanently
+
+Displayed beautifully.
+
+========================================================
+4) ORDER CHANNEL IMPROVEMENTS
+========================================================
+
+Improve every Store Ticket.
+
+Pinned Order Summary
+
+Customer Card
+
+Product Card
+
+Payment Card
+
+Timeline Card
+
+Buttons update dynamically.
+
+No duplicated embeds.
+
+Everything edits in place.
+
+========================================================
+5) PRODUCT IMAGES
+========================================================
+
+Products support:
+
+Main Image
+
+Gallery Images
+
+Thumbnail
+
+Animated GIF
+
+Auto resize
+
+Preview
+
+Large preview
+
+Image carousel
+
+========================================================
+6) PRODUCT VARIANTS
+========================================================
+
+Support variants.
+
+Example:
+
+VIP
+
+30 Days
+
+60 Days
+
+90 Days
+
+Weapons
+
++5
+
++7
+
++9
+
+Each variant:
+
+price
+
+stock
+
+description
+
+image
+
+========================================================
+7) ADVANCED INVENTORY
+========================================================
+
+Support:
+
+Unlimited Stock
+
+Limited Stock
+
+Reserved Stock
+
+Low Stock Warning
+
+Hidden Products
+
+Scheduled Products
+
+Out of Stock Badge
+
+Stock History
+
+========================================================
+8) DISCOUNT SYSTEM
+========================================================
+
+Coupons
+
+Percentage
+
+Fixed Amount
+
+Free Item
+
+First Purchase
+
+Role Based
+
+Limited Uses
+
+Expiry Date
+
+Minimum Purchase
+
+Maximum Discount
+
+========================================================
+9) SPECIAL OFFERS
+========================================================
+
+Limited Time Offers
+
+Flash Sale
+
+Bundle Offers
+
+Featured Products
+
+Recommended Products
+
+New Badge
+
+Popular Badge
+
+Best Seller Badge
+
+========================================================
+10) STORE SEARCH
+========================================================
+
+Search by:
+
+Name
+
+Category
+
+Price
+
+Tags
+
+Item ID
+
+Variant
+
+Fast filtering.
+
+========================================================
+11) CUSTOMER DASHBOARD
+========================================================
+
+Create My Orders panel.
+
+Customer can:
+
+View orders
+
+Track progress
+
+View timeline
+
+Download receipt
+
+Reopen if allowed
+
+Request support
+
+View payment proof
+
+========================================================
+12) ADMIN DASHBOARD
+========================================================
+
+Create Store Dashboard.
+
+Statistics
+
+Revenue
+
+Orders
+
+Pending
+
+Cancelled
+
+Completed
+
+Refunded
+
+Top Products
+
+Top Customers
+
+Top Staff
+
+Graphs
+
+Charts
+
+Daily
+
+Weekly
+
+Monthly
+
+========================================================
+13) STAFF MANAGEMENT
+========================================================
+
+Store Staff Roles
+
+Permissions
+
+Viewer
+
+Support
+
+Payment Reviewer
+
+Delivery Staff
+
+Store Manager
+
+Owner
+
+Every action permission controlled.
+
+========================================================
+14) DELIVERY NOTES
+========================================================
+
+Staff can attach:
+
+Notes
+
+Screenshots
+
+Videos
+
+Files
+
+Character Name
+
+Server Notes
+
+Only staff sees private notes.
+
+========================================================
+15) AUDIT LOG
+========================================================
+
+Every action logged.
+
+Create
+
+Edit
+
+Delete
+
+Approve
+
+Reject
+
+Deliver
+
+Refund
+
+Coupon
+
+Stock
+
+Permission
+
+Settings
+
+Include:
+
+Staff
+
+Time
+
+Order
+
+Reason
+
+========================================================
+16) EXPORTS
+========================================================
+
+Export:
+
+CSV
+
+JSON
+
+Receipts
+
+Orders
+
+Products
+
+Revenue
+
+========================================================
+17) STORE SETTINGS PANEL
+========================================================
+
+Beautiful Discord UI.
+
+Manage:
+
+Categories
+
+Products
+
+Coupons
+
+Offers
+
+Payments
+
+Roles
+
+Logs
+
+Dashboard
+
+Order Category
+
+Everything editable from Discord.
+
+========================================================
+18) PERFORMANCE
+========================================================
+
+Implement:
+
+Caching
+
+Lazy loading
+
+Optimized JSON writes
+
+Debounced saves
+
+Memory cache
+
+Index maps
+
+No duplicated disk writes.
+
+========================================================
+19) UI QUALITY
+========================================================
+
+Every embed should look premium.
+
+Professional emojis.
+
+Consistent colors.
+
+Buttons.
+
+Select menus.
+
+Pagination.
+
+Responsive embeds.
+
+========================================================
+20) FINAL REQUIREMENTS
+========================================================
+
+After implementation:
+
+Run full TypeScript typecheck.
+
+Run compile.
+
+Fix every error.
+
+Search entire project for broken imports.
+
+Ensure old Store Phase 1 still works.
+
+Ensure existing Tickets still work.
+
+Ensure Support Inbox untouched.
+
+Ensure Welcome untouched.
+
+Ensure AI untouched.
+
+Ensure Moderation untouched.
+
+Ensure Verification untouched.
+
+Ensure Security untouched.
+
+Generate a COMPLETE IMPLEMENTATION REPORT including:
+
+Every new file.
+
+Every modified file.
+
+Every new class.
+
+Every manager.
+
+Every command.
+
+Every interaction.
+
+Every data file.
+
+Every optimization.
+
+Every migration.
+
+Every new feature.
+
+Do NOT stop until Phase 2 is completely finished.
