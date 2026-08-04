@@ -120,6 +120,8 @@ export interface InboxConversation {
   headerMessageId?: string;
   /** Discord-native inbox: ID of the pinned "AI Sidebar" message in the thread. */
   aiSidebarMessageId?: string;
+  /** Control Center: whether this user has been blocked from receiving staff replies. */
+  isBlocked?: boolean;
 }
 
 export interface InboxData {

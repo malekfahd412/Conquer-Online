@@ -1,0 +1,250 @@
+Completely redesign the Support Inbox Management System into a modern Discord Control Center.
+
+IMPORTANT
+
+This prompt completely replaces every previous instruction.
+
+Ignore all previous restore requests.
+
+Do NOT restore the old version.
+
+Do NOT begin implementation until this specification is followed.
+
+The redesign must keep full compatibility with existing inbox data while replacing the administration experience.
+
+==========================
+GOAL
+==========================
+
+Replace almost every Support Inbox slash command with ONE permanent Discord dashboard.
+
+Admins should control everything through Buttons, Select Menus and Modals.
+
+No database reset.
+
+No loss of conversations.
+
+No loss of inbox history.
+
+==========================
+PERMANENT PANEL
+==========================
+
+Create one permanent dashboard message.
+
+Automatically recreate it if deleted.
+
+Store its Message ID.
+
+Automatically refresh every few seconds.
+
+==========================
+PANEL LAYOUT
+==========================
+
+🛠 Support Inbox Control Center
+
+Show:
+
+• Inbox Status
+• Active Conversations
+• Waiting Users
+• Active Threads
+• Closed Today
+• Average Response Time
+• Staff Online
+• Last Update
+• Messages Today
+
+==========================
+BUTTONS
+==========================
+
+📥 Inbox
+👥 Conversations
+📊 Statistics
+⚙ Settings
+
+🔍 Search
+📝 Broadcast
+📢 Announcement
+🔄 Refresh
+
+👮 Staff
+🧠 AI
+📁 Export
+🧹 Cleanup
+
+==========================
+CONVERSATION PANEL
+==========================
+
+Selecting a conversation opens a management page.
+
+Display:
+
+Avatar
+
+Username
+
+User ID
+
+Joined Server
+
+Account Age
+
+Assigned Staff
+
+Current Status
+
+Current Thread
+
+Conversation Stats
+
+Buttons:
+
+Reply
+
+Assign
+
+Transfer
+
+Rename Thread
+
+Close
+
+Block
+
+Unblock
+
+Delete Thread
+
+Open Discord Profile
+
+==========================
+SETTINGS
+==========================
+
+Everything editable through UI.
+
+Support Channel
+
+Log Channel
+
+Staff Roles
+
+Thread Category
+
+Greeting Message
+
+Auto Thread
+
+Auto Archive
+
+Auto Close
+
+AI
+
+Permissions
+
+==========================
+STATISTICS
+==========================
+
+Daily
+
+Weekly
+
+Monthly
+
+Top Staff
+
+Top Users
+
+Average Response
+
+Solved Conversations
+
+==========================
+SEARCH
+==========================
+
+Search by
+
+Username
+
+ID
+
+Thread
+
+Conversation
+
+Message
+
+==========================
+AI PANEL
+==========================
+
+Summarize
+
+Rewrite
+
+Translate
+
+Suggest Reply
+
+==========================
+EXPORT
+==========================
+
+CSV
+
+JSON
+
+Conversation
+
+Daily
+
+Weekly
+
+==========================
+PERFORMANCE
+==========================
+
+Never recreate dashboard unnecessarily.
+
+Update only changed fields.
+
+Cache expensive operations.
+
+Avoid Discord API spam.
+
+==========================
+COMPATIBILITY
+==========================
+
+100% backward compatible.
+
+Existing inbox.json remains valid.
+
+Existing threads remain valid.
+
+Existing conversations remain valid.
+
+==========================
+AFTER IMPLEMENTATION
+==========================
+
+Generate a report containing:
+
+Created files
+
+Modified files
+
+Architecture
+
+Performance improvements
+
+No TypeScript errors.
+
+Bot must compile successfully.

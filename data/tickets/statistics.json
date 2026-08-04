@@ -649,6 +649,134 @@
       "ticketId": "ticket_1785612696814_yjuv0",
       "userId": "727578927593291796",
       "timestamp": 1785612712445
+    },
+    {
+      "type": "opened",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1785882636528_ar8mi",
+      "userId": "727578927593291796",
+      "timestamp": 1785882636791
+    },
+    {
+      "type": "closed",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1785882636528_ar8mi",
+      "userId": "727578927593291796",
+      "timestamp": 1785882644744
+    },
+    {
+      "type": "deleted",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1785882636528_ar8mi",
+      "userId": "727578927593291796",
+      "timestamp": 1785882651093
+    },
+    {
+      "type": "opened",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1785882664313_j23ax",
+      "userId": "727578927593291796",
+      "timestamp": 1785882664611
+    },
+    {
+      "type": "opened",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1785882668145_y5hs8",
+      "userId": "727578927593291796",
+      "timestamp": 1785882668521
+    },
+    {
+      "type": "opened",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1785882670262_9bcd8",
+      "userId": "727578927593291796",
+      "timestamp": 1785882672520
+    },
+    {
+      "type": "closed",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1785882664313_j23ax",
+      "userId": "727578927593291796",
+      "timestamp": 1785882681725
+    },
+    {
+      "type": "deleted",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1785882664313_j23ax",
+      "userId": "727578927593291796",
+      "timestamp": 1785882684004
+    },
+    {
+      "type": "closed",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1785882668145_y5hs8",
+      "userId": "727578927593291796",
+      "timestamp": 1785882686495
+    },
+    {
+      "type": "deleted",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1785882668145_y5hs8",
+      "userId": "727578927593291796",
+      "timestamp": 1785882688605
+    },
+    {
+      "type": "closed",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1785882670262_9bcd8",
+      "userId": "727578927593291796",
+      "timestamp": 1785882693540
+    },
+    {
+      "type": "deleted",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1785882670262_9bcd8",
+      "userId": "727578927593291796",
+      "timestamp": 1785882695630
+    },
+    {
+      "type": "closed",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1784046298108_0zmtf",
+      "userId": "727578927593291796",
+      "timestamp": 1785882701739
+    },
+    {
+      "type": "reopened",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1784046298108_0zmtf",
+      "userId": "727578927593291796",
+      "timestamp": 1785882704607
+    },
+    {
+      "type": "closed",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1784046298108_0zmtf",
+      "userId": "727578927593291796",
+      "timestamp": 1785882714920
+    },
+    {
+      "type": "deleted",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketId": "ticket_1784046298108_0zmtf",
+      "userId": "727578927593291796",
+      "timestamp": 1785882717245
     }
   ]
 }

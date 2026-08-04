@@ -452,3 +452,19 @@ export function searchConversations(
 export function getTotalUnread(convs: InboxConversation[]): number {
   return convs.filter(c => !c.isArchived && !c.isRead).length;
 }
+
+// ── Block / Unblock ───────────────────────────────────────────────────────────
+
+export async function blockUser(userId: string): Promise<void> {
+  await mutate(data => {
+    const conv = data.conversations.find(c => c.id === userId);
+    if (conv) { conv.isBlocked = true; conv.updatedAt = Date.now(); }
+  });
+}
+
+export async function unblockUser(userId: string): Promise<void> {
+  await mutate(data => {
+    const conv = data.conversations.find(c => c.id === userId);
+    if (conv) { conv.isBlocked = false; conv.updatedAt = Date.now(); }
+  });
+}

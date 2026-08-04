@@ -35,6 +35,7 @@ import {
   PermissionFlagsBits,
   ThreadAutoArchiveDuration,
   MessageFlags,
+  AttachmentBuilder,
   type Client,
   type Guild,
   type GuildMember,
@@ -44,6 +45,7 @@ import {
   type Interaction,
   type ButtonInteraction,
   type ModalSubmitInteraction,
+  type StringSelectMenuInteraction,
   type OverwriteResolvable,
   type MessageReaction,
   type PartialMessageReaction,
@@ -71,14 +73,43 @@ import {
   setAiSidebarMessageId,
   markStaffActive,
   getActiveStaffCount,
-  getTotalUnread,
   markViewing,
   markTyping,
   getOtherTypers,
   getPresenceLine,
   clearThreadId,
+  blockUser,
+  unblockUser,
+  searchConversations,
+  toggleArchive,
 } from '../../../community/inbox';
 import type { InboxConversation, InboxMessage } from '../../../community/inbox';
+import { getInboxSettings, updateInboxSettings } from './inbox-settings-store';
+import { CC, isCCInteraction, parseConvPanelId, parseConvosPage } from './inbox-cc-ids';
+import {
+  computeCCStats,
+  buildControlCenter,
+  buildInboxPanel,
+  buildConversationsPanel,
+  buildConversationPanel,
+  buildStatsPanel,
+  buildSettingsPanel,
+  buildStaffPanel,
+  buildExportPanel,
+  buildAIPanel,
+  buildCleanupPanel,
+  buildSearchResultsPanel,
+  buildSearchModal,
+  buildBroadcastModal,
+  buildAnnouncementModal,
+  buildConvReplyModal,
+  buildConvAssignModal,
+  buildConvRenameModal,
+  buildSetChannelModal,
+  buildSetGreetingModal,
+  exportToCSV,
+} from './inbox-cc-renderer';
+import type { StaffMember } from './inbox-cc-renderer';
 import {
   hydrateThreadCache,
   startThreadCacheCleanup,
@@ -98,7 +129,6 @@ import {
 } from './dashboard-store';
 import { IC, isICInteraction, parseMsgActionId } from './ic-ids';
 import {
-  buildDashboard,
   buildConversationHeader,
   buildAISidebar,
   buildThreadControlPanel,
@@ -141,6 +171,8 @@ export class InboxChannelService {
   private readonly headerRefreshTimers = new Map<string, ReturnType<typeof setTimeout>>();
   /** Smart notification cooldown (requirement #9), keyed by conversation (= user) ID. */
   private readonly lastPingAt = new Map<string, number>();
+  /** Auto-refresh interval handle. */
+  private autoRefreshTimer: ReturnType<typeof setInterval> | undefined;
 
   constructor(
     private readonly permissionManager: PermissionManager,
@@ -167,6 +199,14 @@ export class InboxChannelService {
         logger.error(`[InboxChannel] Failed to initialize for guild ${guild.id}`, err);
       }
     }
+    // Auto-refresh dashboard every 30 seconds
+    if (this.autoRefreshTimer) clearInterval(this.autoRefreshTimer);
+    this.autoRefreshTimer = setInterval(() => {
+      for (const [, guild] of client.guilds.cache) {
+        this.scheduleRefresh(guild);
+      }
+    }, 30_000);
+    this.autoRefreshTimer.unref?.();
   }
 
   // ── Channel resolution / auto-creation ──────────────────────────────────────
@@ -246,9 +286,8 @@ export class InboxChannelService {
 
       const msg = await channel.messages.fetch(data.dashboardMessageId).catch(() => null);
       const all = await getAllConversations();
-      const unread = getTotalUnread(all);
-      const active = getActiveStaffCount();
-      const payload = buildDashboard(all, unread, active);
+      const stats = computeCCStats(all, getActiveStaffCount());
+      const payload = buildControlCenter(stats);
 
       if (msg) {
         await msg.edit({ content: '', embeds: payload.embeds, components: payload.components });
@@ -638,8 +677,15 @@ export class InboxChannelService {
 
   async handleInteraction(interaction: Interaction, guild: Guild): Promise<void> {
     try {
-      if (interaction.isButton())          await this.routeButton(interaction, guild);
-      else if (interaction.isModalSubmit()) await this.routeModal(interaction, guild);
+      if (interaction.isButton()) {
+        if (isCCInteraction(interaction.customId)) await this.routeCC(interaction, guild);
+        else await this.routeButton(interaction, guild);
+      } else if (interaction.isStringSelectMenu()) {
+        if (isCCInteraction(interaction.customId)) await this.routeCC(interaction, guild);
+      } else if (interaction.isModalSubmit()) {
+        if (isCCInteraction(interaction.customId)) await this.routeCC(interaction, guild);
+        else await this.routeModal(interaction, guild);
+      }
     } catch (err) {
       if (isStale(err)) return;
       logger.error('[InboxChannel] Interaction error', err);
@@ -1138,5 +1184,524 @@ export class InboxChannelService {
       await this.refreshThreadHeader(guild, thread, updated);
     }
     this.scheduleRefresh(guild);
+  }
+
+  // ── Control Center routing (ic:cc:*) ─────────────────────────────────────────
+
+  async routeCC(
+    interaction: ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction,
+    guild: Guild,
+  ): Promise<void> {
+    const id = interaction.customId;
+
+    // ── Conversation select menu (ic:cc:select) ──
+    if (id === CC.CONVOS_SELECT && interaction.isStringSelectMenu()) {
+      if (!(await this.requireAccess(interaction as unknown as ButtonInteraction, guild))) return;
+      const uid = interaction.values[0];
+      if (!uid) { await interaction.reply({ content: '❌ No conversation selected.', flags: MessageFlags.Ephemeral }); return; }
+      await this.ccShowConv(interaction as unknown as ButtonInteraction, guild, uid);
+      return;
+    }
+
+    // ── Navigation buttons ──
+    if (id === CC.INBOX) {
+      if (!(await this.requireAccess(interaction as unknown as ButtonInteraction, guild))) return;
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const all = await getAllConversations();
+      const payload = buildInboxPanel(all);
+      await interaction.editReply({ embeds: payload.embeds, components: payload.components });
+      return;
+    }
+
+    if (id.startsWith('ic:cc:convos')) {
+      if (!(await this.requireAccess(interaction as unknown as ButtonInteraction, guild))) return;
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const page = parseConvosPage(id);
+      const all = await getAllConversations();
+      const payload = buildConversationsPanel(all, page);
+      await interaction.editReply({ embeds: payload.embeds, components: payload.components as never });
+      return;
+    }
+
+    if (id === CC.STATS_DAY || id === CC.STATS_WEEK || id === CC.STATS_MONTH) {
+      if (!(await this.requireAccess(interaction as unknown as ButtonInteraction, guild))) return;
+      const period = id === CC.STATS_WEEK ? 'week' : id === CC.STATS_MONTH ? 'month' : 'day';
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const all = await getAllConversations();
+      const payload = buildStatsPanel(all, period as 'day' | 'week' | 'month');
+      await interaction.editReply({ embeds: payload.embeds, components: payload.components });
+      return;
+    }
+
+    if (id === CC.SETTINGS) {
+      if (!(await this.requireAccess(interaction as unknown as ButtonInteraction, guild))) return;
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const settings = await getInboxSettings(guild.id);
+      const payload = buildSettingsPanel(settings);
+      await interaction.editReply({ embeds: payload.embeds, components: payload.components });
+      return;
+    }
+
+    if (id === CC.SEARCH) {
+      if (!(await this.requireAccess(interaction as unknown as ButtonInteraction, guild))) return;
+      await (interaction as ButtonInteraction).showModal(buildSearchModal());
+      return;
+    }
+
+    if (id === CC.BROADCAST) {
+      if (!(await this.requireAccess(interaction as unknown as ButtonInteraction, guild))) return;
+      await (interaction as ButtonInteraction).showModal(buildBroadcastModal());
+      return;
+    }
+
+    if (id === CC.ANNOUNCE) {
+      if (!(await this.requireAccess(interaction as unknown as ButtonInteraction, guild))) return;
+      await (interaction as ButtonInteraction).showModal(buildAnnouncementModal());
+      return;
+    }
+
+    if (id === CC.STAFF) {
+      if (!(await this.requireAccess(interaction as unknown as ButtonInteraction, guild))) return;
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const all = await getAllConversations();
+      // Build staff member list from active staff tags (approximated presence)
+      const { getActiveStaffTags } = await import('../../../community/inbox/staff-activity');
+      const activeTags = getActiveStaffTags();
+      const staffMembers: StaffMember[] = activeTags.map(tag => ({ id: tag, tag, lastActive: Date.now() }));
+      const payload = buildStaffPanel(staffMembers, all);
+      await interaction.editReply({ embeds: payload.embeds, components: payload.components });
+      return;
+    }
+
+    if (id === CC.AI_PANEL) {
+      if (!(await this.requireAccess(interaction as unknown as ButtonInteraction, guild))) return;
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const payload = buildAIPanel();
+      await interaction.editReply({ embeds: payload.embeds, components: payload.components });
+      return;
+    }
+
+    if (id === CC.EXPORT) {
+      if (!(await this.requireAccess(interaction as unknown as ButtonInteraction, guild))) return;
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const all = await getAllConversations();
+      const payload = buildExportPanel(all.length);
+      await interaction.editReply({ embeds: payload.embeds, components: payload.components });
+      return;
+    }
+
+    if (id === CC.EXPORT_CSV || id === CC.EXPORT_JSON || id === CC.EXPORT_TODAY) {
+      if (!(await this.requireAccess(interaction as unknown as ButtonInteraction, guild))) return;
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      let all = await getAllConversations();
+      if (id === CC.EXPORT_TODAY) {
+        const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+        all = all.filter(c => c.lastMessageAt >= dayStart.getTime());
+      }
+      if (id === CC.EXPORT_JSON) {
+        const json = JSON.stringify(all, null, 2);
+        const file = new AttachmentBuilder(Buffer.from(json, 'utf-8'), { name: 'inbox-export.json' });
+        await interaction.editReply({ content: `✅ Exported ${all.length} conversation(s) as JSON.`, files: [file] });
+      } else {
+        const csv = exportToCSV(all);
+        const file = new AttachmentBuilder(Buffer.from(csv, 'utf-8'), { name: 'inbox-export.csv' });
+        await interaction.editReply({ content: `✅ Exported ${all.length} conversation(s) as CSV.`, files: [file] });
+      }
+      return;
+    }
+
+    if (id === CC.CLEANUP) {
+      if (!(await this.requireAccess(interaction as unknown as ButtonInteraction, guild))) return;
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const all = await getAllConversations();
+      const payload = buildCleanupPanel(all);
+      await interaction.editReply({ embeds: payload.embeds, components: payload.components });
+      return;
+    }
+
+    if (id === CC.CLEANUP_CONFIRM) {
+      if (!(await this.requireAccess(interaction as unknown as ButtonInteraction, guild))) return;
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const all = await getAllConversations();
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const stale = all.filter(c => c.status === 'closed' && c.updatedAt < thirtyDaysAgo);
+      for (const conv of stale) await toggleArchive(conv.userId);
+      await interaction.editReply({ content: `✅ Archived **${stale.length}** stale conversation(s).` });
+      this.scheduleRefresh(guild);
+      return;
+    }
+
+    // ── Conversation management panel (ic:cc:c:<uid>) ──
+    const convPanelUid = parseConvPanelId(id);
+    if (convPanelUid) {
+      if (!(await this.requireAccess(interaction as unknown as ButtonInteraction, guild))) return;
+      await this.ccShowConv(interaction as unknown as ButtonInteraction, guild, convPanelUid);
+      return;
+    }
+
+    // ── Conversation actions ──
+    if (id.startsWith('ic:cc:cr:') && interaction.isButton()) {
+      const uid = id.slice('ic:cc:cr:'.length);
+      const conv = await getConversation(uid);
+      if (!conv) { await interaction.reply({ content: '❌ Conversation not found.', flags: MessageFlags.Ephemeral }); return; }
+      await interaction.showModal(buildConvReplyModal(uid));
+      return;
+    }
+
+    if (id.startsWith('ic:cc:ca:') && interaction.isButton()) {
+      const uid = id.slice('ic:cc:ca:'.length);
+      const conv = await getConversation(uid);
+      if (!conv) { await interaction.reply({ content: '❌ Conversation not found.', flags: MessageFlags.Ephemeral }); return; }
+      await interaction.showModal(buildConvAssignModal(uid, conv.userTag, 'assign'));
+      return;
+    }
+
+    if (id.startsWith('ic:cc:ct:') && interaction.isButton()) {
+      const uid = id.slice('ic:cc:ct:'.length);
+      const conv = await getConversation(uid);
+      if (!conv) { await interaction.reply({ content: '❌ Conversation not found.', flags: MessageFlags.Ephemeral }); return; }
+      await interaction.showModal(buildConvAssignModal(uid, conv.userTag, 'transfer'));
+      return;
+    }
+
+    if (id.startsWith('ic:cc:cn:') && interaction.isButton()) {
+      const uid = id.slice('ic:cc:cn:'.length);
+      const conv = await getConversation(uid);
+      if (!conv || !conv.threadId) { await interaction.reply({ content: '❌ No thread found for this conversation.', flags: MessageFlags.Ephemeral }); return; }
+      await interaction.showModal(buildConvRenameModal(uid, conv.userTag));
+      return;
+    }
+
+    if (id.startsWith('ic:cc:cl:') && interaction.isButton()) {
+      const uid = id.slice('ic:cc:cl:'.length);
+      await this.ccToggleClose(interaction as ButtonInteraction, guild, uid);
+      return;
+    }
+
+    if (id.startsWith('ic:cc:cb:') && interaction.isButton()) {
+      const uid = id.slice('ic:cc:cb:'.length);
+      await this.ccBlockUser(interaction as ButtonInteraction, guild, uid, true);
+      return;
+    }
+
+    if (id.startsWith('ic:cc:cub:') && interaction.isButton()) {
+      const uid = id.slice('ic:cc:cub:'.length);
+      await this.ccBlockUser(interaction as ButtonInteraction, guild, uid, false);
+      return;
+    }
+
+    if (id.startsWith('ic:cc:cdt:') && interaction.isButton()) {
+      const uid = id.slice('ic:cc:cdt:'.length);
+      await this.ccDeleteThread(interaction as ButtonInteraction, guild, uid);
+      return;
+    }
+
+    // ── Settings actions ──
+    if (id === CC.SET_CHANNEL && interaction.isButton())  { await interaction.showModal(buildSetChannelModal((await getInboxSettings(guild.id)).supportChannelId, 'support')); return; }
+    if (id === CC.SET_LOGCHAN && interaction.isButton())  { await interaction.showModal(buildSetChannelModal((await getInboxSettings(guild.id)).logChannelId, 'log')); return; }
+    if (id === CC.SET_GREETING && interaction.isButton()) { await interaction.showModal(buildSetGreetingModal((await getInboxSettings(guild.id)).greetingMessage)); return; }
+
+    if (id === CC.SET_AUTOTHREAD && interaction.isButton()) {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const s = await getInboxSettings(guild.id);
+      const updated = await updateInboxSettings(guild.id, { autoThread: !s.autoThread });
+      const payload = buildSettingsPanel(updated);
+      await interaction.editReply({ content: `✅ Auto-Thread is now **${updated.autoThread ? 'enabled' : 'disabled'}**.`, embeds: payload.embeds, components: payload.components });
+      return;
+    }
+    if (id === CC.SET_AUTOARCHIVE && interaction.isButton()) {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const s = await getInboxSettings(guild.id);
+      const updated = await updateInboxSettings(guild.id, { autoArchiveDays: s.autoArchiveDays > 0 ? 0 : 7 });
+      const payload = buildSettingsPanel(updated);
+      await interaction.editReply({ content: `✅ Auto-Archive is now **${updated.autoArchiveDays > 0 ? `enabled (${updated.autoArchiveDays}d)` : 'disabled'}**.`, embeds: payload.embeds, components: payload.components });
+      return;
+    }
+    if (id === CC.SET_AUTOCLOSE && interaction.isButton()) {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const s = await getInboxSettings(guild.id);
+      const updated = await updateInboxSettings(guild.id, { autoCloseDays: s.autoCloseDays > 0 ? 0 : 30 });
+      const payload = buildSettingsPanel(updated);
+      await interaction.editReply({ content: `✅ Auto-Close is now **${updated.autoCloseDays > 0 ? `enabled (${updated.autoCloseDays}d)` : 'disabled'}**.`, embeds: payload.embeds, components: payload.components });
+      return;
+    }
+    if (id === CC.SET_AI && interaction.isButton()) {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const s = await getInboxSettings(guild.id);
+      const updated = await updateInboxSettings(guild.id, { aiEnabled: !s.aiEnabled });
+      const payload = buildSettingsPanel(updated);
+      await interaction.editReply({ content: `✅ AI Features are now **${updated.aiEnabled ? 'enabled' : 'disabled'}**.`, embeds: payload.embeds, components: payload.components });
+      return;
+    }
+
+    // ── Modal submits ──
+    if (id === CC.SEARCH_SUBMIT && interaction.isModalSubmit()) {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const query = interaction.fields.getTextInputValue('query').trim();
+      const all = await getAllConversations();
+      const results = searchConversations(all, query);
+      const payload = buildSearchResultsPanel(query, results);
+      await interaction.editReply({ embeds: payload.embeds, components: payload.components as never });
+      return;
+    }
+
+    if (id === CC.BROADCAST_SUBMIT && interaction.isModalSubmit()) {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const message = interaction.fields.getTextInputValue('message').trim();
+      const all = await getAllConversations();
+      const open = all.filter(c => c.status === 'open' && !c.isArchived && !(c as InboxConversation & { isBlocked?: boolean }).isBlocked);
+      let sent = 0; let failed = 0;
+      for (const conv of open) {
+        try {
+          const user = await interaction.client.users.fetch(conv.userId);
+          await user.send({ content: message });
+          sent++;
+        } catch { failed++; }
+      }
+      await interaction.editReply({ content: `📝 Broadcast complete — sent to **${sent}** user(s)${failed ? `, failed for **${failed}**` : ''}.` });
+      return;
+    }
+
+    if (id === CC.ANNOUNCE_SUBMIT && interaction.isModalSubmit()) {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const title   = interaction.fields.getTextInputValue('title').trim();
+      const message = interaction.fields.getTextInputValue('message').trim();
+      const all = await getAllConversations();
+      const open = all.filter(c => c.status === 'open' && !c.isArchived && !(c as InboxConversation & { isBlocked?: boolean }).isBlocked);
+      let sent = 0; let failed = 0;
+      for (const conv of open) {
+        try {
+          const user = await interaction.client.users.fetch(conv.userId);
+          await user.send({ content: `📢 **${title}**\n\n${message}` });
+          sent++;
+        } catch { failed++; }
+      }
+      await interaction.editReply({ content: `📢 Announcement sent to **${sent}** user(s)${failed ? `, failed for **${failed}**` : ''}.` });
+      return;
+    }
+
+    if (id.startsWith('ic:cc:cr_s:') && interaction.isModalSubmit()) {
+      const uid = id.slice('ic:cc:cr_s:'.length);
+      await this.ccSubmitReply(interaction, guild, uid);
+      return;
+    }
+
+    if (id.startsWith('ic:cc:ca_s:') && interaction.isModalSubmit()) {
+      const uid = id.slice('ic:cc:ca_s:'.length);
+      await this.ccSubmitAssign(interaction, guild, uid, 'assign');
+      return;
+    }
+
+    if (id.startsWith('ic:cc:ct_s:') && interaction.isModalSubmit()) {
+      const uid = id.slice('ic:cc:ct_s:'.length);
+      await this.ccSubmitAssign(interaction, guild, uid, 'transfer');
+      return;
+    }
+
+    if (id.startsWith('ic:cc:cn_s:') && interaction.isModalSubmit()) {
+      const uid = id.slice('ic:cc:cn_s:'.length);
+      await this.ccSubmitRename(interaction, guild, uid);
+      return;
+    }
+
+    if (id === CC.SET_CHANNEL_SUBMIT && interaction.isModalSubmit()) {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const channelId = interaction.fields.getTextInputValue('channel_id').trim() || undefined;
+      const updated = await updateInboxSettings(guild.id, { supportChannelId: channelId });
+      const payload = buildSettingsPanel(updated);
+      await interaction.editReply({ content: `✅ Support channel ${channelId ? `set to <#${channelId}>` : 'cleared (auto-created)'}.`, embeds: payload.embeds, components: payload.components });
+      return;
+    }
+
+    if (id === CC.SET_LOGCHAN_SUBMIT && interaction.isModalSubmit()) {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const channelId = interaction.fields.getTextInputValue('channel_id').trim() || undefined;
+      const updated = await updateInboxSettings(guild.id, { logChannelId: channelId });
+      const payload = buildSettingsPanel(updated);
+      await interaction.editReply({ content: `✅ Log channel ${channelId ? `set to <#${channelId}>` : 'cleared'}.`, embeds: payload.embeds, components: payload.components });
+      return;
+    }
+
+    if (id === CC.SET_GREETING_SUBMIT && interaction.isModalSubmit()) {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const greeting = interaction.fields.getTextInputValue('greeting').trim();
+      const updated = await updateInboxSettings(guild.id, { greetingMessage: greeting });
+      const payload = buildSettingsPanel(updated);
+      await interaction.editReply({ content: '✅ Greeting message updated.', embeds: payload.embeds, components: payload.components });
+      return;
+    }
+  }
+
+  // ── CC action helpers ─────────────────────────────────────────────────────────
+
+  private async ccShowConv(
+    interaction: ButtonInteraction,
+    _guild: Guild,
+    uid: string,
+  ): Promise<void> {
+    const isDeferred = interaction.deferred || interaction.replied;
+    if (!isDeferred) await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const conv = await getConversation(uid);
+    if (!conv) { await interaction.editReply({ content: '❌ Conversation not found.' }); return; }
+    const payload = buildConversationPanel(conv);
+    await interaction.editReply({ embeds: payload.embeds, components: payload.components });
+  }
+
+  private async ccToggleClose(
+    interaction: ButtonInteraction,
+    guild: Guild,
+    uid: string,
+  ): Promise<void> {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const conv = await getConversation(uid);
+    if (!conv) { await interaction.editReply({ content: '❌ Conversation not found.' }); return; }
+    const newStatus = conv.status === 'open' ? 'closed' : 'open';
+    await setStatus(uid, newStatus);
+    if (conv.threadId) {
+      const thread = await guild.channels.fetch(conv.threadId).catch(() => null) as ThreadChannel | null;
+      if (thread?.isThread()) {
+        if (newStatus === 'closed') {
+          await thread.send({ content: buildSystemMessage(`🔒 Conversation closed by **${interaction.user.tag}** via Control Center.`).content });
+          await thread.setLocked(true).catch(() => {});
+          await thread.setArchived(true).catch(() => {});
+        } else {
+          if (thread.locked)   await thread.setLocked(false).catch(() => {});
+          if (thread.archived) await thread.setArchived(false).catch(() => {});
+          await thread.send({ content: buildSystemMessage(`🔓 Conversation reopened by **${interaction.user.tag}** via Control Center.`).content });
+        }
+        const updated = await getConversation(uid);
+        if (updated) { await this.refreshThreadPanel(thread, updated); }
+      }
+    }
+    const updated = await getConversation(uid);
+    const payload = updated ? buildConversationPanel(updated) : undefined;
+    await interaction.editReply({
+      content: `✅ Conversation ${newStatus === 'closed' ? 'closed' : 'reopened'}.`,
+      ...(payload ? { embeds: payload.embeds, components: payload.components } : {}),
+    });
+    this.scheduleRefresh(guild);
+  }
+
+  private async ccBlockUser(
+    interaction: ButtonInteraction,
+    guild: Guild,
+    uid: string,
+    block: boolean,
+  ): Promise<void> {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const conv = await getConversation(uid);
+    if (!conv) { await interaction.editReply({ content: '❌ Conversation not found.' }); return; }
+    if (block) await blockUser(uid); else await unblockUser(uid);
+    if (conv.threadId) {
+      const thread = await guild.channels.fetch(conv.threadId).catch(() => null) as ThreadChannel | null;
+      if (thread?.isThread()) {
+        await thread.send({ content: buildSystemMessage(`${block ? '🚫 User blocked' : '✅ User unblocked'} by **${interaction.user.tag}** via Control Center.`).content }).catch(() => {});
+      }
+    }
+    const updated = await getConversation(uid);
+    const payload = updated ? buildConversationPanel(updated) : undefined;
+    await interaction.editReply({
+      content: `${block ? '🚫 User blocked' : '✅ User unblocked'}. They ${block ? 'will not receive' : 'can now receive'} replies.`,
+      ...(payload ? { embeds: payload.embeds, components: payload.components } : {}),
+    });
+  }
+
+  private async ccDeleteThread(
+    interaction: ButtonInteraction,
+    guild: Guild,
+    uid: string,
+  ): Promise<void> {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const conv = await getConversation(uid);
+    if (!conv?.threadId) { await interaction.editReply({ content: '❌ No thread to delete.' }); return; }
+    const thread = await guild.channels.fetch(conv.threadId).catch(() => null) as ThreadChannel | null;
+    if (thread?.isThread()) {
+      await thread.delete('Deleted via Support Inbox Control Center').catch(() => {});
+    }
+    await clearThreadId(uid);
+    removeCached(uid);
+    await interaction.editReply({ content: '🗑️ Thread deleted and conversation unlinked. A new thread will be created on the next DM.' });
+    this.scheduleRefresh(guild);
+  }
+
+  private async ccSubmitReply(
+    interaction: ModalSubmitInteraction,
+    guild: Guild,
+    uid: string,
+  ): Promise<void> {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const content = interaction.fields.getTextInputValue('content').trim();
+    if (!content) { await interaction.editReply({ content: '❌ Reply cannot be empty.' }); return; }
+    const conv = await getConversation(uid);
+    if (!conv) { await interaction.editReply({ content: '❌ Conversation not found.' }); return; }
+    if ((conv as InboxConversation & { isBlocked?: boolean }).isBlocked) {
+      await interaction.editReply({ content: '🚫 This user is blocked — unblock them first before sending a reply.' }); return;
+    }
+    const staffMember = await guild.members.fetch(interaction.user.id).catch(() => null);
+    const staffName = resolveDisplayName(staffMember, interaction.user, interaction.user.tag);
+    try {
+      const dmMsg = await this.deliverDM(interaction.client, uid, staffName, content);
+      await addStaffReply(uid, interaction.user.id, interaction.user.tag, content, [], { msgId: `cc_reply_${Date.now()}`, dmMessageId: dmMsg.id });
+      if (!conv.assignedTo) await assignTo(uid, interaction.user.id, interaction.user.tag);
+      if (!conv.isRead) await markAsRead(uid);
+      if (conv.threadId) {
+        const thread = await guild.channels.fetch(conv.threadId).catch(() => null) as ThreadChannel | null;
+        if (thread?.isThread()) {
+          const receipt = 'delivered';
+          const bar = buildReplyActionBar(uid, dmMsg.id, staffName, content, receipt);
+          await thread.send({ content: bar.content, components: bar.components }).catch(() => {});
+        }
+      }
+      await interaction.editReply({ content: `✅ Reply sent to **${conv.userTag}**.` });
+      this.scheduleRefresh(guild);
+    } catch (err) {
+      logger.error(`[InboxCC] Reply delivery failed for ${uid}`, err);
+      await interaction.editReply({ content: '❌ Could not DM this user — they may have DMs disabled.' });
+    }
+  }
+
+  private async ccSubmitAssign(
+    interaction: ModalSubmitInteraction,
+    guild: Guild,
+    uid: string,
+    mode: 'assign' | 'transfer',
+  ): Promise<void> {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const staffId  = interaction.fields.getTextInputValue('staff_id').trim() || undefined;
+    const staffTag = interaction.fields.getTextInputValue('staff_tag').trim() || staffId;
+    await assignTo(uid, staffId, staffTag);
+    const conv = await getConversation(uid);
+    if (conv?.threadId) {
+      const thread = await guild.channels.fetch(conv.threadId).catch(() => null) as ThreadChannel | null;
+      if (thread?.isThread()) {
+        const who = staffId ? (staffTag ?? staffId) : 'nobody (unassigned)';
+        await thread.send({ content: buildSystemMessage(`${mode === 'transfer' ? '🔁 Transferred' : '👤 Assigned'} to **${who}** by **${interaction.user.tag}** via Control Center.`).content }).catch(() => {});
+        const updated = await getConversation(uid);
+        if (updated) await this.refreshThreadPanel(thread, updated);
+      }
+    }
+    const updated = await getConversation(uid);
+    const payload = updated ? buildConversationPanel(updated) : undefined;
+    await interaction.editReply({
+      content: staffId ? `✅ ${mode === 'transfer' ? 'Transferred' : 'Assigned'} to **${staffTag ?? staffId}**.` : '✅ Conversation unassigned.',
+      ...(payload ? { embeds: payload.embeds, components: payload.components } : {}),
+    });
+    this.scheduleRefresh(guild);
+  }
+
+  private async ccSubmitRename(
+    interaction: ModalSubmitInteraction,
+    _guild: Guild,
+    uid: string,
+  ): Promise<void> {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const name = interaction.fields.getTextInputValue('name').trim().slice(0, 90);
+    if (!name) { await interaction.editReply({ content: '❌ Thread name cannot be empty.' }); return; }
+    const conv = await getConversation(uid);
+    if (!conv?.threadId) { await interaction.editReply({ content: '❌ No thread found for this conversation.' }); return; }
+    const thread = await _guild.channels.fetch(conv.threadId).catch(() => null) as ThreadChannel | null;
+    if (!thread?.isThread()) { await interaction.editReply({ content: '❌ Could not find the thread on Discord.' }); return; }
+    await thread.setName(name).catch(() => {});
+    await interaction.editReply({ content: `✅ Thread renamed to **${name}**.` });
   }
 }

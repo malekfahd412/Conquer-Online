@@ -12,12 +12,12 @@
           "guildId": "1213437502078062674",
           "firstTrackedAt": 1783904981848,
           "status": "active",
-          "lastActivityAt": 1785612707477,
+          "lastActivityAt": 1785882714921,
           "totalActivityMs": 0,
           "counts": {
             "ticket_claimed": 2,
-            "ticket_closed": 14,
-            "ticket_reopened": 0,
+            "ticket_closed": 20,
+            "ticket_reopened": 1,
             "warn_issued": 0,
             "unwarn_issued": 0,
             "mute_issued": 0,
@@ -35,11 +35,53 @@
           },
           "firstResponseTotalMs": 23097819,
           "firstResponseSamples": 2,
-          "resolutionTotalMs": 13179046,
-          "resolutionSamples": 14,
+          "resolutionTotalMs": 3686063113,
+          "resolutionSamples": 20,
           "warnings": [],
           "notes": [],
           "timeline": [
+            {
+              "id": "msf8gi0bgvcxb4",
+              "action": "ticket_closed",
+              "description": "🔒 Ticket Closed — Ticket #26",
+              "timestamp": 1785882714921
+            },
+            {
+              "id": "msf8ga1t7o0yn0",
+              "action": "ticket_reopened",
+              "description": "🔓 Ticket Reopened — Ticket #26",
+              "timestamp": 1785882704608
+            },
+            {
+              "id": "msf8g7u97s0clv",
+              "action": "ticket_closed",
+              "description": "🔒 Ticket Closed — Ticket #26",
+              "timestamp": 1785882701743
+            },
+            {
+              "id": "msf8g1iijad83j",
+              "action": "ticket_closed",
+              "description": "🔒 Ticket Closed — Ticket #31",
+              "timestamp": 1785882693542
+            },
+            {
+              "id": "msf8fw2sb3i1ef",
+              "action": "ticket_closed",
+              "description": "🔒 Ticket Closed — Ticket #30",
+              "timestamp": 1785882686498
+            },
+            {
+              "id": "msf8fse8qohug8",
+              "action": "ticket_closed",
+              "description": "🔒 Ticket Closed — Ticket #29",
+              "timestamp": 1785882681726
+            },
+            {
+              "id": "msf8ezv2v2d88e",
+              "action": "ticket_closed",
+              "description": "🔒 Ticket Closed — Ticket #28",
+              "timestamp": 1785882644745
+            },
             {
               "id": "msarpaxn3sfcok",
               "action": "ticket_closed",

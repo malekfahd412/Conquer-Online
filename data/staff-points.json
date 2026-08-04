@@ -181,6 +181,62 @@
           "action": "ticket_closed",
           "points": 10,
           "timestamp": 1785612707486
+        },
+        {
+          "id": "msf8ezv44grzuv",
+          "guildId": "1213437502078062674",
+          "userId": "727578927593291796",
+          "action": "ticket_closed",
+          "points": 10,
+          "timestamp": 1785882644752
+        },
+        {
+          "id": "msf8fsebrag3fr",
+          "guildId": "1213437502078062674",
+          "userId": "727578927593291796",
+          "action": "ticket_closed",
+          "points": 10,
+          "timestamp": 1785882681731
+        },
+        {
+          "id": "msf8fw2tcxr461",
+          "guildId": "1213437502078062674",
+          "userId": "727578927593291796",
+          "action": "ticket_closed",
+          "points": 10,
+          "timestamp": 1785882686501
+        },
+        {
+          "id": "msf8g1ik7kb4tf",
+          "guildId": "1213437502078062674",
+          "userId": "727578927593291796",
+          "action": "ticket_closed",
+          "points": 10,
+          "timestamp": 1785882693548
+        },
+        {
+          "id": "msf8g7uatfv9el",
+          "guildId": "1213437502078062674",
+          "userId": "727578927593291796",
+          "action": "ticket_closed",
+          "points": 10,
+          "timestamp": 1785882701746
+        },
+        {
+          "id": "msf8ga1vtr3jan",
+          "guildId": "1213437502078062674",
+          "userId": "727578927593291796",
+          "action": "ticket_reopened",
+          "points": 0,
+          "timestamp": 1785882704611
+        },
+        {
+          "id": "msf8gi0cnmhll4",
+          "guildId": "1213437502078062674",
+          "userId": "727578927593291796",
+          "action": "ticket_closed",
+          "points": 10,
+          "timestamp": 1785882714924
         }
       ]
     },

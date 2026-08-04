@@ -536,18 +536,21 @@
       "ticketType": "support",
       "channelId": "1526625565967384637",
       "openerId": "813694950067142656",
-      "status": "open",
+      "status": "closed",
       "number": 26,
       "priority": "normal",
       "answers": {},
       "createdAt": 1784046298342,
-      "lastActivityAt": 1784046298342,
+      "lastActivityAt": 1785882704227,
       "participantIds": [
         "813694950067142656"
       ],
       "headerMessageId": "1526625567594774549",
       "claimedBy": "727578927593291796",
-      "firstStaffReplyAt": 1784067319428
+      "firstStaffReplyAt": 1784067319428,
+      "lastLifecycleMessageId": "1534328057211392165",
+      "closedAt": 1785882714913,
+      "closedBy": "727578927593291796"
     },
     {
       "id": "ticket_1785612696814_yjuv0",
@@ -569,9 +572,93 @@
       "closedAt": 1785612707473,
       "closedBy": "727578927593291796",
       "lastLifecycleMessageId": "1533195562877190446"
+    },
+    {
+      "id": "ticket_1785882636528_ar8mi",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketType": "store",
+      "channelId": "1534327727312736328",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 28,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1785882636783,
+      "lastActivityAt": 1785882636783,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "headerMessageId": "1534327728533409894",
+      "closedAt": 1785882644741,
+      "closedBy": "727578927593291796",
+      "lastLifecycleMessageId": "1534327761798299882"
+    },
+    {
+      "id": "ticket_1785882664313_j23ax",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketType": "support",
+      "channelId": "1534327844170104994",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 29,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1785882664609,
+      "lastActivityAt": 1785882664609,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "headerMessageId": "1534327846040764487",
+      "closedAt": 1785882681721,
+      "closedBy": "727578927593291796",
+      "lastLifecycleMessageId": "1534327916916113533"
+    },
+    {
+      "id": "ticket_1785882668145_y5hs8",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketType": "Support Manger",
+      "channelId": "1534327859957731349",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 30,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1785882668514,
+      "lastActivityAt": 1785882668514,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "headerMessageId": "1534327861454835858",
+      "closedAt": 1785882686491,
+      "closedBy": "727578927593291796",
+      "lastLifecycleMessageId": "1534327937371996345"
+    },
+    {
+      "id": "ticket_1785882670262_9bcd8",
+      "guildId": "1213437502078062674",
+      "panelId": "panel_1783810288179_l0nm0",
+      "ticketType": "Staff",
+      "channelId": "1534327877317824542",
+      "openerId": "727578927593291796",
+      "status": "closed",
+      "number": 31,
+      "priority": "normal",
+      "answers": {},
+      "createdAt": 1785882672518,
+      "lastActivityAt": 1785882672518,
+      "participantIds": [
+        "727578927593291796"
+      ],
+      "headerMessageId": "1534327878932758731",
+      "closedAt": 1785882693538,
+      "closedBy": "727578927593291796",
+      "lastLifecycleMessageId": "1534327966459363391"
     }
   ],
   "counters": {
-    "1213437502078062674": 27
+    "1213437502078062674": 31
   }
 }
